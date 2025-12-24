@@ -1,0 +1,34 @@
+﻿
+   FAIL  Tests\Feature\Auth\SanctumAuthenticationTest
+  Ô¿» register creates user aÔÇª 0.98s  
+  ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ  
+   FAILED  Tests\Feature\Auth\SaÔÇª   
+  Expected response status code [201] but received 422.
+Failed asserting that 422 is identical to 201.
+
+The following errors occurred during the last request:
+
+{
+    "message": "The password field must contain at least one symbol.",
+    "errors": {
+        "password": [
+            "The password field must contain at least one symbol."
+        ]
+    }
+}
+
+  at tests\Feature\Auth\SanctumAuthenticationTest.php:49
+     45Ôûò             'password' => 'SecurePassword123',
+     46Ôûò             'password_confirmation' => 'SecurePassword123',
+     47Ôûò         ]);
+     48Ôûò 
+  Ô×£  49Ôûò         $response->assertStatus(201)
+     50Ôûò             ->assertJsonStructure([
+     51Ôûò                 'message',
+     52Ôûò                 'data' => [
+     53Ôûò                     'access_token',
+
+
+  Tests:    1 failed, [2m14 pending[22m (1 assertions)
+  Duration: 1.13s
+
