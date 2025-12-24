@@ -1,0 +1,262 @@
+# ============================================
+# BBIHUB Platform Monorepo - .gitignore
+# ============================================
+
+# ============================================
+# LARAVEL BACKEND
+# ============================================
+
+# Environment files
+backend/.env
+backend/.env.backup
+backend/.env.production
+
+# Dependencies
+backend/vendor/
+backend/node_modules/
+
+# Laravel specific
+backend/bootstrap/cache/*
+backend/storage/*.key
+backend/storage/app/*
+backend/storage/app/public/*
+backend/storage/framework/cache/*
+backend/storage/framework/sessions/*
+backend/storage/framework/testing/*
+backend/storage/framework/views/*
+backend/storage/logs/*
+
+# Keep gitkeep files
+!backend/storage/app/.gitkeep
+!backend/storage/app/public/.gitkeep
+!backend/storage/framework/.gitkeep
+!backend/storage/framework/cache/.gitkeep
+!backend/storage/framework/sessions/.gitkeep
+!backend/storage/framework/testing/.gitkeep
+!backend/storage/framework/views/.gitkeep
+!backend/storage/logs/.gitkeep
+
+# SQLite database
+backend/*.sqlite
+backend/*.sqlite-journal
+backend/database/*.sqlite
+backend/database/*.sqlite-journal
+
+# PHP specific
+backend/*.cache
+backend/.phpunit.result.cache
+backend/coverage/
+backend/.php-cs-fixer.cache
+
+# Build files
+backend/public/hot
+backend/public/storage
+backend/public/build
+backend/public/css
+backend/public/js
+
+# ============================================
+# FLUTTER MOBILE
+# ============================================
+
+# Flutter/Dart/Pub related
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/.packages
+mobile/.pub-cache/
+mobile/.pub/
+mobile/build/
+mobile/flutter_*.png
+mobile/linked_*.ds
+mobile/unlinked.ds
+mobile/unlinked_spec.ds
+
+# Android related
+mobile/android/**/gradle-wrapper.jar
+mobile/android/.gradle
+mobile/android/captures/
+mobile/android/gradlew
+mobile/android/gradlew.bat
+mobile/android/local.properties
+mobile/android/**/GeneratedPluginRegistrant.java
+mobile/android/**/GeneratedPluginRegistrant.kt
+mobile/android/key.properties
+mobile/android/app/google-services.json
+mobile/android/**/*.jks
+mobile/android/**/*.keystore
+
+# iOS/XCode related
+mobile/ios/**/*.mode1v3
+mobile/ios/**/*.mode2v3
+mobile/ios/**/*.moved-aside
+mobile/ios/**/*.pbxuser
+mobile/ios/**/*.perspectivev3
+mobile/ios/**/*sync/
+mobile/ios/**/.sconsign.dblite
+mobile/ios/**/.tags*
+mobile/ios/**/.vagrant/
+mobile/ios/**/DerivedData/
+mobile/ios/**/Icon?
+mobile/ios/**/Pods/
+mobile/ios/**/.symlinks/
+mobile/ios/**/profile
+mobile/ios/**/xcuserdata
+mobile/ios/.generated/
+mobile/ios/Flutter/App.framework
+mobile/ios/Flutter/Flutter.framework
+mobile/ios/Flutter/Flutter.podspec
+mobile/ios/Flutter/Generated.xcconfig
+mobile/ios/Flutter/ephemeral
+mobile/ios/Flutter/app.flx
+mobile/ios/Flutter/app.zip
+mobile/ios/Flutter/flutter_assets/
+mobile/ios/Flutter/flutter_export_environment.sh
+mobile/ios/ServiceDefinitions.json
+mobile/ios/Runner/GeneratedPluginRegistrant.*
+mobile/ios/GoogleService-Info.plist
+
+# macOS
+mobile/macos/Flutter/GeneratedPluginRegistrant.swift
+mobile/macos/Flutter/ephemeral
+
+# Linux
+mobile/linux/flutter/generated_plugin_registrant.cc
+mobile/linux/flutter/generated_plugin_registrant.h
+
+# Windows
+mobile/windows/flutter/generated_plugin_registrant.cc
+mobile/windows/flutter/generated_plugin_registrant.h
+
+# Web
+mobile/web/.dart_tool/
+
+# Coverage
+mobile/coverage/
+mobile/test/.test_coverage.dart
+
+# ============================================
+# POSTMAN / API TESTING
+# ============================================
+postman/*_environment.json
+postman/newman/
+
+# ============================================
+# IDE & EDITORS
+# ============================================
+
+# VSCode
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# IntelliJ / Android Studio
+.idea/
+*.iml
+*.iws
+*.ipr
+.idea_modules/
+atlassian-ide-plugin.xml
+com_crashlytics_export_strings.xml
+crashlytics.properties
+crashlytics-build.properties
+fabric.properties
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# ============================================
+# OPERATING SYSTEM
+# ============================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.directory
+.Trash-*
+.nfs*
+
+# ============================================
+# LOGS & TEMPORARY FILES
+# ============================================
+*.log
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*~.nib
+local.properties
+
+# ============================================
+# SENSITIVE & SECRET FILES
+# ============================================
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.cert
+*.p12
+secrets.json
+credentials.json
+
+# ============================================
+# BUILD & DISTRIBUTION
+# ============================================
+dist/
+release/
+*.apk
+*.aab
+*.ipa
+*.app
+
+# ============================================
+# MISC
+# ============================================
+.history/
+.ionide/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
