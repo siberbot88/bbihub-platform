@@ -36,8 +36,8 @@ class WorkPagination extends StatelessWidget {
                 ? const Color(0xFF374151)
                 : const Color(0xFFF3F4F6),
             disabledBackgroundColor: isDark
-                ? const Color(0xFF374151).withOpacity(0.5)
-                : const Color(0xFFF3F4F6).withOpacity(0.5),
+                ? const Color(0xFF374151).withValues(alpha: 0.5)
+                : const Color(0xFFF3F4F6).withValues(alpha: 0.5),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
@@ -103,8 +103,8 @@ class WorkPagination extends StatelessWidget {
                 ? _primaryRed 
                 : (isDark ? const Color(0xFF374151) : const Color(0xFFF3F4F6)),
             disabledBackgroundColor: isDark
-                ? const Color(0xFF374151).withOpacity(0.5)
-                : const Color(0xFFF3F4F6).withOpacity(0.5),
+                ? const Color(0xFF374151).withValues(alpha: 0.5)
+                : const Color(0xFFF3F4F6).withValues(alpha: 0.5),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),

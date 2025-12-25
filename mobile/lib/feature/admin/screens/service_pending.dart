@@ -5,8 +5,7 @@ import '../widgets/assign_dialog.dart';
 import 'package:flutter_svg/flutter_svg.dart';   
 import 'package:provider/provider.dart';
 import 'package:bengkel_online_flutter/feature/admin/providers/admin_service_provider.dart';
-import 'package:bengkel_online_flutter/core/models/service.dart';
-import 'package:intl/intl.dart';          
+import 'package:bengkel_online_flutter/core/models/service.dart';          
 
 
 class ServicePendingDetail extends StatelessWidget {

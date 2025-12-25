@@ -45,11 +45,11 @@ class Voucher {
 
   static String? _fixImageUrl(dynamic url) {
     if (url == null || url.toString().isEmpty) {
-      print("DEBUG_IMAGE: URL is null or empty");
+      // debugPrint("DEBUG_IMAGE: URL is null or empty");
       return null;
     }
     String finalUrl = url.toString();
-    print("DEBUG_IMAGE_ORIGINAL: $finalUrl");
+    // debugPrint("DEBUG_IMAGE_ORIGINAL: $finalUrl");
     
     // Fix for Android Emulator 127.0.0.1 -> 10.0.2.2
     if (finalUrl.contains("127.0.0.1")) {
@@ -57,7 +57,7 @@ class Voucher {
     } else if (finalUrl.contains("localhost")) {
       finalUrl = finalUrl.replaceAll("localhost", "10.0.2.2");
     }
-    print("DEBUG_IMAGE_FIXED: $finalUrl");
+    // debugPrint("DEBUG_IMAGE_FIXED: $finalUrl");
     return finalUrl;
   }
 

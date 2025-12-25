@@ -70,8 +70,7 @@ class _ManajemenKaryawanPageState extends State<ManajemenKaryawanPage> {
               backgroundColor: _grad2,
               elevation: 0,
               expandedHeight: 280,
-              automaticallyImplyLeading: canPop,
-              iconTheme: const IconThemeData(color: Colors.white),
+              automaticallyImplyLeading: false, // Disable default back button
               flexibleSpace: FlexibleSpaceBar(
                 collapseMode: CollapseMode.parallax,
                 background: Container(
@@ -89,6 +88,24 @@ class _ManajemenKaryawanPageState extends State<ManajemenKaryawanPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // Custom circular back button
+                          if (canPop)
+                            InkWell(
+                              onTap: () => Navigator.maybePop(context),
+                              borderRadius: BorderRadius.circular(50),
+                              child: Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.15),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.chevron_left_rounded,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
+                              ),
+                            ),
                           const SizedBox(height: 4),
                           // Judul ditaruh di tengah, independen dari tombol back
                           const Center(

@@ -1,7 +1,6 @@
 import 'package:bengkel_online_flutter/core/services/api_service.dart';
 import 'package:bengkel_online_flutter/core/services/auth_provider.dart';
 import 'package:bengkel_online_flutter/core/widgets/custom_alert.dart';
-import 'package:bengkel_online_flutter/core/screens/registers/wave_clippers.dart';
 import 'package:bengkel_online_flutter/core/widgets/clean_notification.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -529,7 +528,7 @@ class _RegisterFlowPageState extends State<RegisterFlowPage>
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFD72B1C).withOpacity(0.05),
+                  color: const Color(0xFFD72B1C).withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -537,7 +536,7 @@ class _RegisterFlowPageState extends State<RegisterFlowPage>
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFD72B1C).withOpacity(0.1),
+                        color: const Color(0xFFD72B1C).withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(Icons.person_outline, color: Color(0xFFD72B1C), size: 24),
@@ -644,7 +643,7 @@ class _RegisterFlowPageState extends State<RegisterFlowPage>
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFD72B1C).withOpacity(0.05),
+                  color: const Color(0xFFD72B1C).withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -652,7 +651,7 @@ class _RegisterFlowPageState extends State<RegisterFlowPage>
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFD72B1C).withOpacity(0.1),
+                        color: const Color(0xFFD72B1C).withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(Icons.business_outlined, color: Color(0xFFD72B1C), size: 24),
@@ -731,7 +730,7 @@ class _RegisterFlowPageState extends State<RegisterFlowPage>
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFD72B1C).withOpacity(0.05),
+                  color: const Color(0xFFD72B1C).withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -739,7 +738,7 @@ class _RegisterFlowPageState extends State<RegisterFlowPage>
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFD72B1C).withOpacity(0.1),
+                        color: const Color(0xFFD72B1C).withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(Icons.assignment_outlined, color: Color(0xFFD72B1C), size: 24),
@@ -796,7 +795,7 @@ class _RegisterFlowPageState extends State<RegisterFlowPage>
             // Minimalist soft shadow
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 40,
                 offset: const Offset(0, 10),
               ),

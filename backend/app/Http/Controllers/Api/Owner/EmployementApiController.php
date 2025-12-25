@@ -48,30 +48,30 @@ class EmployementApiController extends Controller
         // 🔒 LIMIT CHECK for Free Tier
         $user = $request->user();
         if ($user->hasRole('owner', 'sanctum')) {
-             $subscription = $user->ownerSubscription; 
-             $isPremium = false;
-             
-             // Check if active premium plan (not starter)
-             if ($subscription && $subscription->status === 'active') {
-                 $plan = $subscription->plan; // using the alias we fixed earlier
-                 if ($plan && $plan->code !== 'starter') {
-                     $isPremium = true;
-                 }
-             }
-             
-             $limit = $isPremium ? 9999 : 5;
-             
-             // Count current employees
-             $workshopIds = $user->workshops()->pluck('id');
-             $currentCount = Employment::whereIn('workshop_uuid', $workshopIds)->count();
-             
-             if ($currentCount >= $limit) {
-                 return $this->errorResponse(
-                     'Batas staff tercapai (Maksimal 5). Upgrade ke Premium untuk menambah staff.',
-                     403,
-                     ['code' => 'LIMIT_REACHED']
-                 );
-             }
+            $subscription = $user->ownerSubscription;
+            $isPremium = false;
+
+            // Check if active premium plan (not starter)
+            if ($subscription && $subscription->status === 'active') {
+                $plan = $subscription->plan; // using the alias we fixed earlier
+                if ($plan && $plan->code !== 'starter') {
+                    $isPremium = true;
+                }
+            }
+
+            $limit = $isPremium ? 9999 : 2;
+
+            // Count current employees
+            $workshopIds = $user->workshops()->pluck('id');
+            $currentCount = Employment::whereIn('workshop_uuid', $workshopIds)->count();
+
+            if ($currentCount >= $limit) {
+                return $this->errorResponse(
+                    'Batas staff tercapai (Maksimal 2). Upgrade ke Premium untuk menambah staff.',
+                    403,
+                    ['code' => 'LIMIT_REACHED']
+                );
+            }
         }
 
         try {
@@ -80,7 +80,7 @@ class EmployementApiController extends Controller
             );
 
             return $this->successResponse('Karyawan berhasil dibuat', [
-                'data'       => $employment,
+                'data' => $employment,
                 'email_sent' => $emailSent,
             ], 201);
 
@@ -146,8 +146,8 @@ class EmployementApiController extends Controller
             );
 
             return $this->successResponse('Status updated', [
-                'id'      => $updatedEmployee->id,
-                'status'  => $updatedEmployee->status,
+                'id' => $updatedEmployee->id,
+                'status' => $updatedEmployee->status,
             ]);
         } catch (\Throwable $e) {
             \Log::error('Update employee status failed', ['error' => $e->getMessage()]);

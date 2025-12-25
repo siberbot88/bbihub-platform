@@ -129,35 +129,45 @@ class _AddStaffRegisterPageState extends State<AddStaffRegisterPage>
         ..forward();
     } catch (e) {
       if (!mounted) return;
+      
+      final msg = e.toString().replaceFirst("Exception: ", "");
+      
+      // Check for limit reached error
+      final isLimitError = msg.contains("Batas staff tercapai") || 
+                          msg.contains("Upgrade") || 
+                          msg.contains("LIMIT_REACHED");
+      
       setState(() {
         _saving = false;
         
-        final msg = e.toString().replaceFirst("Exception: ", "");
-        _errorMessage = msg;
-
-        // Check for limit reached error
-        if (msg.contains("Batas staff tercapai") || msg.contains("Upgrade") || msg.contains("LIMIT_REACHED")) {
-           showDialog(
-             context: context,
-             builder: (ctx) => PremiumLimitDialog(
-               message: "Maksimal 5 staff untuk paket Gratis. \nSilakan upgrade untuk menambah lebih banyak staff.",
-               onUpgrade: () {
-                 // Navigate to Premium Screen
-                 Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => PremiumMembershipScreen(
-                        onViewMembershipPackages: () {
-                            // Logic to scroll to packages or handling
-                        },
-                      ),
-                    ),
-                 );
-               },
-             ),
-           );
+        // Only show error text if NOT a limit error (dialog will handle it)
+        if (!isLimitError) {
+          _errorMessage = msg;
         }
       });
+
+      // Show premium dialog for limit errors
+      if (isLimitError) {
+         showDialog(
+           context: context,
+           builder: (ctx) => PremiumLimitDialog(
+             message: "Maksimal 2 staff untuk paket Gratis. \nSilakan upgrade untuk menambah lebih banyak staff.",
+             onUpgrade: () {
+               // Navigate to Premium Screen
+               Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => PremiumMembershipScreen(
+                      onViewMembershipPackages: () {
+                          // Logic to scroll to packages or handling
+                      },
+                    ),
+                  ),
+               );
+             },
+           ),
+         );
+      }
     }
   }
 

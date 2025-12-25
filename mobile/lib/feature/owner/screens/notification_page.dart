@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:bengkel_online_flutter/core/theme/app_colors.dart';
-import 'package:bengkel_online_flutter/core/theme/app_text_styles.dart';
 import 'package:bengkel_online_flutter/core/widgets/custom_alert.dart';
 import 'package:bengkel_online_flutter/core/services/notification_provider.dart';
 import 'package:bengkel_online_flutter/core/models/notification_model.dart';
@@ -212,7 +211,7 @@ class _NotificationCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: _getColor().withOpacity(0.1),
+                  color: _getColor().withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(_getIcon(), color: _getColor(), size: 20),

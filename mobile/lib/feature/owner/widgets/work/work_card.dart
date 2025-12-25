@@ -42,7 +42,7 @@ class WorkStatusChip extends StatelessWidget {
           boxShadow: selected
               ? [
                   BoxShadow(
-                    color: _primaryRed.withOpacity(0.2),
+                    color: _primaryRed.withValues(alpha: 0.2),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -124,7 +124,7 @@ class WorkCard extends StatelessWidget {
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 2),
               ),
@@ -138,13 +138,13 @@ class WorkCard extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
                   color: isDark 
-                      ? Colors.white.withOpacity(0.05)
-                      : const Color(0xFFF9FAFB).withOpacity(0.5),
+                      ? Colors.white.withValues(alpha: 0.05)
+                      : const Color(0xFFF9FAFB).withValues(alpha: 0.5),
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                   border: Border(
                     bottom: BorderSide(
                       color: isDark 
-                          ? const Color(0xFF374151).withOpacity(0.5)
+                          ? const Color(0xFF374151).withValues(alpha: 0.5)
                           : const Color(0xFFF3F4F6),
                     ),
                   ),
@@ -164,10 +164,10 @@ class WorkCard extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: statusColor.withOpacity(0.1),
+                        color: statusColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4),
                         border: Border.all(
-                          color: statusColor.withOpacity(0.2),
+                          color: statusColor.withValues(alpha: 0.2),
                           width: 1,
                         ),
                       ),
@@ -384,7 +384,7 @@ class WorkCard extends StatelessWidget {
                                       foregroundColor: Colors.white,
                                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                       elevation: 2,
-                                      shadowColor: _primaryRed.withOpacity(0.2),
+                                      shadowColor: _primaryRed.withValues(alpha: 0.2),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(8),
                                       ),

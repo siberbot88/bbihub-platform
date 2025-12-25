@@ -19,7 +19,6 @@ class _ReportListScreenState extends State<ReportListScreen> {
   bool _hasError = false;
   String _errorMessage = '';
   int _currentPage = 1;
-  int _lastPage = 1;
 
   @override
   void initState() {
@@ -38,7 +37,6 @@ class _ReportListScreenState extends State<ReportListScreen> {
       setState(() {
         _reports = result['reports'] as List<Report>;
         _currentPage = result['current_page'] as int;
-        _lastPage = result['last_page'] as int;
         _isLoading = false;
       });
     } catch (e) {
@@ -235,7 +233,7 @@ class _ReportListScreenState extends State<ReportListScreen> {
                                           ),
                                           decoration: BoxDecoration(
                                             color: _getStatusColor(report.status)
-                                                .withOpacity(0.2),
+                                                .withValues(alpha: 0.2),
                                             borderRadius:
                                                 BorderRadius.circular(6),
                                           ),

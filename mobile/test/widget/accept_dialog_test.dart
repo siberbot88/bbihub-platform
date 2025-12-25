@@ -32,8 +32,9 @@ void main() {
       await tester.tap(find.text('Show Dialog'));
       await tester.pumpAndSettle();
 
-      // Assert: Dialog should be visible
+      // Assert: Dialog should be visible and confirmed should still be false
       expect(find.byType(Dialog), findsOneWidget);
+      expect(confirmed, false);
     });
 
     testWidgets('should display confirmation message',

@@ -6,6 +6,7 @@ import 'package:bengkel_online_flutter/core/services/auth_provider.dart';
 import 'package:bengkel_online_flutter/core/providers/service_provider.dart';
 import 'package:bengkel_online_flutter/feature/owner/screens/list_work.dart';
 import 'package:bengkel_online_flutter/feature/owner/screens/staff_management.dart';
+import 'package:bengkel_online_flutter/feature/owner/screens/list_staff.dart';
 import 'package:bengkel_online_flutter/feature/owner/screens/report_pages.dart';
 import '../widgets/dashboard/dashboard_helpers.dart';
 import '../widgets/dashboard/owner_mini_dashboard.dart';
@@ -279,7 +280,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const ManajemenKaryawanPage(),
+                          builder: (_) => const ManajemenKaryawanTablePage(),
                         ),
                       );
                     }, onTapLaporan: () {

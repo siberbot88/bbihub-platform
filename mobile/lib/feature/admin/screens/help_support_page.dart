@@ -90,7 +90,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
               borderRadius: BorderRadius.circular(25),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -103,7 +103,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
                 borderRadius: BorderRadius.circular(21),
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.primary.withOpacity(0.3),
+                    color: AppTheme.primary.withValues(alpha: 0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -300,7 +300,7 @@ class _FaqCard extends StatelessWidget {
         color: isDark ? AppTheme.cardDark : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isExpanded ? AppTheme.primary.withOpacity(0.3) : Colors.transparent,
+          color: isExpanded ? AppTheme.primary.withValues(alpha: 0.3) : Colors.transparent,
           width: 1.5,
         ),
         boxShadow: [
@@ -322,8 +322,8 @@ class _FaqCard extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(16),
-          splashColor: AppTheme.primary.withOpacity(0.05),
-          highlightColor: AppTheme.primary.withOpacity(0.02),
+          splashColor: AppTheme.primary.withValues(alpha: 0.05),
+          highlightColor: AppTheme.primary.withValues(alpha: 0.02),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -424,7 +424,7 @@ class _ContactCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
+                    color: color.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(icon, color: color, size: 24),
