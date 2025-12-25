@@ -2,10 +2,13 @@
 
 namespace App\Services;
 
+use App\Events\ServiceBookingReceived;
+use App\Events\ServiceStatusChanged;
 use App\Models\AuditLog;
 use App\Models\Customer;
 use App\Models\Service;
 use App\Models\Transaction;
+use App\Models\User;
 use App\Models\Vehicle;
 use App\Repositories\ServiceRepository;
 use App\Repositories\TransactionRepository;
@@ -44,7 +47,7 @@ class AdminServiceManager
         $services = $this->serviceRepo->getPendingServices($workshopId, $date, $perPage);
 
         // Group services by date
-        $grouped = $services->getCollection()->groupBy(function ($service) {
+        $grouped = collect($services->items())->groupBy(function ($service) {
             return $service->scheduled_date->format('Y-m-d');
         });
 
@@ -80,7 +83,7 @@ class AdminServiceManager
      * @return Service
      * @throws \Exception
      */
-    public function acceptService(string $serviceId, string $mechanicId, string $adminId): Service
+    public function acceptService(string $serviceId, string $mechanicId, ?User $admin = null): Service
     {
         try {
             $service = $this->serviceRepo->acceptService($serviceId, $mechanicId);
@@ -88,11 +91,14 @@ class AdminServiceManager
             // Audit log
             AuditLog::log(
                 event: 'service_accepted',
-                user: $adminId,
+                user: $admin,
                 auditable: $service,
-                old_values: ['acceptance_status' => 'pending', 'status' => 'pending'],
-                new_values: ['acceptance_status' => 'accepted', 'status' => 'in progress', 'mechanic_uuid' => $mechanicId]
+                oldValues: ['acceptance_status' => 'pending', 'status' => 'pending'],
+                newValues: ['acceptance_status' => 'accepted', 'status' => 'in progress', 'mechanic_uuid' => $mechanicId]
             );
+
+            // Dispatch event for notification
+            event(new ServiceStatusChanged($service, 'pending', 'in progress'));
 
             return $service;
         } catch (\Exception $e) {
@@ -114,7 +120,7 @@ class AdminServiceManager
         string $serviceId,
         string $reason,
         string $description,
-        string $adminId
+        ?User $admin = null
     ): Service {
         try {
             $service = $this->serviceRepo->rejectService($serviceId, $reason, $description);
@@ -122,10 +128,10 @@ class AdminServiceManager
             // Audit log
             AuditLog::log(
                 event: 'service_rejected',
-                user: $adminId,
+                user: $admin,
                 auditable: $service,
-                old_values: ['acceptance_status' => 'pending'],
-                new_values: ['acceptance_status' => 'decline', 'reason' => $reason]
+                oldValues: ['acceptance_status' => 'pending'],
+                newValues: ['acceptance_status' => 'decline', 'reason' => $reason]
             );
 
             // TODO: Send notification to customer about rejection
@@ -144,7 +150,7 @@ class AdminServiceManager
      * @return Service
      * @throws \Exception
      */
-    public function completeService(string $serviceId, string $adminId): Service
+    public function completeService(string $serviceId, ?User $admin = null): Service
     {
         try {
             $service = $this->serviceRepo->updateStatus($serviceId, 'completed');
@@ -152,11 +158,14 @@ class AdminServiceManager
             // Audit log
             AuditLog::log(
                 event: 'service_completed',
-                user: $adminId,
+                user: $admin,
                 auditable: $service,
-                old_values: ['status' => 'in progress'],
-                new_values: ['status' => 'completed', 'completed_at' => now()]
+                oldValues: ['status' => 'in progress'],
+                newValues: ['status' => 'completed', 'completed_at' => now()]
             );
+
+            // Dispatch event for notification
+            event(new ServiceStatusChanged($service, 'in progress', 'completed'));
 
             return $service;
         } catch (\Exception $e) {
@@ -168,13 +177,13 @@ class AdminServiceManager
      * Create walk-in service with customer and vehicle data.
      * 
      * @param array $data
-     * @param string $adminId
+     * @param User|null $admin
      * @return Service
      * @throws \Exception
      */
-    public function createWalkInService(array $data, string $adminId): Service
+    public function createWalkInService(array $data, ?User $admin = null): Service
     {
-        return DB::transaction(function () use ($data, $adminId) {
+        return DB::transaction(function () use ($data, $admin) {
             // 1. Create or find customer
             $customer = Customer::firstOrCreate(
                 ['phone' => $data['customer_phone']],
@@ -214,9 +223,12 @@ class AdminServiceManager
             // Audit log
             AuditLog::log(
                 event: 'walk_in_service_created',
-                user: $adminId,
+                user: $admin,
                 auditable: $service
             );
+
+            // Dispatch event for notification (new booking)
+            event(new ServiceBookingReceived($service));
 
             return $service;
         });
@@ -227,14 +239,14 @@ class AdminServiceManager
      * 
      * @param string $serviceId
      * @param array $items
-     * @param string $adminId
+     * @param User|null $admin
      * @return Transaction
      * @throws \Exception
      */
     public function createServiceInvoice(
         string $serviceId,
         array $items,
-        string $adminId
+        ?User $admin = null
     ): Transaction {
         try {
             // Validate service is completed
@@ -254,12 +266,12 @@ class AdminServiceManager
             }
 
             // Create invoice
-            $transaction = $this->transactionRepo->createInvoice($serviceId, $adminId, $items);
+            $transaction = $this->transactionRepo->createInvoice($serviceId, $admin?->id, $items);
 
             // Audit log
             AuditLog::log(
                 event: 'invoice_created',
-                user: $adminId,
+                user: $admin,
                 auditable: $transaction
             );
 

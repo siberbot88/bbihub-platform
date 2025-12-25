@@ -13,6 +13,7 @@ buildscript {
 
         // Pastikan Kotlin plugin juga ada (versi 1.9.0 cukup stabil untuk Flutter saat ini)
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.0")
+        classpath("com.google.gms:google-services:4.4.2")
     }
 }   
 

@@ -37,6 +37,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'password',
         'phone',
         'photo',
+        'fcm_token',
         'trial_ends_at',
         'trial_used',
         'must_change_password',
