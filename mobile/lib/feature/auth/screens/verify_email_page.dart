@@ -73,7 +73,7 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: AppColors.primaryRed.withOpacity(0.1),
+                color: AppColors.primaryRed.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.mark_email_unread_outlined, color: AppColors.primaryRed, size: 64),

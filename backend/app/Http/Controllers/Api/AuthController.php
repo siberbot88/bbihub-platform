@@ -198,6 +198,19 @@ class AuthController extends Controller
             auditable: $user
         );
 
+        // Send email verification after password change
+        // (for new staff who just changed their initial password)
+        if (!$user->hasVerifiedEmail()) {
+            try {
+                $user->sendEmailVerificationNotification();
+            } catch (\Throwable $e) {
+                Log::warning('Failed to send email verification after password change', [
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
         return $this->successResponse('Password berhasil diperbarui');
     }
 

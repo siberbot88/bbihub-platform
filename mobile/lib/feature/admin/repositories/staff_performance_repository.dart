@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import '../../../../core/models/staff_performance.dart';
@@ -28,8 +29,10 @@ class StaffPerformanceRepository {
         },
       );
 
-      print('Staff Performance Response: ${response.statusCode}');
-      print('Staff Performance Body: ${response.body}');
+      if (kDebugMode) {
+        print('Staff Performance Response: ${response.statusCode}');
+        print('Staff Performance Body: ${response.body}');
+      }
 
       if (response.statusCode == 200) {
         final jsonResponse = json.decode(response.body);
@@ -47,7 +50,9 @@ class StaffPerformanceRepository {
         throw Exception('Failed to load: ${response.statusCode}');
       }
     } catch (e) {
-      print('Staff Performance Error: $e');
+      if (kDebugMode) {
+        print('Staff Performance Error: $e');
+      }
       rethrow;
     }
   }

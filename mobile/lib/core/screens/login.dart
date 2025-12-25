@@ -239,35 +239,8 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
 
-              const SizedBox(height: 20),
 
-              Row(
-                children: [
-                  const Expanded(child: Divider()),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Text(
-                      "or log in with",
-                      style: GoogleFonts.poppins(fontSize: 13),
-                    ),
-                  ),
-                  const Expanded(child: Divider()),
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // Sosial Media Buttons (placeholder)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _socialButton("assets/icons/google.png"),
-                  const SizedBox(width: 35),
-                  _socialButton("assets/icons/Facebook.png"),
-                  const SizedBox(width: 35),
-                  _socialButton("assets/icons/Apple.png"),
-                ],
-              ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 35),
 
               // Sign Up
               Row(
@@ -349,21 +322,6 @@ class _LoginPageState extends State<LoginPage> {
         fillColor: const Color.fromARGB(222, 255, 255, 255).withAlpha(102),
       ),
       style: GoogleFonts.poppins(color: Colors.black),
-    );
-  }
-
-  /// Social Button (placeholder)
-  Widget _socialButton(String assetsPath) {
-    return Container(
-      height: 50,
-      width: 50,
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade300),
-        shape: BoxShape.circle,
-      ),
-      child: Center(
-        child: Image.asset(assetsPath, height: 24),
-      ),
     );
   }
 }

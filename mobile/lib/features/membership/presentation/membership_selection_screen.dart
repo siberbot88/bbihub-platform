@@ -29,7 +29,7 @@ class _MembershipSelectionScreenState extends State<MembershipSelectionScreen> {
     featuresIncluded: [
       "Manajemen Bengkel Dasar",
       "1 Admin",
-      "Maksimal 5 Mekanik",
+      "Maksimal 2 Mekanik",
     ],
     featuresExcluded: [
       "Analitik Canggih",

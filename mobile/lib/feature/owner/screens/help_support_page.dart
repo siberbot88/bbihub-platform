@@ -44,7 +44,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
     ),
     _FaqItem(
       q: "Apakah ada batasan jumlah staff untuk paket gratis?",
-      a: "Ya, paket gratis dibatasi maksimal 5 staff. Untuk menambah lebih banyak staff, silakan upgrade ke paket Premium.",
+      a: "Ya, paket gratis dibatasi maksimal 2 staff. Untuk menambah lebih banyak staff, silakan upgrade ke paket Premium.",
     ),
     _FaqItem(
       q: "Bagaimana cara mengaktifkan trial membership?",
@@ -129,8 +129,6 @@ class _HelpSupportPageState extends State<HelpSupportPage>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final backgroundColor = Theme.of(context).scaffoldBackgroundColor;
-    final textColor = Theme.of(context).textTheme.bodyLarge?.color;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -149,7 +147,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
               borderRadius: BorderRadius.circular(25),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -162,7 +160,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
                 borderRadius: BorderRadius.circular(21),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFD72B1C).withOpacity(0.3),
+                    color: const Color(0xFFD72B1C).withValues(alpha: 0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -190,10 +188,10 @@ class _HelpSupportPageState extends State<HelpSupportPage>
               controller: _tabController,
               children: [
                 // ======= TAB: FAQ =======
-                _buildFaqTab(context, isDark, textColor),
+                _buildFaqTab(context, isDark),
 
                 // ======= TAB: Hubungi Kami =======
-                _buildContactTab(context, isDark, textColor),
+                _buildContactTab(context, isDark),
               ],
             ),
           ),
@@ -202,7 +200,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
     );
   }
 
-  Widget _buildFaqTab(BuildContext context, bool isDark, Color? textColor) {
+  Widget _buildFaqTab(BuildContext context, bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -252,7 +250,7 @@ class _HelpSupportPageState extends State<HelpSupportPage>
     );
   }
 
-  Widget _buildContactTab(BuildContext context, bool isDark, Color? textColor) {
+  Widget _buildContactTab(BuildContext context, bool isDark) {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       child: Column(
@@ -388,7 +386,7 @@ class _FaqCard extends StatelessWidget {
         color: isDark ? AppTheme.cardDark : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isExpanded ? AppTheme.primary.withOpacity(0.3) : Colors.transparent,
+          color: isExpanded ? AppTheme.primary.withValues(alpha: 0.3) : Colors.transparent,
           width: 1.5,
         ),
         boxShadow: [
@@ -410,8 +408,8 @@ class _FaqCard extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(16),
-          splashColor: AppTheme.primary.withOpacity(0.05),
-          highlightColor: AppTheme.primary.withOpacity(0.02),
+          splashColor: AppTheme.primary.withValues(alpha: 0.05),
+          highlightColor: AppTheme.primary.withValues(alpha: 0.02),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -513,7 +511,7 @@ class _ContactCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
+                    color: color.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(icon, color: color, size: 24),

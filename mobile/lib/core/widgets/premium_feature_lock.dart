@@ -48,8 +48,8 @@ class PremiumFeatureLock extends StatelessWidget {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.black.withOpacity(0.3),
-                  Colors.black.withOpacity(0.6),
+                  Colors.black.withValues(alpha: 0.3),
+                  Colors.black.withValues(alpha: 0.6),
                 ],
               ),
             ),
@@ -61,7 +61,7 @@ class PremiumFeatureLock extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFD700).withOpacity(0.2),
+                      color: const Color(0xFFFFD700).withValues(alpha: 0.2),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -90,7 +90,7 @@ class PremiumFeatureLock extends StatelessWidget {
                     child: Text(
                       featureDescription,
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                         fontSize: 14,
                       ),
                       textAlign: TextAlign.center,
@@ -320,7 +320,7 @@ class PremiumUpgradeBottomSheet extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(icon, color: color, size: 24),

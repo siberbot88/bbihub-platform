@@ -53,7 +53,7 @@ class SuspendedAccountScreen extends StatelessWidget {
                 width: 120,
                 height: 120,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFDC2626).withOpacity(0.1),
+                  color: const Color(0xFFDC2626).withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(

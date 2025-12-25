@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'features/membership/presentation/premium_membership_screen.dart';
-import 'features/membership/presentation/membership_selection_screen.dart'; // Import this
 
 void main() {
   runApp(const MyApp());

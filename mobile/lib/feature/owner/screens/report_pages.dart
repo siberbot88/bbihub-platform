@@ -282,13 +282,9 @@ class _ReportPageState extends State<ReportPage> {
                       icon: Icons.chevron_left_rounded,
                       onTap: () => Navigator.maybePop(context),
                     )
-                  : const SizedBox(width: 44, height: 44), // Placeholder to keep layout balanced if needed, or just nothing.
+                  : const SizedBox(width: 44, height: 44), // Placeholder to keep layout balanced
               
-              // Notification Button
-              _buildCircleButton(
-                icon: Icons.notifications_none_rounded,
-                onTap: () {},
-              ),
+              const SizedBox(width: 44, height: 44), // Placeholder for removed notification button
             ],
           ),
           const SizedBox(height: 16),

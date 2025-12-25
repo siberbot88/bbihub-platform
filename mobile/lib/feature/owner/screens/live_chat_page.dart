@@ -325,7 +325,7 @@ class _LiveChatPageState extends State<LiveChatPage> {
         ),
       ),
       backgroundColor: Colors.white,
-      side: BorderSide(color: AppColors.primaryRed.withOpacity(0.5)),
+      side: BorderSide(color: AppColors.primaryRed.withValues(alpha: 0.5)),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
       ),
@@ -420,7 +420,7 @@ class _LiveChatPageState extends State<LiveChatPage> {
                   Text(
                     'Online',
                     style: GoogleFonts.poppins(
-                      color: Colors.white.withOpacity(0.9),
+                      color: Colors.white.withValues(alpha: 0.9),
                       fontSize: 12,
                     ),
                   ),
@@ -459,9 +459,9 @@ class _LiveChatPageState extends State<LiveChatPage> {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
             decoration: BoxDecoration(
-              color: AppColors.warning.withOpacity(0.1),
+              color: AppColors.warning.withValues(alpha: 0.1),
               border: Border(
-                bottom: BorderSide(color: AppColors.warning.withOpacity(0.3), width: 1),
+                bottom: BorderSide(color: AppColors.warning.withValues(alpha: 0.3), width: 1),
               ),
             ),
             child: Row(
@@ -472,7 +472,7 @@ class _LiveChatPageState extends State<LiveChatPage> {
                   'Jam Operasional: Senin - Minggu (08:00 - 22:00 WIB)',
                   style: GoogleFonts.poppins(
                     fontSize: 12,
-                    color: AppColors.warning.withOpacity(0.9),
+                    color: AppColors.warning.withValues(alpha: 0.9),
                   ),
                 ),
               ],
@@ -520,7 +520,7 @@ class _LiveChatPageState extends State<LiveChatPage> {
               color: AppColors.backgroundWhite,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, -2),
                 ),
@@ -571,7 +571,7 @@ class _LiveChatPageState extends State<LiveChatPage> {
                   Container(
                     decoration: BoxDecoration(
                       color: _isSending 
-                          ? AppColors.primaryRed.withOpacity(0.5)
+                          ? AppColors.primaryRed.withValues(alpha: 0.5)
                           : AppColors.primaryRed,
                       shape: BoxShape.circle,
                     ),
@@ -631,7 +631,7 @@ class _TypingIndicator extends StatelessWidget {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 5,
                     offset: const Offset(0, 2),
                   ),
@@ -702,7 +702,7 @@ class _ChatBubble extends StatelessWidget {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: Colors.black.withValues(alpha: 0.05),
                         blurRadius: 5,
                         offset: const Offset(0, 2),
                       ),

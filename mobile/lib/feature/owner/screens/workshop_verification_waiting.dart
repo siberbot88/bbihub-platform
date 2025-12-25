@@ -1,7 +1,7 @@
 import 'package:bengkel_online_flutter/core/theme/app_colors.dart';
-import 'package:bengkel_online_flutter/core/theme/app_text_styles.dart';
 import 'package:bengkel_online_flutter/core/services/auth_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 
 class WorkshopVerificationWaitingPage extends StatefulWidget {
@@ -18,7 +18,9 @@ class _WorkshopVerificationWaitingPageState extends State<WorkshopVerificationWa
   @override
   void initState() {
     super.initState();
-    print("WorkshopVerification: initState call");
+    if (kDebugMode) {
+      print("WorkshopVerification: initState call");
+    }
     _controller = AnimationController(
       duration: const Duration(seconds: 1), // Faster rotation
       vsync: this,
@@ -33,18 +35,68 @@ class _WorkshopVerificationWaitingPageState extends State<WorkshopVerificationWa
 
   Future<void> _checkStatus() async {
     setState(() => _isLoading = true);
-    final auth = Provider.of<AuthProvider>(context, listen: false);
-    await auth.checkLoginStatus();
+    
+    try {
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      
+      // Force refresh user data from server
+      await auth.checkLoginStatus();
 
-    if (!mounted) return;
-    setState(() => _isLoading = false);
-
-    // Check if workshop is now verified
-    final workshops = auth.user?.workshops;
-    if (workshops != null && workshops.isNotEmpty) {
-      final workshop = workshops.first;
-      if (workshop.status == 'verified' || workshop.status == 'active') {
-        Navigator.pushNamedAndRemoveUntil(context, '/main', (_) => false);
+      if (!mounted) return;
+      
+      // Check if workshop is now verified
+      final workshops = auth.user?.workshops;
+      if (workshops != null && workshops.isNotEmpty) {
+        final workshop = workshops.first;
+        if (kDebugMode) {
+          print('Workshop status: ${workshop.status}');
+        }
+        
+        if (workshop.status == 'verified' || workshop.status == 'active') {
+          // Show success message
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Bengkel Anda sudah diverifikasi! ✅'),
+                backgroundColor: Colors.green,
+                duration: Duration(seconds: 2),
+              ),
+            );
+            
+            // Wait a bit for user to see the message
+            await Future.delayed(const Duration(seconds: 1));
+            
+            if (mounted) {
+              Navigator.pushNamedAndRemoveUntil(context, '/main', (_) => false);
+            }
+          }
+        } else {
+          // Still not verified, show message
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Status: ${workshop.status}. Masih dalam proses verifikasi.'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error checking status: $e');
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Gagal memeriksa status. Silakan coba lagi.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
     }
   }
@@ -69,7 +121,7 @@ class _WorkshopVerificationWaitingPageState extends State<WorkshopVerificationWa
                   width: 120,
                   height: 120,
                   decoration: BoxDecoration(
-                    color: AppColors.primaryRed.withOpacity(0.1),
+                    color: AppColors.primaryRed.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: RotationTransition(

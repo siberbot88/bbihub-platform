@@ -9,7 +9,7 @@ class AutoSyncService {
   static final AutoSyncService instance = AutoSyncService._internal();
   AutoSyncService._internal();
 
-  StreamSubscription<ConnectivityResult>? _connectivitySubscription;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
   bool _isOnline = false;
   bool _isSyncing = false;
   
@@ -39,11 +39,12 @@ class AutoSyncService {
   void _startListeningToConnectivity() {
     _connectivitySubscription?.cancel();
     
-    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((ConnectivityResult result) {
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> results) {
       final wasOffline = !_isOnline;
-      _isOnline = result != ConnectivityResult.none;
+      // Check if any result is not none (device is online)
+      _isOnline = results.any((result) => result != ConnectivityResult.none);
 
-      debugPrint('🌐 [AutoSync] Connectivity changed: ${result.name} (isOnline: $_isOnline)');
+      debugPrint('🌐 [AutoSync] Connectivity changed: ${results.map((r) => r.name).join(', ')} (isOnline: $_isOnline)');
 
       // If we just went online, trigger sync
       if (wasOffline && _isOnline) {
@@ -53,9 +54,9 @@ class AutoSyncService {
     });
 
     // Check initial connectivity
-    Connectivity().checkConnectivity().then((result) {
-      _isOnline = result != ConnectivityResult.none;
-      debugPrint('🌐 [AutoSync] Initial connectivity: ${result.name} (isOnline: $_isOnline)');
+    Connectivity().checkConnectivity().then((results) {
+      _isOnline = results.any((result) => result != ConnectivityResult.none);
+      debugPrint('🌐 [AutoSync] Initial connectivity: ${results.map((r) => r.name).join(', ')} (isOnline: $_isOnline)');
     });
   }
 

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:math';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter/foundation.dart';
 
 import 'package:bengkel_online_flutter/core/models/voucher.dart';
 import 'package:bengkel_online_flutter/core/models/employment.dart';
@@ -64,23 +65,26 @@ class ApiService {
 
   void _debugRequest(
       String label, Uri uri, Map<String, String> headers, String? body) {
-    // ignore: avoid_print
-    print('[$label] ${uri.toString()}');
-    // ignore: avoid_print
-    print('[$label] headers: $headers');
-    if (body != null) {
-      // ignore: avoid_print
-      print('[$label] body: ${_firstChars(body)}');
+    if (kDebugMode) {
+      print('[$label] ${uri.toString()}');
+      // Redact sensitive data from headers
+      final safeHeaders = {...headers};
+      if (safeHeaders.containsKey('Authorization')) {
+        safeHeaders['Authorization'] = 'Bearer ***REDACTED***';
+      }
+      print('[$label] headers: $safeHeaders');
+      if (body != null) {
+        print('[$label] body: ${_firstChars(body)}');
+      }
     }
   }
 
   void _debugResponse(String label, http.Response response) {
-    // ignore: avoid_print
-    print('[$label] status: ${response.statusCode}');
-    // ignore: avoid_print
-    print('[$label] content-type: ${response.headers['content-type']}');
-    // ignore: avoid_print
-    print('[$label] body: ${_firstChars(response.body)}');
+    if (kDebugMode) {
+      print('[$label] status: ${response.statusCode}');
+      print('[$label] content-type: ${response.headers['content-type']}');
+      print('[$label] body: ${_firstChars(response.body)}');
+    }
   }
 
   // Helper untuk mengambil pesan error dengan aman dari JSON Laravel
@@ -207,12 +211,14 @@ class ApiService {
       _debugResponse('LOGOUT', res);
 
       if (res.statusCode != 200) {
-        // ignore: avoid_print
-        print('Server logout failed with status: ${res.statusCode}');
+        if (kDebugMode) {
+          print('Server logout failed with status: ${res.statusCode}');
+        }
       }
     } catch (e) {
-      // ignore: avoid_print
-      print('Error calling API logout: $e');
+      if (kDebugMode) {
+        print('Error calling API logout: $e');
+      }
     }
   }
 
@@ -1186,7 +1192,7 @@ class ApiService {
     // Perbaikan: gunakan POST/PUT ke generic update endpoint
     final response = await http.put(
       Uri.parse('$baseUrl/services/$id'),
-      headers: await _getJsonHeaders(),
+      headers: _getJsonHeaders(),
       body: jsonEncode(body),
     );
 
@@ -1203,7 +1209,7 @@ class ApiService {
 
     final response = await http.put(
       Uri.parse('$baseUrl/services/$id'),
-      headers: await _getJsonHeaders(),
+      headers: _getJsonHeaders(),
       body: jsonEncode(body),
     );
 
@@ -1221,7 +1227,7 @@ class ApiService {
 
     final response = await http.put(
       Uri.parse('$baseUrl/services/$id'),
-      headers: await _getJsonHeaders(),
+      headers: _getJsonHeaders(),
       body: jsonEncode(body),
     );
 

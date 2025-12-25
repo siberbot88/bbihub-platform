@@ -26,11 +26,11 @@ class ServiceRepository {
   }) async {
     // Check connectivity
     final connectivityResult = await Connectivity().checkConnectivity();
-    final isOnline = connectivityResult != ConnectivityResult.none;
+    final isOnline = connectivityResult.any((result) => result != ConnectivityResult.none);
 
     // If offline or force refresh is false, try cache first
     if (!isOnline || !forceRefresh) {
-      final cachedServices = await _localStorage.getCachedServices(workshopId);
+      final cachedServices = _localStorage.getCachedServices();
       if (cachedServices.isNotEmpty) {
         debugPrint('📦 [ServiceRepository] Returning ${cachedServices.length} services from cache');
         return cachedServices;
@@ -56,7 +56,7 @@ class ServiceRepository {
               .toList();
 
           // Cache the response
-          await _localStorage.cacheServices(services, workshopId);
+          await _localStorage.cacheServices(services);
           debugPrint('✅ [ServiceRepository] Fetched ${services.length} services from API and cached');
 
           return services;
@@ -66,7 +66,7 @@ class ServiceRepository {
       } catch (e) {
         debugPrint('❌ [ServiceRepository] API error: $e');
         // Fall back to cache if API fails
-        final cachedServices = await _localStorage.getCachedServices(workshopId);
+        final cachedServices = _localStorage.getCachedServices();
         if (cachedServices.isNotEmpty) {
           debugPrint('📦 [ServiceRepository] Returning ${cachedServices.length} services from cache (API failed)');
           return cachedServices;
@@ -83,7 +83,7 @@ class ServiceRepository {
   Future<CachedService?> getServiceById(String serviceId) async {
     final services = await getServices();
     try {
-      return services.firstWhere((s) => s.uuid == serviceId);
+      return services.firstWhere((s) => s.id == serviceId);
     } catch (e) {
       return null;
     }
@@ -108,11 +108,11 @@ class DashboardRepository {
   }) async {
     // Check connectivity
     final connectivityResult = await Connectivity().checkConnectivity();
-    final isOnline = connectivityResult != ConnectivityResult.none;
+    final isOnline = !connectivityResult.contains(ConnectivityResult.none);
 
     // If offline or not forcing refresh, try cache first
     if (!isOnline || !forceRefresh) {
-      final cachedDashboard = await _localStorage.getCachedDashboard(workshopId);
+      final cachedDashboard = _localStorage.getCachedDashboard();
       if (cachedDashboard != null && !cachedDashboard.isStale) {
         debugPrint('📦 [DashboardRepository] Returning dashboard from cache');
         return cachedDashboard;
@@ -136,7 +136,7 @@ class DashboardRepository {
           final dashboard = CachedDashboard.fromJson(jsonData['data']);
 
           // Cache the response
-          await _localStorage.cacheDashboard(dashboard, workshopId);
+          await _localStorage.cacheDashboard(dashboard);
           debugPrint('✅ [DashboardRepository] Fetched dashboard from API and cached');
 
           return dashboard;
@@ -146,7 +146,7 @@ class DashboardRepository {
       } catch (e) {
         debugPrint('❌ [DashboardRepository] API error: $e');
         // Fall back to cache if API fails
-        final cachedDashboard = await _localStorage.getCachedDashboard(workshopId);
+        final cachedDashboard = _localStorage.getCachedDashboard();
         if (cachedDashboard != null) {
           debugPrint('📦 [DashboardRepository] Returning dashboard from cache (API failed)');
           return cachedDashboard;
@@ -178,11 +178,11 @@ class StaffRepository {
   }) async {
     // Check connectivity
     final connectivityResult = await Connectivity().checkConnectivity();
-    final isOnline = connectivityResult != ConnectivityResult.none;
+    final isOnline = !connectivityResult.contains(ConnectivityResult.none);
 
     // If offline or not forcing refresh, try cache first
     if (!isOnline || !forceRefresh) {
-      final cachedStaff = await _localStorage.getCachedStaff(workshopId);
+      final cachedStaff = _localStorage.getCachedStaff();
       if (cachedStaff.isNotEmpty) {
         debugPrint('📦 [StaffRepository] Returning ${cachedStaff.length} staff from cache');
         return cachedStaff;
@@ -208,7 +208,7 @@ class StaffRepository {
               .toList();
 
           // Cache the response
-          await _localStorage.cacheStaff(staff, workshopId);
+          await _localStorage.cacheStaff(staff);
           debugPrint('✅ [StaffRepository] Fetched ${staff.length} staff from API and cached');
 
           return staff;
@@ -218,7 +218,7 @@ class StaffRepository {
       } catch (e) {
         debugPrint('❌ [StaffRepository] API error: $e');
         // Fall back to cache if API fails
-        final cachedStaff = await _localStorage.getCachedStaff(workshopId);
+        final cachedStaff = _localStorage.getCachedStaff();
         if (cachedStaff.isNotEmpty) {
           debugPrint('📦 [StaffRepository] Returning ${cachedStaff.length} staff from cache (API failed)');
           return cachedStaff;
@@ -235,7 +235,7 @@ class StaffRepository {
   Future<CachedStaff?> getStaffById(String staffId) async {
     final staff = await getStaff();
     try {
-      return staff.firstWhere((s) => s.uuid == staffId);
+      return staff.firstWhere((s) => s.id == staffId);
     } catch (e) {
       return null;
     }

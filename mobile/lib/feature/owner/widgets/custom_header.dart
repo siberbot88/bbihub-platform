@@ -47,13 +47,24 @@ class CustomHeader extends StatelessWidget implements PreferredSizeWidget {
         ),
         elevation: 0,
         leading: showBack
-            ? IconButton(
-                icon: SvgPicture.asset(
-                  "assets/icons/back.svg",
-                  width: 24,
-                  height: 24,
+            ? Padding(
+                padding: const EdgeInsets.only(left: 8.0),
+                child: InkWell(
+                  onTap: onBack ?? () => Navigator.pop(context),
+                  borderRadius: BorderRadius.circular(50),
+                  child: Container(
+                    margin: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.chevron_left_rounded,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                  ),
                 ),
-                onPressed: onBack ?? () => Navigator.pop(context),
               )
             : null,
         actions: actions,

@@ -21,7 +21,6 @@ class _FeedbackPageState extends State<FeedbackPage> {
   // State
   bool _isLoading = true;
   bool _isLoadingMore = false;
-  String _errorMessage = '';
   
   // Data
   FeedbackSummary? _summary;
@@ -65,14 +64,12 @@ class _FeedbackPageState extends State<FeedbackPage> {
           _currentPage = response.meta.currentPage;
           _lastPage = response.meta.lastPage;
           _isLoading = false;
-          _errorMessage = '';
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _errorMessage = e.toString();
         });
       }
     }
