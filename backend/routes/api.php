@@ -70,6 +70,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::post('auth/logout', [AuthController::class, 'logout'])->name('api.logout');
     Route::get('auth/user', [AuthController::class, 'me'])->name('api.user');
     Route::post('auth/change-password', [AuthController::class, 'changePassword'])->name('api.change-password');
+    Route::post('auth/fcm-token', [AuthController::class, 'updateFcmToken'])->name('api.fcm-token');
     Route::get('/debug/token', function (Request $request) {
         $raw = $request->bearerToken();
         $pat = \Laravel\Sanctum\PersonalAccessToken::findToken($raw);
@@ -219,6 +220,35 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::get('transaction-items/{item}', [TransactionItemController::class, 'show']);
         Route::put('transactions/{transaction}/items/{item}', [TransactionItemController::class, 'update']);
         Route::delete('transactions/{transaction}/items/{item}', [TransactionItemController::class, 'destroy']);
+
+        // ===== NEW: SERVICE MANAGEMENT (Scheduling & Logging) =====
+        // Service Scheduling (Pending bookings)
+        Route::get('services/schedule', [\App\Http\Controllers\Api\Admin\ServiceSchedulingController::class, 'index'])
+            ->name('services.schedule');
+
+        // Accept/Reject/Walk-in (Rate limited for security)
+        Route::middleware('throttle:10,1')->group(function () {
+            Route::post('services/{service}/accept', [\App\Http\Controllers\Api\Admin\ServiceSchedulingController::class, 'accept'])
+                ->name('services.accept');
+            Route::post('services/{service}/reject', [\App\Http\Controllers\Api\Admin\ServiceSchedulingController::class, 'reject'])
+                ->name('services.reject');
+            Route::post('services/walk-in', [\App\Http\Controllers\Api\Admin\ServiceSchedulingController::class, 'storeWalkIn'])
+                ->name('services.walk-in');
+        });
+
+        // Service Logging (Active/In-progress services)
+        Route::get('services/active', [\App\Http\Controllers\Api\Admin\ServiceLoggingController::class, 'index'])
+            ->name('services.active');
+        Route::patch('services/{service}/complete', [\App\Http\Controllers\Api\Admin\ServiceLoggingController::class, 'complete'])
+            ->name('services.complete');
+
+        // Invoice management (Rate limited)
+        Route::middleware('throttle:10,1')->group(function () {
+            Route::post('services/{service}/invoice', [\App\Http\Controllers\Api\Admin\ServiceLoggingController::class, 'createInvoice'])
+                ->name('services.invoice.create');
+        });
+        Route::get('services/{service}/invoice', [\App\Http\Controllers\Api\Admin\ServiceLoggingController::class, 'getInvoice'])
+            ->name('services.invoice.get');
     });
 
     Route::prefix('mechanics')->middleware('role:mechanic,sanctum')->name('api.mechanic.')->group(function () {

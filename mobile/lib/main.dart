@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:bengkel_online_flutter/feature/admin/providers/admin_service_provider.dart';
 import 'package:bengkel_online_flutter/feature/admin/screens/homepage.dart';
 import 'package:bengkel_online_flutter/feature/admin/screens/service_page.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:bengkel_online_flutter/core/services/fcm_service.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'package:app_links/app_links.dart';
@@ -52,6 +54,9 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  await Firebase.initializeApp();
+  await FcmService.initialize();
 
   // ✅ Inisialisasi format tanggal (PENTING untuk Voucher)
   await initializeDateFormatting('id_ID', null);

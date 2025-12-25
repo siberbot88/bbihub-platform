@@ -12,6 +12,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
@@ -245,5 +246,27 @@ class AuthController extends Controller
                 config('app.debug') ? $e->getMessage() : 'Server error'
             );
         }
+    }
+
+    /**
+     * Update FCM token for push notifications.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function updateFcmToken(Request $request): JsonResponse
+    {
+        $request->validate([
+            'fcm_token' => 'required|string|max:255',
+        ]);
+
+        $user = $request->user();
+        $user->fcm_token = $request->fcm_token;
+        $user->save();
+
+        return $this->successResponse(
+            'FCM token berhasil disimpan',
+            ['fcm_token_saved' => true]
+        );
     }
 }

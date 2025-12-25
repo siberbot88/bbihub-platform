@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:bengkel_online_flutter/core/services/api_service.dart';
+import 'package:bengkel_online_flutter/core/services/fcm_service.dart';
 import 'package:bengkel_online_flutter/core/models/user.dart';
 
 class AuthProvider with ChangeNotifier {
@@ -82,6 +83,7 @@ class AuthProvider with ChangeNotifier {
 
       if (_token != null) {
         await _storage.write(key: 'auth_token', value: _token);
+        FcmService.saveTokenToBackend(_token!);
       }
 
       notifyListeners();
@@ -167,6 +169,8 @@ class AuthProvider with ChangeNotifier {
 
       // Cek flag mustChangePassword dari data user
       _mustChangePassword = fetchedUser.mustChangePassword;
+
+      FcmService.saveTokenToBackend(_token!); // Update FCM Token
 
       notifyListeners();
     } catch (e) {
