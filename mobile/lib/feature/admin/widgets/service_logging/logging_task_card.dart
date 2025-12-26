@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import 'logging_helpers.dart';
+import '../../screens/service_detail_page.dart'; // Correct import
 import '../../screens/service_pending.dart' as pending;
 import '../../screens/service_progress.dart' as progress;
 import '../../screens/service_complete.dart' as complete;
@@ -38,11 +39,10 @@ class LoggingTaskCard extends StatelessWidget {
     if (status.toLowerCase() == 'pending') {
       actionButton = ElevatedButton(
         onPressed: () {
-          // TODO: Use ServiceModel in ServicePendingDetail
            Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => pending.ServicePendingDetail(service: service),
+                builder: (_) => ServiceDetailPage(service: service),
               ));
         },
         style: ElevatedButton.styleFrom(

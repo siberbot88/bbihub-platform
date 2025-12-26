@@ -15,38 +15,71 @@ class LoggingSummaryBoxes extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(children: [
-        _buildBox("Pending", pending, Colors.blue),
-        _buildBox("In Progress", inProgress, Colors.orange),
-        _buildBox("Completed", completed, Colors.green),
-      ]),
+    // Owner Dashboard Style: Gradient Red Background with White Cards
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFF510707),
+            Color(0xFF9B0D0D),
+            Color(0xFFB70F0F),
+          ],
+          begin: Alignment.topCenter,
+          end: Alignment.centerRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFB70F0F).withOpacity(0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          _buildBox("Pending", pending),
+          const SizedBox(width: 8),
+          _buildBox("In Progress", inProgress),
+          const SizedBox(width: 8),
+          _buildBox("Completed", completed),
+        ],
+      ),
     );
   }
 
-  Widget _buildBox(String label, int count, Color color) {
+  Widget _buildBox(String label, int count) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        margin: const EdgeInsets.symmetric(horizontal: 4),
+        height: 100,
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         decoration: BoxDecoration(
           color: Colors.white,
-          border: Border.all(color: color.withAlpha(153), width: 1.5), // 0.6 * 255
           borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withAlpha(5), blurRadius: 4) // 0.02 * 255
-          ],
         ),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text("$count",
-                style: GoogleFonts.poppins(
-                    fontSize: 20, fontWeight: FontWeight.bold, color: color)),
-            const SizedBox(height: 6),
-            Text(label,
-                style: GoogleFonts.poppins(
-                    fontSize: 12, fontWeight: FontWeight.w600, color: color)),
+            Text(
+              "$count",
+              style: GoogleFonts.poppins(
+                fontSize: 24, 
+                fontWeight: FontWeight.bold, 
+                color: const Color(0xFFB70F0F), // Primary Red
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(
+                fontSize: 11, 
+                fontWeight: FontWeight.w600, 
+                color: Colors.black87,
+              ),
+            ),
           ],
         ),
       ),
