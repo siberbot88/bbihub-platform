@@ -184,9 +184,17 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::get('dashboard/stats', [\App\Http\Controllers\Api\DashboardController::class, 'getStats']);
 
         // ===== SERVICES (CRUD & Flow) =====
+        // ⚠️ IMPORTANT: Specific routes MUST come BEFORE {service} parameter routes
+        // Mechanics
+        Route::get('mechanics', [\App\Http\Controllers\Api\Admin\AdminEmployeeController::class, 'getMechanics']);
+
+        Route::get('services/schedule', [\App\Http\Controllers\Api\Admin\ServiceSchedulingController::class, 'index'])->name('api.admin.services.schedule');
+        Route::get('services/active', [\App\Http\Controllers\Api\Admin\ServiceLoggingController::class, 'index'])->name('api.admin.services.active');
+        // Route::post('services/walk-in', [ServiceApiController::class, 'storeWalkIn']); // OLD - use ServiceSchedulingController instead
+
+        // Generic CRUD routes (after specific routes)
         Route::get('services', [ServiceApiController::class, 'index']);
         Route::post('services', [ServiceApiController::class, 'store']);
-        Route::post('services/walk-in', [ServiceApiController::class, 'storeWalkIn']); // Admin walk-in service
         Route::get('services/{service}', [ServiceApiController::class, 'show']);
         Route::put('services/{service}', [ServiceApiController::class, 'update']);
         Route::patch('services/{service}', [ServiceApiController::class, 'update']);
@@ -221,24 +229,21 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::put('transactions/{transaction}/items/{item}', [TransactionItemController::class, 'update']);
         Route::delete('transactions/{transaction}/items/{item}', [TransactionItemController::class, 'destroy']);
 
-        // ===== NEW: SERVICE MANAGEMENT (Scheduling & Logging) =====
-        // Service Scheduling (Pending bookings)
-        Route::get('services/schedule', [\App\Http\Controllers\Api\Admin\ServiceSchedulingController::class, 'index'])
-            ->name('services.schedule');
 
-        // Accept/Reject/Walk-in (Rate limited for security)
+        // ===== SERVICE MANAGEMENT (Walk-In/Accept/Reject/Complete) =====
+        // Walk-in service creation (with auto-filled workshop_uuid)
+        Route::post('services/walk-in', [\App\Http\Controllers\Api\Admin\ServiceSchedulingController::class, 'storeWalkIn'])
+            ->name('services.walk-in');
+
+        // Accept/Reject (Rate limited for security)
         Route::middleware('throttle:10,1')->group(function () {
             Route::post('services/{service}/accept', [\App\Http\Controllers\Api\Admin\ServiceSchedulingController::class, 'accept'])
                 ->name('services.accept');
             Route::post('services/{service}/reject', [\App\Http\Controllers\Api\Admin\ServiceSchedulingController::class, 'reject'])
                 ->name('services.reject');
-            Route::post('services/walk-in', [\App\Http\Controllers\Api\Admin\ServiceSchedulingController::class, 'storeWalkIn'])
-                ->name('services.walk-in');
         });
 
-        // Service Logging (Active/In-progress services)
-        Route::get('services/active', [\App\Http\Controllers\Api\Admin\ServiceLoggingController::class, 'index'])
-            ->name('services.active');
+        // Service completion
         Route::patch('services/{service}/complete', [\App\Http\Controllers\Api\Admin\ServiceLoggingController::class, 'complete'])
             ->name('services.complete');
 

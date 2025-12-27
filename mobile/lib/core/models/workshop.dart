@@ -10,6 +10,7 @@ class Workshop {
   final String phone;
   final String email;
   final String? photo;
+  final String? photoUrl; // Added
   final String city;
   final String province;
   final String country;
@@ -35,6 +36,7 @@ class Workshop {
     required this.phone,
     required this.email,
     this.photo,
+    this.photoUrl,
     required this.city,
     required this.province,
     required this.country,
@@ -100,6 +102,7 @@ class Workshop {
         phone: json['phone'] as String? ?? '',
         email: json['email'] as String? ?? '',
         photo: sanitizeUrl(json['photo'] as String?),
+        photoUrl: sanitizeUrl(json['photo_url'] as String?), // Added
         city: json['city'] as String? ?? '',
         province: json['province'] as String? ?? '',
         country: json['country'] as String? ?? '',

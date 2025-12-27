@@ -8,11 +8,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
-class Service extends Model
+class Service extends Model implements HasMedia
 {
     /** @use HasFactory<ServiceFactory> */
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, InteractsWithMedia;
 
     protected $primaryKey = 'id';
     public $incrementing = false;
@@ -42,12 +44,13 @@ class Service extends Model
         'assigned_to_user_id',
         'technician_name',
         'type',
+        'image_path',
     ];
 
     protected $casts = [
         'price' => 'decimal:2',
-        'scheduled_date' => 'date',
-        'estimated_time' => 'date',
+        'scheduled_date' => 'datetime',
+        'estimated_time' => 'datetime',
         'accepted_at' => 'datetime',
         'completed_at' => 'datetime',
     ];
@@ -110,5 +113,35 @@ class Service extends Model
     {
         return $this->hasMany(ServiceLog::class, 'service_uuid', 'id')
             ->whereRaw('1 = 0');
+    }
+    protected $appends = [
+        'image_url',
+    ];
+
+    /**
+     * Get image URL.
+     */
+    public function getImageUrlAttribute(): ?string
+    {
+        $mediaUrl = $this->getFirstMediaUrl('service_image');
+        if ($mediaUrl) {
+            return $mediaUrl;
+        }
+
+        if ($this->image_path) {
+            // Check if it's already a full URL (legacy/external)
+            if (str_starts_with($this->image_path, 'http')) {
+                return $this->image_path;
+            }
+            // Return storage URL
+            return asset('storage/' . $this->image_path);
+        }
+        return null; // Or return default placeholder
+    }
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('service_image')
+            ->singleFile();
     }
 }

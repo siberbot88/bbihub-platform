@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../widgets/custom_header.dart'; // Reuse existing header if possible
+
+import 'package:provider/provider.dart';
+import '../providers/admin_service_provider.dart';
 
 class AddServiceOnSitePage extends StatefulWidget {
   const AddServiceOnSitePage({super.key});
@@ -15,12 +20,18 @@ class _AddServiceOnSitePageState extends State<AddServiceOnSitePage> {
   final _customerNameController = TextEditingController();
   final _whatsappController = TextEditingController();
   final _policeNumberController = TextEditingController();
+  final _brandController = TextEditingController();
   final _modelController = TextEditingController();
+  final _yearController = TextEditingController(); // Added
+  final _colorController = TextEditingController(); // Added
   final _complaintController = TextEditingController();
 
   // State
   String _selectedVehicleType = 'Motor'; // Motor, Mobil
   String? _selectedService; // Single selection
+  File? _pickedImage;
+  final ImagePicker _picker = ImagePicker();
+  bool _isLoading = false;
 
   final List<String> _serviceAvailable = [
     'Service Ringan',
@@ -35,7 +46,10 @@ class _AddServiceOnSitePageState extends State<AddServiceOnSitePage> {
     _customerNameController.dispose();
     _whatsappController.dispose();
     _policeNumberController.dispose();
+    _brandController.dispose();
     _modelController.dispose();
+    _yearController.dispose();
+    _colorController.dispose();
     _complaintController.dispose();
     super.dispose();
   }
@@ -57,10 +71,10 @@ class _AddServiceOnSitePageState extends State<AddServiceOnSitePage> {
         ),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
+      body: ListView(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
+        physics: const BouncingScrollPhysics(),
+        children: [
             _buildSection(
               title: "Data Pelanggan",
               icon: Icons.person_outline,
@@ -124,6 +138,50 @@ class _AddServiceOnSitePageState extends State<AddServiceOnSitePage> {
                             _buildTextField(
                               controller: _policeNumberController,
                               hint: "B 1234 XYZ",
+                              textCapitalization: TextCapitalization.characters,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        // Make this Brand
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildTextFieldLabel("Merk", isRequired: true),
+                            _buildTextField(
+                              controller: _brandController,
+                              hint: "Cth: Honda",
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildTextFieldLabel("Tipe/Model", isRequired: true),
+                      _buildTextField(
+                        controller: _modelController,
+                        hint: "Cth: Vario 150",
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildTextFieldLabel("Tahun", isRequired: true),
+                            _buildTextField(
+                              controller: _yearController,
+                              hint: "YYYY",
+                              keyboardType: TextInputType.number,
                             ),
                           ],
                         ),
@@ -133,10 +191,10 @@ class _AddServiceOnSitePageState extends State<AddServiceOnSitePage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildTextFieldLabel("Tipe/Model"),
+                            _buildTextFieldLabel("Warna", isRequired: true),
                             _buildTextField(
-                              controller: _modelController,
-                              hint: "Cth: Vario 150",
+                              controller: _colorController,
+                              hint: "Cth: Hitam",
                             ),
                           ],
                         ),
@@ -212,9 +270,67 @@ class _AddServiceOnSitePageState extends State<AddServiceOnSitePage> {
                 ],
               ),
             ),
+            const SizedBox(height: 16),
+             _buildSection(
+              title: "Kondisi Motor (Opsional)",
+              icon: Icons.camera_alt_outlined,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildTextFieldLabel("Foto Kerusakan / Kondisi Awal"),
+                  const SizedBox(height: 12),
+                  InkWell(
+                    onTap: _pickImage,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      width: double.infinity,
+                      height: 200,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF9FAFB),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: _pickedImage != null
+                          ? Stack(
+                              alignment: Alignment.center,
+                              fit: StackFit.expand,
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Image.file(
+                                    _pickedImage!,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.3),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Center(
+                                    child: Icon(Icons.camera_alt, color: Colors.white, size: 40),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.add_a_photo_outlined, size: 40, color: Colors.grey[400]),
+                                const SizedBox(height: 8),
+                                Text(
+                                  "Tap untuk ambil foto",
+                                  style: AppTextStyles.bodyMedium(color: Colors.grey[600]),
+                                ),
+                              ],
+                            ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 100), // Space for bottom button
           ],
-        ),
       ),
       bottomSheet: Container(
         padding: EdgeInsets.only(
@@ -235,16 +351,8 @@ class _AddServiceOnSitePageState extends State<AddServiceOnSitePage> {
         ),
         child: SizedBox(
           width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: () {
-              // TODO: Implement save logic
-              Navigator.pop(context);
-            },
-            icon: const Icon(Icons.save, color: Colors.white),
-            label: Text(
-              "Simpan Data Servis",
-              style: AppTextStyles.heading5(color: Colors.white),
-            ),
+          child: ElevatedButton(
+            onPressed: _isLoading ? null : _handleSave,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryRed,
               padding: const EdgeInsets.symmetric(vertical: 16),
@@ -252,12 +360,75 @@ class _AddServiceOnSitePageState extends State<AddServiceOnSitePage> {
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
+            child: _isLoading 
+              ? const SizedBox(
+                  height: 20, 
+                  width: 20, 
+                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                )
+              : Text(
+                  "Tambahkan Service",
+                  style: AppTextStyles.heading5(color: Colors.white),
+                ),
           ),
         ),
       ),
     );
   }
 
+  Future<void> _handleSave() async {
+     // Validate
+     if (_customerNameController.text.isEmpty ||
+         _whatsappController.text.isEmpty ||
+         _policeNumberController.text.isEmpty ||
+         _brandController.text.isEmpty ||
+         _modelController.text.isEmpty ||
+         _yearController.text.isEmpty ||
+         _colorController.text.isEmpty ||
+         _selectedService == null) {
+       ScaffoldMessenger.of(context).showSnackBar(
+         const SnackBar(content: Text("Mohon lengkapi semua data wajib (*)")),
+       );
+       return;
+     }
+
+     setState(() => _isLoading = true);
+
+     try {
+       final provider = context.read<AdminServiceProvider>();
+       
+       await provider.createWalkInService(
+         customerName: _customerNameController.text.trim(),
+         customerPhone: _whatsappController.text.trim(),
+         vehicleBrand: _brandController.text.trim(),
+         vehicleModel: _modelController.text.trim(),
+         vehiclePlate: _policeNumberController.text.trim(),
+         vehicleYear: _yearController.text.trim(),
+         vehicleColor: _colorController.text.trim(),
+         vehicleCategory: _selectedVehicleType,
+         serviceName: _selectedService!,
+         serviceDescription: _complaintController.text.trim(),
+         image: _pickedImage,
+       );
+
+       if (mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(
+           const SnackBar(content: Text("Service berhasil ditambahkan")),
+         );
+         Navigator.pop(context); // Close page
+       }
+     } catch (e) {
+       if (mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(content: Text("Gagal: ${e.toString()}")),
+         );
+       }
+     } finally {
+       if (mounted) {
+         setState(() => _isLoading = false);
+       }
+     }
+  }
   Widget _buildSection({
     required String title,
     required IconData icon,
@@ -326,12 +497,14 @@ class _AddServiceOnSitePageState extends State<AddServiceOnSitePage> {
     required String hint,
     IconData? prefixIcon,
     TextInputType keyboardType = TextInputType.text,
+    TextCapitalization textCapitalization = TextCapitalization.none,
   }) {
     return Padding(
       padding: const EdgeInsets.only(top: 8),
       child: TextField(
         controller: controller,
         keyboardType: keyboardType,
+        textCapitalization: textCapitalization,
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: AppTextStyles.bodyMedium(color: AppColors.textHint),
@@ -402,4 +575,17 @@ class _AddServiceOnSitePageState extends State<AddServiceOnSitePage> {
       ),
     );
   }
-}
+
+  Future<void> _pickImage() async {
+    final XFile? image = await _picker.pickImage(
+      source: ImageSource.camera, // or gallery, usually walk-in is camera
+      imageQuality: 70, // Optimize size
+    );
+
+    if (image != null) {
+      setState(() {
+        _pickedImage = File(image.path);
+      });
+    }
+  }
+} // Closing class _AddServiceOnSitePageState

@@ -7,6 +7,8 @@ class User {
   final String username;
   final String email;
   final String? photo;
+  final String? photoUrl; // Added
+
   final String role;
   final List<Workshop>? workshops;
   final Employment? employment;
@@ -28,6 +30,7 @@ class User {
     required this.username,
     required this.email,
     this.photo,
+    this.photoUrl,
     required this.role,
     this.workshops,
     this.employment,
@@ -126,6 +129,7 @@ class User {
       username: (json['username'] ?? '').toString(),
       email: (json['email'] ?? '').toString(),
       photo: _fixImageUrl(json['photo']),
+      photoUrl: _fixImageUrl(json['photo_url']), // Added
       role: userRole,
       workshops: parsedWorkshops,
       employment: parsedEmployment,

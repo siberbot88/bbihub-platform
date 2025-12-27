@@ -28,7 +28,7 @@ class ServiceNotification extends Notification implements ShouldQueue
 
         // Add FCM if user has token
         if ($notifiable->fcm_token) {
-            $channels[] = 'fcm';
+            $channels[] = \App\Channels\FcmChannel::class;
         }
 
         return $channels;

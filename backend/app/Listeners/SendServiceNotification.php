@@ -19,8 +19,12 @@ class SendServiceNotification
 
         // Get all admins of the workshop
         $admins = Employment::where('workshop_uuid', $service->workshop_uuid)
-            ->where('role', 'admin')
             ->where('status', 'active')
+            ->whereHas('user', function ($q) {
+                $q->whereHas('roles', function ($r) {
+                    $r->where('name', 'admin');
+                });
+            })
             ->with('user')
             ->get();
 
@@ -52,8 +56,12 @@ class SendServiceNotification
 
         // Get all admins of the workshop
         $admins = Employment::where('workshop_uuid', $service->workshop_uuid)
-            ->where('role', 'admin')
             ->where('status', 'active')
+            ->whereHas('user', function ($q) {
+                $q->whereHas('roles', function ($r) {
+                    $r->where('name', 'admin');
+                });
+            })
             ->with('user')
             ->get();
 

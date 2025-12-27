@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -17,8 +16,8 @@ class NotificationController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-        
-        $notifications = Notification::where('user_uuid', $user->id)
+
+        $notifications = $user->notifications()
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 
@@ -36,10 +35,8 @@ class NotificationController extends Controller
     public function unreadCount(Request $request)
     {
         $user = Auth::user();
-        
-        $count = Notification::where('user_uuid', $user->id)
-            ->where('is_read', false)
-            ->count();
+
+        $count = $user->unreadNotifications()->count();
 
         return response()->json([
             'success' => true,
@@ -65,23 +62,25 @@ class NotificationController extends Controller
         $id = $request->input('id');
 
         if ($id === 'all') {
-            Notification::where('user_uuid', $user->id)
-                ->where('is_read', false)
-                ->update(['is_read' => true]);
-                
+            $user->unreadNotifications->markAsRead();
             $message = 'All notifications marked as read';
         } else {
-            Notification::where('user_uuid', $user->id)
-                ->where('id', $id)
-                ->update(['is_read' => true]);
-                
-            $message = 'Notification marked as read';
+            $notification = $user->notifications()->find($id);
+            if ($notification) {
+                $notification->markAsRead();
+                $message = 'Notification marked as read';
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Notification not found'
+                ], 404);
+            }
         }
 
         return response()->json([
             'success' => true,
             'message' => $message,
-            'unread_count' => Notification::where('user_uuid', $user->id)->where('is_read', false)->count()
+            'unread_count' => $user->unreadNotifications()->count()
         ]);
     }
 }

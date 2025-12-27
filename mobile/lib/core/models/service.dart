@@ -6,19 +6,22 @@ import 'transaction_item.dart';
 class MechanicRef {
   final String id;
   final String? name;
+  final String? photoUrl;
 
-  MechanicRef({required this.id, this.name});
+  MechanicRef({required this.id, this.name, this.photoUrl});
 
   factory MechanicRef.fromJson(Map<String, dynamic> json) {
     return MechanicRef(
       id: (json['id'] ?? '').toString(),
       name: json['name']?.toString(),
+      photoUrl: json['photo_url']?.toString() ?? json['photoUrl']?.toString(), // Handle snake_case from backend
     );
   }
 
   Map<String, dynamic> toJson() => {
     'id': id,
     if (name != null) 'name': name,
+    if (photoUrl != null) 'photo_url': photoUrl,
   };
 }
 
@@ -72,8 +75,11 @@ class ServiceModel {
   final String? categoryName;
 
   final String? reason;
-  final String? reasonDescription; // <--- dari kolom reason_description
+  final String? reasonDescription; // Added
   final String? feedbackMechanic;
+  final String? type; // <--- dari kolom type
+  final String? imagePath;
+  final String? imageUrl;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -103,6 +109,9 @@ class ServiceModel {
     this.reason,
     this.reasonDescription,
     this.feedbackMechanic,
+    this.type,
+    this.imagePath,
+    this.imageUrl,
     this.createdAt,
     this.updatedAt,
   });
@@ -207,9 +216,24 @@ class ServiceModel {
       reason: json['reason']?.toString(),
       reasonDescription: json['reason_description']?.toString(),
       feedbackMechanic: json['feedback_mechanic']?.toString(),
+      type: json['type']?.toString(),
       createdAt: parseDT(json['created_at']),
       updatedAt: parseDT(json['updated_at']),
+      // imagePath: json['image_path']?.toString(),
+      imageUrl: sanitizeUrl(json['image_url']?.toString()),
     );
+  }
+
+  static String? sanitizeUrl(String? url) {
+    if (url == null) return null;
+    // Android Emulator Fix: Replace localhost and 127.0.0.1 with 10.0.2.2
+    if (url.contains('localhost')) {
+      return url.replaceAll('localhost', '10.0.2.2');
+    }
+    if (url.contains('127.0.0.1')) {
+      return url.replaceAll('127.0.0.1', '10.0.2.2');
+    }
+    return url;
   }
 
   /// Serialization ringan (tanpa memanggil `toJson()` dari model lain).

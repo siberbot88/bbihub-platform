@@ -40,7 +40,25 @@ class Employment extends Model
         'status' => 'string',
     ];
 
-    public function workshop(): BelongsTo{
+    protected $appends = ['photo_url'];
+
+    public function getPhotoUrlAttribute(): ?string
+    {
+        // 1. Check if Employment has its own media (if implemented later)
+        // This is a placeholder if we decide to add Spatie to Employment directly
+        // $mediaUrl = $this->getFirstMediaUrl('employment_photo');
+        // if ($mediaUrl) return $mediaUrl;
+
+        // 2. Delegate to User's photo_url
+        if ($this->user) {
+            return $this->user->photo_url;
+        }
+
+        return null;
+    }
+
+    public function workshop(): BelongsTo
+    {
         return $this->belongsTo(Workshop::class, 'workshop_uuid');
     }
 
@@ -70,6 +88,11 @@ class Employment extends Model
     public function transactions(): HasMany
     {
         return $this->hasMany(Transaction::class, 'mechanic_uuid', 'id');
+    }
+
+    public function services(): HasMany
+    {
+        return $this->hasMany(Service::class, 'mechanic_uuid', 'id');
     }
 
 }

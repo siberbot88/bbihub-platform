@@ -243,7 +243,7 @@ class ServiceService
             'service_uuid' => $service->id,
             'mechanic_uuid' => $mechanicUuid,
             'transaction_uuid' => $service->transaction?->id ?? null, // Make nullable
-            'status' => 'in progress',
+            'status' => 'in_progress', // Changed from 'in progress' to match ENUM
             'notes' => 'Mekanik telah ditetapkan',
         ]);
 

@@ -42,9 +42,10 @@ class AdminServiceManager
     public function getScheduledServices(
         string $workshopId,
         ?Carbon $date = null,
-        int $perPage = 15
+        int $perPage = 15,
+        ?string $type = null
     ): array {
-        $services = $this->serviceRepo->getPendingServices($workshopId, $date, $perPage);
+        $services = $this->serviceRepo->getPendingServices($workshopId, $date, $perPage, $type);
 
         // Group services by date
         $grouped = collect($services->items())->groupBy(function ($service) {
@@ -189,22 +190,27 @@ class AdminServiceManager
                 ['phone' => $data['customer_phone']],
                 [
                     'id' => Str::uuid(),
+                    'code' => 'CUST-' . strtoupper(Str::random(8)),
                     'name' => $data['customer_name'],
-                    'email' => $data['customer_email'] ?? null,
+                    'email' => $data['customer_email'] ?? '', // Default empty for walk-in
+                    'address' => $data['customer_address'] ?? '', // Default empty for walk-in
                 ]
             );
 
-            // 2. Create or find vehicle
-            $vehicle = Vehicle::firstOrCreate(
+            // 2. Create or update vehicle (since we have more details now)
+            $vehicle = Vehicle::updateOrCreate(
                 [
                     'customer_uuid' => $customer->id,
                     'plate_number' => strtoupper($data['vehicle_plate'])
                 ],
                 [
-                    'id' => Str::uuid(),
+                    'id' => Str::uuid(), // Only used if creating
+                    'code' => 'VEH-' . strtoupper(Str::random(5)),
+                    'name' => $data['vehicle_brand'] . ' ' . $data['vehicle_model'], // Auto-generate from brand + model
                     'brand' => $data['vehicle_brand'],
                     'model' => $data['vehicle_model'],
-                    'year' => $data['vehicle_year'] ?? null,
+                    'year' => $data['vehicle_year'], // Required now
+                    'color' => $data['vehicle_color'], // New field
                     'type' => $data['vehicle_type'] ?? 'matic',
                     'category' => $data['vehicle_category'] ?? 'motor',
                 ]
@@ -218,7 +224,21 @@ class AdminServiceManager
                 'service_name' => $data['service_name'],
                 'service_description' => $data['service_description'] ?? '',
                 'scheduled_date' => $data['scheduled_date'] ?? now(),
+                'estimated_time' => $data['estimated_time'] ?? now()->addHours(2), // Default 2 hours from now
+                // 'image_path' => $imagePath, // REMOVED: Managed by Spatie
             ]);
+
+            // 4. Handle Image Upload (Spatie Media Library)
+            if (isset($data['image']) && $data['image'] instanceof \Illuminate\Http\UploadedFile) {
+                \Illuminate\Support\Facades\Log::info('Uploading image for service', ['service_id' => $service->id]);
+                $service->addMedia($data['image'])
+                    ->toMediaCollection('service_image');
+
+                // Refresh relations to include the new media
+                $service->load('media');
+            } else {
+                \Illuminate\Support\Facades\Log::info('No image uploaded for service', ['data_image_set' => isset($data['image'])]);
+            }
 
             // Audit log
             AuditLog::log(

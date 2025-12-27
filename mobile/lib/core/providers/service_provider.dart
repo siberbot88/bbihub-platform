@@ -68,6 +68,7 @@ class ServiceProvider extends ChangeNotifier {
     String? dateTo,
     int page = 1,
     int perPage = 10,
+    String? type,
   }) {
     return _api.fetchServicesRaw(
       status: status ?? _statusFilter,
@@ -122,6 +123,7 @@ class ServiceProvider extends ChangeNotifier {
     String? dateTo, // 'YYYY-MM-DD'
     int page = 1,
     int? perPage,
+    String? type, // Added type param
   }) async {
     _loading = true;
     _lastError = null;
@@ -144,6 +146,7 @@ class ServiceProvider extends ChangeNotifier {
         dateTo: dateTo,
         page: page,
         perPage: perPage ?? _perPage,
+        type: type, // Pass type
       );
 
       final data = res['data'];

@@ -14,8 +14,8 @@ class StoreWalkInServiceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // Worksheet UUID
-            'workshop_uuid' => ['required', 'uuid', 'exists:workshops,id'],
+            // NOTE: workshop_uuid is auto-filled by controller from admin's employment
+            // No validation needed here
 
             // Customer data
             'customer_name' => ['required', 'string', 'max:100', 'regex:/^[a-zA-Z\s\.]+$/'],
@@ -26,7 +26,8 @@ class StoreWalkInServiceRequest extends FormRequest
             'vehicle_brand' => ['required', 'string', 'max:50'],
             'vehicle_model' => ['required', 'string', 'max:50'],
             'vehicle_plate' => ['required', 'string', 'max:15', 'regex:/^[A-Z0-9\s]+$/'],
-            'vehicle_year' => ['nullable', 'integer', 'min:1900', 'max:' . (date('Y') + 1)],
+            'vehicle_year' => ['required', 'integer', 'min:1900', 'max:' . (date('Y') + 1)],
+            'vehicle_color' => ['required', 'string', 'max:30'],
             'vehicle_type' => ['nullable', 'in:matic,manual,kopling'],
             'vehicle_category' => ['nullable', 'in:motor,mobil'],
 
@@ -34,13 +35,13 @@ class StoreWalkInServiceRequest extends FormRequest
             'service_name' => ['required', 'string', 'max:200'],
             'service_description' => ['nullable', 'string', 'max:1000'],
             'scheduled_date' => ['nullable', 'date', 'after_or_equal:today'],
+            'image' => ['nullable', 'image', 'max:5120'], // Max 5MB
         ];
     }
 
     public function messages(): array
     {
         return [
-            'workshop_uuid.required' => 'Workshop harus dipilih',
             'customer_name.required' => 'Nama customer harus diisi',
             'customer_name.regex' => 'Nama customer hanya boleh huruf dan spasi',
             'customer_phone.required' => 'Nomor telepon harus diisi',
@@ -50,7 +51,11 @@ class StoreWalkInServiceRequest extends FormRequest
             'vehicle_model.required' => 'Model kendaraan harus diisi',
             'vehicle_plate.required' => 'Plat nomor harus diisi',
             'vehicle_plate.regex' => 'Format plat nomor tidak valid (contoh: B1234AB)',
+            'vehicle_year.required' => 'Tahun kendaraan harus diisi',
+            'vehicle_color.required' => 'Warna kendaraan harus diisi',
             'service_name.required' => 'Nama service harus diisi',
+            'image.image' => 'File harus berupa gambar',
+            'image.max' => 'Ukuran gambar maksimal 5MB',
         ];
     }
 }

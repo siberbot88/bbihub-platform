@@ -3,9 +3,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import 'logging_helpers.dart';
 import '../../screens/service_detail_page.dart'; // Correct import
-import '../../screens/service_pending.dart' as pending;
-import '../../screens/service_progress.dart' as progress;
-import '../../screens/service_complete.dart' as complete;
+// Imports from deleted files removed
 import 'package:bengkel_online_flutter/core/models/service.dart';
 
 class LoggingTaskCard extends StatelessWidget {
@@ -57,11 +55,10 @@ class LoggingTaskCard extends StatelessWidget {
     } else if (status.toLowerCase() == 'in_progress' || status.toLowerCase() == "on_process") {
       actionButton = ElevatedButton(
         onPressed: () {
-          // TODO: Use ServiceModel in ServiceProgressDetail
            Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => progress.ServiceProgressDetail(task: _toLegacyMap(service)),
+                builder: (_) => ServiceDetailPage(service: service),
               ));
         },
         style: ElevatedButton.styleFrom(
@@ -76,11 +73,10 @@ class LoggingTaskCard extends StatelessWidget {
     } else if (status.toLowerCase() == 'completed') {
       actionButton = ElevatedButton(
         onPressed: () {
-          // TODO: Use ServiceModel in ServiceCompleteDetail
            Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => complete.ServiceCompleteDetail(task: _toLegacyMap(service)),
+                builder: (_) => ServiceDetailPage(service: service),
               ));
         },
         style: ElevatedButton.styleFrom(
@@ -89,7 +85,7 @@ class LoggingTaskCard extends StatelessWidget {
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         ),
-        child: Text("Buat Invoice",
+        child: Text("Lihat Detail",
             style: AppTextStyles.buttonSmall(color: Colors.white).copyWith(fontSize: 12)),
       );
     } else {
@@ -97,7 +93,6 @@ class LoggingTaskCard extends StatelessWidget {
     }
 
     final scheduledDate = service.scheduledDate ?? DateTime.now();
-    // Assuming time is not separate in ServiceModel yet, or use scheduledDate time
     final timeStr = "${scheduledDate.hour.toString().padLeft(2, '0')}:${scheduledDate.minute.toString().padLeft(2, '0')}";
 
     return Container(
@@ -108,9 +103,13 @@ class LoggingTaskCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withAlpha(13), // 0.05 * 255
-              blurRadius: 6,
-              offset: const Offset(0, 3))
+              color: Colors.black.withAlpha(26), // Increased opacity for better visibility
+              blurRadius: 8,
+              offset: const Offset(0, 2)),
+          BoxShadow(
+              color: Colors.black.withAlpha(10),
+              blurRadius: 16,
+              offset: const Offset(0, 4))
         ],
       ),
       child: Column(
@@ -143,9 +142,9 @@ class LoggingTaskCard extends StatelessWidget {
           const SizedBox(height: 8),
           Row(
             children: [
-              const Icon(Icons.settings, size: 16, color: AppColors.textSecondary),
+              const Icon(Icons.two_wheeler, size: 16, color: AppColors.textSecondary),
               const SizedBox(width: 6),
-              Text("${service.displayVehicleName}  #${service.displayVehiclePlate}",
+              Text("${service.displayVehicleName}  •  ${service.displayVehiclePlate}",
                   style: AppTextStyles.caption()),
             ],
           ),
@@ -161,7 +160,7 @@ class LoggingTaskCard extends StatelessWidget {
                           "https://i.pravatar.cc/150?img=${service.id}")),
                   const SizedBox(width: 8),
                   Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(service.displayCustomerName,
                           style: AppTextStyles.labelBold()),
@@ -177,22 +176,5 @@ class LoggingTaskCard extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  // Temporary helper to maintain compatibility with detail pages if they still use Map
-  // Ideally those pages should also be refactored
-  Map<String, dynamic> _toLegacyMap(ServiceModel s) {
-    return {
-      "id": s.id,
-      "user": s.displayCustomerName,
-      "date": s.scheduledDate ?? DateTime.now(),
-      "title": s.name,
-      "desc": s.description ?? s.complaint ?? "-",
-      "plate": s.displayVehiclePlate,
-      "motor": s.displayVehicleName,
-      "status": s.status,
-      "category": "logging",
-      "time": "", // todo
-    };
   }
 }

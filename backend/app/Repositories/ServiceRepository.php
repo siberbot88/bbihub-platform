@@ -27,17 +27,27 @@ class ServiceRepository
     public function getPendingServices(
         string $workshopId,
         ?Carbon $date = null,
-        int $perPage = 15
+        int $perPage = 15,
+        ?string $type = null
     ): LengthAwarePaginator {
         $query = Service::with(['customer', 'vehicle'])
             ->where('workshop_uuid', $workshopId)
-            ->where('acceptance_status', 'pending')
+            ->where('status', 'pending') // Show all pending services (Accepted or Not)
             ->orderBy('scheduled_date', 'asc')
             ->orderBy('created_at', 'asc');
 
         // Filter by date if provided
         if ($date) {
             $query->whereDate('scheduled_date', $date);
+        }
+
+        // Filter by type if provided
+        if ($type) {
+            // Map frontend 'ditempat' to database 'on-site'
+            if ($type === 'ditempat') {
+                $type = 'on-site';
+            }
+            $query->where('type', $type);
         }
 
         return $query->paginate($perPage);
@@ -193,9 +203,11 @@ class ServiceRepository
                 'name' => $data['service_name'],
                 'description' => $data['service_description'] ?? '',
                 'scheduled_date' => $data['scheduled_date'] ?? now(),
+                'estimated_time' => $data['estimated_time'] ?? now()->addHours(2),
                 'type' => 'on-site', // Auto on-site for walk-in
-                'acceptance_status' => 'pending',
+                'acceptance_status' => 'accepted', // Auto-accepted for walk-in/on-site
                 'status' => 'pending',
+                'image_path' => $data['image_path'] ?? null,
             ]);
 
             return $service->load(['customer', 'vehicle']);

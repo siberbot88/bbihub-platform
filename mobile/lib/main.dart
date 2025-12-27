@@ -45,7 +45,8 @@ import 'package:bengkel_online_flutter/feature/owner/widgets/bottom_nav_owner.da
 import 'package:bengkel_online_flutter/feature/owner/screens/voucher_page.dart';
 import 'package:bengkel_online_flutter/feature/owner/screens/list_voucher_page.dart';
 
-
+// INVOICE
+import 'package:bengkel_online_flutter/screens/create_invoice_screen.dart';
 
 import 'package:bengkel_online_flutter/core/services/notification_provider.dart';
 import 'package:bengkel_online_flutter/feature/owner/screens/notification_page.dart';
@@ -180,6 +181,7 @@ class _MyAppState extends State<MyApp> {
         "/forgot-password": (context) => const forgot_pass.ForgotPasswordPage(),
         "/reset-password": (context) => const reset_pass.ResetPasswordPage(),
         "/notifications": (context) => const NotificationPage(),
+        "/create-invoice": (context) => const CreateInvoiceScreen(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/list') {

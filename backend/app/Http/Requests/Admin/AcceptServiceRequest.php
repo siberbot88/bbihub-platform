@@ -24,7 +24,7 @@ class AcceptServiceRequest extends FormRequest
             'mechanic_uuid' => [
                 'required',
                 'uuid',
-                'exists:employments,user_uuid',
+                'exists:employments,id', // Check Employment.id (UUID), not user_uuid
             ],
         ];
     }

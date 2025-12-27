@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../providers/admin_service_provider.dart';
+import '../../../../core/models/service.dart';
+import 'service_detail_page.dart';
 
 class ServiceHistoryAdminPage extends StatefulWidget {
   const ServiceHistoryAdminPage({super.key});
@@ -12,11 +17,84 @@ class ServiceHistoryAdminPage extends StatefulWidget {
 class _ServiceHistoryAdminPageState extends State<ServiceHistoryAdminPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final List<String> _tabs = ["Harian", "Mingguan", "Bulanan"];
+  
+  // Date tracking
+  DateTime _selectedDate = DateTime.now();
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: _tabs.length, vsync: this);
+    _tabController.addListener(_onTabChanged);
+    
+    // Initial Fetch
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchData();
+    });
+  }
+
+  @override
+  void dispose() {
+    _tabController.removeListener(_onTabChanged);
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  void _onTabChanged() {
+    if (_tabController.indexIsChanging) return;
+    _fetchData();
+  }
+
+  void _fetchData() {
+    final provider = context.read<AdminServiceProvider>();
+    final now = DateTime.now();
+    String? dateFrom;
+    String? dateTo;
+
+    // Filter logic based on Tabs
+    switch (_tabController.index) {
+      case 0: // Harian (Today)
+        dateFrom = DateFormat('yyyy-MM-dd').format(now);
+        dateTo = DateFormat('yyyy-MM-dd').format(now);
+        break;
+      case 1: // Mingguan (This Week)
+        // Find start of week (Monday)
+        final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+        final endOfWeek = startOfWeek.add(const Duration(days: 6));
+        dateFrom = DateFormat('yyyy-MM-dd').format(startOfWeek);
+        dateTo = DateFormat('yyyy-MM-dd').format(endOfWeek);
+        break;
+      case 2: // Bulanan (This Month)
+        final startOfMonth = DateTime(now.year, now.month, 1);
+        final endOfMonth = DateTime(now.year, now.month + 1, 0);
+        dateFrom = DateFormat('yyyy-MM-dd').format(startOfMonth);
+        dateTo = DateFormat('yyyy-MM-dd').format(endOfMonth);
+        break;
+    }
+    
+    // Also consider filtering by "Completed" status only for History?
+    // Usually history implies completed/cancelled. But "Daftar Servis" main page might be for active ones.
+    // Let's assume History Page shows ALL for now, or maybe just Completed/Cancelled.
+    // Given the previous dummy data had "Selesai" and "Dibatalkan", I'll default to all but maybe sort by date desc.
+    
+    provider.performFetchServicesRaw(
+      page: 1, // Reset to page 1 on filter change
+      perPage: 20,
+      dateFrom: dateFrom,
+      dateTo: dateTo,
+      // status: 'completed,cancelled', // Optional: if we strictly want history.
+    ).then((_) {
+       // Manual update of provider's list happens inside performFetch if we used fetchServices
+       // But here we called performFetchRaw which returns map.
+       // We should actually call `provider.fetchServices` to update the state.
+       // My bad, `fetchServices` in ServiceProvider handles state. 
+       
+       context.read<AdminServiceProvider>().fetchServices(
+         page: 1,
+         dateFrom: dateFrom,
+         dateTo: dateTo,
+       );
+    });
   }
 
   @override
@@ -35,12 +113,6 @@ class _ServiceHistoryAdminPageState extends State<ServiceHistoryAdminPage> with 
           onPressed: () => Navigator.pop(context),
         ),
         centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search, color: Colors.black),
-            onPressed: () {},
-          ),
-        ],
       ),
       body: Column(
         children: [
@@ -50,7 +122,7 @@ class _ServiceHistoryAdminPageState extends State<ServiceHistoryAdminPage> with 
             margin: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
               color: Colors.grey.shade200,
-              borderRadius: BorderRadius.circular(30), // Pill shape based on design
+              borderRadius: BorderRadius.circular(30), 
             ),
             child: TabBar(
               controller: _tabController,
@@ -73,66 +145,60 @@ class _ServiceHistoryAdminPageState extends State<ServiceHistoryAdminPage> with 
           
           const SizedBox(height: 16),
           
-          // Filter Bar
-          Padding(
-             padding: const EdgeInsets.symmetric(horizontal: 16),
-             child: Row(
-               children: [
-                 Expanded(
-                   child: Container(
-                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                     decoration: BoxDecoration(
-                       color: Colors.white,
-                       borderRadius: BorderRadius.circular(8),
-                       border: Border.all(color: AppColors.border),
-                     ),
-                     child: Row(
-                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                       children: [
-                         Row(
-                           children: [
-                             const Icon(Icons.calendar_today, size: 18, color: Colors.grey),
-                             const SizedBox(width: 8),
-                             Text("26 Oktober 2023", style: AppTextStyles.bodyMedium()),
-                           ],
-                         ),
-                         const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
-                       ],
-                     ),
-                   ),
-                 ),
-                 const SizedBox(width: 8),
-                 Container(
-                   padding: const EdgeInsets.all(10),
-                   decoration: BoxDecoration(
-                     color: Colors.white,
-                     borderRadius: BorderRadius.circular(8),
-                     border: Border.all(color: AppColors.border),
-                   ),
-                   child: const Icon(Icons.filter_list, color: Colors.black),
-                 ),
-                 const SizedBox(width: 8),
-                 Container(
-                   padding: const EdgeInsets.all(10),
-                   decoration: BoxDecoration(
-                     color: AppColors.primaryRed,
-                     borderRadius: BorderRadius.circular(8),
-                   ),
-                   child: const Icon(Icons.download, color: Colors.white),
-                 ),
-               ],
-             ),
-          ),
-
+          // List Content
           Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildList(isDaily: true),
-                _buildList(),
-                _buildList(),
-              ],
+            child: Consumer<AdminServiceProvider>(
+              builder: (context, provider, child) {
+                if (provider.loading && provider.items.isEmpty) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (provider.items.isEmpty) {
+                  return _buildEmptyState();
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: provider.items.length + 1, // +1 for loader if pagination
+                  itemBuilder: (context, index) {
+                    if (index == provider.items.length) {
+                       return provider.loading ? const Center(child: Padding(padding: EdgeInsets.all(8), child: CircularProgressIndicator())) : const SizedBox();
+                    }
+
+                    final service = provider.items[index];
+                    return _buildAnimatedItem(
+                      GestureDetector(
+                        onTap: () {
+                           Navigator.push(
+                            context, 
+                            MaterialPageRoute(builder: (context) => ServiceDetailPage(service: service)),
+                           );
+                        },
+                        child: _buildHistoryCard(service),
+                      ),
+                      index,
+                    );
+                  },
+                );
+              },
             ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.history, size: 80, color: Colors.grey[300]),
+          const SizedBox(height: 16),
+          Text(
+            "Belum ada riwayat servis",
+            style: AppTextStyles.heading5(color: Colors.grey),
           ),
         ],
       ),
@@ -143,11 +209,11 @@ class _ServiceHistoryAdminPageState extends State<ServiceHistoryAdminPage> with 
   Widget _buildAnimatedItem(Widget child, int index) {
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
-      duration: Duration(milliseconds: 400 + (index * 100)), // Staggered delay effect
+      duration: Duration(milliseconds: 300 + (index * 50)),
       curve: Curves.easeOutQuart,
       builder: (context, value, child) {
         return Transform.translate(
-          offset: Offset(0, 50 * (1 - value)), // Slide up
+          offset: Offset(0, 30 * (1 - value)), // Slide up
           child: Opacity(
             opacity: value,
             child: child,
@@ -158,216 +224,136 @@ class _ServiceHistoryAdminPageState extends State<ServiceHistoryAdminPage> with 
     );
   }
 
-  Widget _buildList({bool isDaily = false}) {
-    // Dummy Data
-    final services = [
-      {
-        'name': 'Dimas Anggara',
-        'vehicle': 'Vario 125 • B 3456 TUV',
-        'service': 'Ganti Oli, Kampas Rem',
-        'time': 'Selesai: 14:30',
-        'price': 'Rp 185.000',
-        'status': 'Selesai',
-      },
-      {
-        'name': 'Rina Wati',
-        'vehicle': 'Scoopy • B 1122 RRR',
-        'service': 'Servis Rutin',
-        'time': 'Selesai: 11:15',
-        'price': 'Rp 75.000',
-        'status': 'Selesai',
-      },
-       {
-        'name': 'Budi Santoso',
-        'vehicle': 'NMAX 155 • B 9988 DD',
-        'service': 'Ganti Ban Belakang',
-        'time': 'Selesai: 16:45',
-        'price': 'Rp 350.000',
-        'status': 'Selesai',
-        'date': '25 Oktober 2023' // Different date
-      },
-       {
-        'name': 'Kevin Sanjaya',
-        'vehicle': 'Aerox 155 • B 6789 KL',
-        'service': 'Modifikasi CVT',
-        'time': '',
-        'price': '',
-        'status': 'Dibatalkan',
-        'reason': 'Oleh Pelanggan'
-      },
-       // Add more dummy data for scrolling effect
-       {
-        'name': 'Andi Pratama',
-        'vehicle': 'PCX 160 • B 2233 FF',
-        'service': 'Servis Besar',
-        'time': 'Selesai: 09:00',
-        'price': 'Rp 450.000',
-        'status': 'Selesai',
-        'date': '24 Oktober 2023'
-      },
-    ];
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      physics: const BouncingScrollPhysics(), // Smooth scrolling physics
-      itemCount: services.length,
-      itemBuilder: (context, index) {
-        final item = services[index];
-        bool showHeader = false;
-        String headerText = "";
-
-        // Simplified grouping logic for dummy
-        if (index == 0) {
-          showHeader = true;
-          headerText = "26 Oktober 2023";
-        } else if (index == 2) {
-          showHeader = true;
-          headerText = "25 Oktober 2023";
-        } else if (index == 4) {
-          showHeader = true;
-          headerText = "24 Oktober 2023";
-        }
-
-        return _buildAnimatedItem(
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (showHeader)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12, top: 4),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(headerText, style: AppTextStyles.heading5(color: Colors.grey[800])),
-                      if (index == 0) // Only for today
-                         Container(
-                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                           decoration: BoxDecoration(
-                             color: const Color(0xFFFFEBEE),
-                             borderRadius: BorderRadius.circular(4),
-                           ),
-                           child: Text(
-                             "Hari Ini",
-                             style: AppTextStyles.bodyMedium(color: AppColors.primaryRed)
-                                 .copyWith(fontWeight: FontWeight.bold, fontSize: 10),
-                           ),
-                         ),
-                       if (index == 0)
-                        Text("2 Servis Selesai", style: AppTextStyles.bodyMedium(color: Colors.grey)),
-                    ],
-                  ),
-                ),
-              
-              _buildHistoryCard(item),
-            ],
-          ),
-          index, // Pass index for stagger delay
-        );
-      },
-    );
-  }
-
-  Widget _buildHistoryCard(Map<String, dynamic> item) {
-    bool isCancelled = item['status'] == 'Dibatalkan';
+  Widget _buildHistoryCard(ServiceModel service) {
+    bool isCancelled = service.status.toLowerCase() == 'cancelled';
+    bool isCompleted = service.status.toLowerCase() == 'completed' || service.status.toLowerCase() == 'selesai';
+    
+    // Status Color
+    Color statusColor;
+    if (isCancelled) statusColor = AppColors.error;
+    else if (isCompleted) statusColor = AppColors.success;
+    else statusColor = Colors.orange;
 
     return Container(
         margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border(
-            left: BorderSide(
-              color: isCancelled ? AppColors.error : AppColors.success,
-              width: 4,
-            ),
-          ),
+          borderRadius: BorderRadius.circular(16),
+          // border: Border.all(color: Colors.grey.shade100), // Clean border
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05), // Matches Owner theme
-              blurRadius: 15,
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 10,
               offset: const Offset(0, 4),
             ),
           ],
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                     item['name'],
-                     style: AppTextStyles.heading4(),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: isCancelled ? const Color(0xFFFFEBEE) : const Color(0xFFE8F5E9),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      item['status'].toString().toUpperCase(),
-                      style: AppTextStyles.bodyMedium(
-                        color: isCancelled ? AppColors.error : AppColors.success,
-                      ).copyWith(fontWeight: FontWeight.bold, fontSize: 10),
-                    ),
-                  )
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                item['vehicle'],
-                style: AppTextStyles.bodyMedium(color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 12),
-               Row(
-                children: [
-                  Icon(Icons.build_circle_outlined, size: 16, color: AppColors.textSecondary),
-                  const SizedBox(width: 4),
-                  Text(item['service'], style: AppTextStyles.bodyMedium(color: Colors.grey[700])),
-                ],
-              ),
-              const SizedBox(height: 12),
-              const Divider(),
-              const SizedBox(height: 8),
-              if (isCancelled)
-                 Row(
-                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                   children: [
-                     Row(
-                       children: [
-                         Icon(Icons.cancel_outlined, size: 16, color: AppColors.textSecondary),
-                         const SizedBox(width: 4),
-                         Text(item['reason'], style: AppTextStyles.bodyMedium(color: AppColors.textSecondary)),
-                       ],
-                     ),
-                     Text(
-                       "Lihat Alasan",
-                       style: AppTextStyles.bodyMedium(color: AppColors.primaryRed)
-                           .copyWith(fontWeight: FontWeight.bold),
-                     )
-                   ],
-                 )
-              else
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Left Indicator Strip
+                Container(
+                  width: 6,
+                  color: statusColor,
+                ),
+                
+                // Content
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.access_time, size: 16, color: AppColors.textSecondary),
-                        const SizedBox(width: 4),
-                        Text(item['time'], style: AppTextStyles.bodyMedium(color: AppColors.textSecondary)),
+                        // Header: Name & Status
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                service.displayCustomerName,
+                                style: AppTextStyles.heading4().copyWith(fontSize: 16),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: statusColor.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                service.status.toUpperCase(),
+                                style: AppTextStyles.caption(color: statusColor).copyWith(fontWeight: FontWeight.bold),
+                              ),
+                            )
+                          ],
+                        ),
+                        
+                        const SizedBox(height: 6),
+                        
+                        // Vehicle Info
+                        Row(
+                          children: [
+                            Icon(Icons.directions_car_outlined, size: 14, color: AppColors.textSecondary),
+                            const SizedBox(width: 4),
+                            Text(
+                              "${service.displayVehicleBrand} ${service.displayVehicleModel} • ${service.displayVehiclePlate}",
+                              style: AppTextStyles.caption(color: AppColors.textSecondary),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 12),
+                        const Divider(height: 1, thickness: 0.5),
+                        const SizedBox(height: 12),
+
+                        // Service Detals
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                             Column(
+                               crossAxisAlignment: CrossAxisAlignment.start,
+                               children: [
+                                 Row(
+                                  children: [
+                                    Icon(Icons.build_circle_outlined, size: 14, color: Colors.grey[600]),
+                                    const SizedBox(width: 4),
+                                    Text(service.name, style: AppTextStyles.bodyMedium(color: Colors.black87)),
+                                  ],
+                                 ),
+                                 const SizedBox(height: 4),
+                                 if (service.scheduledDate != null)
+                                   Row(
+                                    children: [
+                                      Icon(Icons.access_time, size: 14, color: Colors.grey[500]),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        DateFormat('dd MMM yyyy, HH:mm').format(service.scheduledDate!),
+                                        style: AppTextStyles.caption(color: Colors.grey[500]),
+                                      ),
+                                    ],
+                                   ),
+                               ],
+                             ),
+                             
+                             // Price (if any)
+                             if (service.price != null && service.price! > 0)
+                               Text(
+                                 NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0).format(service.price),
+                                 style: AppTextStyles.heading5(color: AppColors.primaryRed),
+                               )
+                          ],
+                        ),
                       ],
                     ),
-                    Text(
-                      item['price'],
-                      style: AppTextStyles.heading4(),
-                    )
-                  ],
+                  ),
                 ),
-            ],
+              ],
+            ),
           ),
         ),
     );
