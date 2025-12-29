@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/services/auth_provider.dart';
 import '../providers/admin_service_provider.dart';
 import '../../../../core/models/service.dart';
 import 'service_detail_page.dart';
@@ -71,30 +72,21 @@ class _ServiceHistoryAdminPageState extends State<ServiceHistoryAdminPage> with 
         dateTo = DateFormat('yyyy-MM-dd').format(endOfMonth);
         break;
     }
+
+    final auth = context.read<AuthProvider>();
+    final workshopUuid = auth.user?.workshopUuid; // Fixed: workshopId -> workshopUuid
     
-    // Also consider filtering by "Completed" status only for History?
-    // Usually history implies completed/cancelled. But "Daftar Servis" main page might be for active ones.
-    // Let's assume History Page shows ALL for now, or maybe just Completed/Cancelled.
-    // Given the previous dummy data had "Selesai" and "Dibatalkan", I'll default to all but maybe sort by date desc.
+    print('🔍 Fetching history: dateFrom=$dateFrom, dateTo=$dateTo, workshopUuid=$workshopUuid');
     
-    provider.performFetchServicesRaw(
-      page: 1, // Reset to page 1 on filter change
-      perPage: 20,
+    context.read<AdminServiceProvider>().fetchServices(
+      page: 1,
       dateFrom: dateFrom,
       dateTo: dateTo,
-      // status: 'completed,cancelled', // Optional: if we strictly want history.
-    ).then((_) {
-       // Manual update of provider's list happens inside performFetch if we used fetchServices
-       // But here we called performFetchRaw which returns map.
-       // We should actually call `provider.fetchServices` to update the state.
-       // My bad, `fetchServices` in ServiceProvider handles state. 
-       
-       context.read<AdminServiceProvider>().fetchServices(
-         page: 1,
-         dateFrom: dateFrom,
-         dateTo: dateTo,
-       );
-    });
+      workshopUuid: workshopUuid, // CRITICAL: Filter by admin's workshop
+      status: null, // Show all statuses, filter by date only
+      dateColumn: 'completed_at', // Use completion date for history tracking
+      useScheduleEndpoint: false, // Use /admins/services (flat) instead of /schedule (grouped)
+    );
   }
 
   @override
@@ -120,6 +112,7 @@ class _ServiceHistoryAdminPageState extends State<ServiceHistoryAdminPage> with 
           // Tab Selector
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.all(4), // Add padding for better spacing
             decoration: BoxDecoration(
               color: Colors.grey.shade200,
               borderRadius: BorderRadius.circular(30), 
@@ -133,13 +126,21 @@ class _ServiceHistoryAdminPageState extends State<ServiceHistoryAdminPage> with 
                   BoxShadow(
                     color: Colors.black12,
                     blurRadius: 4,
+                    offset: Offset(0, 2),
                   )
                 ],
               ),
+              indicatorPadding: EdgeInsets.zero, // Remove default padding
+              labelPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), // Add padding for pill shape
+              dividerColor: Colors.transparent, // Remove divider
               labelColor: AppColors.primaryRed,
               unselectedLabelColor: Colors.grey,
               labelStyle: AppTextStyles.bodyMedium().copyWith(fontWeight: FontWeight.bold),
-              tabs: _tabs.map((t) => Tab(text: t)).toList(),
+              unselectedLabelStyle: AppTextStyles.bodyMedium(),
+              tabs: _tabs.map((t) => SizedBox(
+                height: 40, // Fixed height for pill shape
+                child: Center(child: Text(t)),
+              )).toList(),
             ),
           ),
           
@@ -226,7 +227,9 @@ class _ServiceHistoryAdminPageState extends State<ServiceHistoryAdminPage> with 
 
   Widget _buildHistoryCard(ServiceModel service) {
     bool isCancelled = service.status.toLowerCase() == 'cancelled';
-    bool isCompleted = service.status.toLowerCase() == 'completed' || service.status.toLowerCase() == 'selesai';
+    bool isCompleted = service.status.toLowerCase() == 'completed' || 
+                       service.status.toLowerCase() == 'selesai' ||
+                       service.status.toLowerCase() == 'lunas';
     
     // Status Color
     Color statusColor;

@@ -7,6 +7,8 @@ import 'package:bengkel_online_flutter/feature/admin/widgets/service_logging/log
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:bengkel_online_flutter/feature/admin/providers/admin_service_provider.dart';
+import 'invoice_form_screen.dart';
+import 'cash_payment_screen.dart';
 
 class ServiceDetailPage extends StatefulWidget {
   final ServiceModel? service; 
@@ -145,18 +147,20 @@ class _ServiceDetailPageState extends State<ServiceDetailPage> {
                                 borderRadius: BorderRadius.circular(100),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: ((s?.acceptanceStatus ?? 'pending') == 'pending' ? _statusPending : Colors.green).withOpacity(0.4),
+                                    color: ((s?.acceptanceStatus ?? 'pending') == 'pending' ? _statusPending : AppColors.primaryRed).withOpacity(0.4),
                                     blurRadius: 8,
                                     offset: const Offset(0, 4),
                                   ),
                                 ],
                               ),
                               child: Text(
-                                isAssigned 
-                                  ? "MENUNGGU PENGECEKAN" 
-                                  : (s?.acceptanceStatus == 'accepted' 
-                                      ? "DITERIMA" 
-                                      : (s?.status.toUpperCase() ?? "PENDING")),
+                                (['completed', 'lunas'].contains((s?.status ?? '').toLowerCase()))
+                                  ? "SERVICE SELESAI"
+                                  : (isAssigned 
+                                      ? "MENUNGGU PENGECEKAN" 
+                                      : (s?.acceptanceStatus == 'accepted' 
+                                          ? "DITERIMA" 
+                                          : (s?.status.toUpperCase() ?? "PENDING"))),
                                 style: AppTextStyles.caption(color: Colors.white).copyWith(
                                   fontWeight: FontWeight.w800,
                                   letterSpacing: 0.5,
@@ -278,11 +282,13 @@ class _ServiceDetailPageState extends State<ServiceDetailPage> {
           ),
 
           // Sticky Footer
+          if (!['in_progress', 'in progress', 'completed', 'done', 'cancelled', 'lunas'].contains((_service?.status ?? '').toLowerCase()))
           Positioned(
             bottom: 0,
             left: 0,
             right: 0,
             child: Container(
+              // Footer Actions / Buttons
               padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(context).padding.bottom + 20),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -297,11 +303,150 @@ class _ServiceDetailPageState extends State<ServiceDetailPage> {
               ),
               child: _isLoadingAction 
                   ? const Center(child: CircularProgressIndicator())
-                  : (isAssigned 
-                      ? _buildAssignedMechanicCard() 
-                      : _buildActionButtons()),
+                  : _buildActionButtons(),
             ),
           ),
+        ],
+      ),
+      
+      // Complete Service Button - Outside main scroll, fixed at bottom
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Mechanic Contact Info (if assigned)
+          if (_service?.mechanic != null)
+            Container(
+              margin: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey[200]!),
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 24,
+                    backgroundColor: AppColors.primaryRed.withOpacity(0.1),
+                    child: Text(
+                      (_service?.mechanic?.name ?? 'T').substring(0, 1).toUpperCase(),
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primaryRed,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Teknisi Bertugas',
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _service?.mechanic?.name ?? assignedMechanic?['name'] ?? 'Teknisi',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          _getMechanicStatusText(_service?.status ?? ''),
+                          style: const TextStyle(fontSize: 12, color: AppColors.primaryRed),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if ((_service?.status ?? '').toLowerCase() == 'in_progress' ||
+                      (_service?.status ?? '').toLowerCase() == 'in progress')
+                    ElevatedButton(
+                      onPressed: _completeService,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryRed,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        minimumSize: const Size(0, 36),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        'Selesai',
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                      ),
+                    )
+                  else if (['completed', 'lunas'].contains((_service?.status ?? '').toLowerCase()))
+                    Builder(
+                      builder: (context) {
+                        final invoice = _service?.invoice;
+                        final isPaid = (invoice != null && invoice['status'] == 'paid') || (_service?.status ?? '').toLowerCase() == 'lunas';
+
+                        if (isPaid) {
+                           return ElevatedButton.icon(
+                             onPressed: () {
+                                if (invoice != null) {
+                                  Navigator.push(context, MaterialPageRoute(builder: (_) => CashPaymentScreen(
+                                    invoiceId: invoice['id'],
+                                    total: double.tryParse(invoice['total'].toString()) ?? 0.0,
+                                    invoiceCode: invoice['invoice_code'] ?? '',
+                                    service: _service,
+                                  )));
+                                }
+                             },
+                             icon: const Icon(Icons.receipt_long, size: 16),
+                             label: const Text("Lihat Nota"),
+                             style: ElevatedButton.styleFrom(
+                               backgroundColor: AppColors.primaryRed,
+                               foregroundColor: Colors.white,
+                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                               minimumSize: const Size(0, 36),
+                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                               elevation: 0,
+                             ),
+                           );
+                        }
+
+                        return ElevatedButton(
+                          onPressed: () {
+                             if (invoice != null) {
+                                Navigator.push(context, MaterialPageRoute(builder: (_) => CashPaymentScreen(
+                                  invoiceId: invoice['id'],
+                                  total: double.tryParse(invoice['total'].toString()) ?? 0.0,
+                                  invoiceCode: invoice['invoice_code'] ?? '',
+                                  service: _service,
+                                )));
+                             } else {
+                                // Re-use _completeService to go to Invoice Form
+                                _completeService();
+                             }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: invoice != null ? Colors.blue : AppColors.primaryRed,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), // Compact
+                            minimumSize: const Size(0, 36),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: Text(
+                            invoice != null ? 'Bayar' : 'Buat Tagihan',
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                          ),
+                        );
+                      }
+                    )
+                  else
+                    IconButton(
+                      icon: const Icon(Icons.call, color: AppColors.primaryRed),
+                      onPressed: () {
+                        // Call mechanic implementation
+                      },
+                    ),
+                ],
+              ),
+            ),
         ],
       ),
     );
@@ -347,6 +492,28 @@ class _ServiceDetailPageState extends State<ServiceDetailPage> {
             ),
           ),
         ],
+      );
+    }
+
+    // If service is in progress -> Show Complete button
+    if ((s.status ?? '').toLowerCase() == 'in_progress' || 
+        (s.status ?? '').toLowerCase() == 'in progress') {
+      return ElevatedButton(
+        onPressed: _completeService,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.green,
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          elevation: 0,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.check_circle_outline, color: Colors.white),
+            const SizedBox(width: 10),
+            Text('Selesai', style: AppTextStyles.heading5(color: Colors.white).copyWith(fontWeight: FontWeight.bold)),
+          ],
+        ),
       );
     }
 
@@ -513,7 +680,7 @@ class _ServiceDetailPageState extends State<ServiceDetailPage> {
              ],
            ),
            const SizedBox(height: 4),
-           Flexible( 
+           Flexible(
              child: Text(
                value,
                style: AppTextStyles.heading5(color: AppColors.textPrimary).copyWith(fontSize: 15),
@@ -529,59 +696,35 @@ class _ServiceDetailPageState extends State<ServiceDetailPage> {
   Widget _buildAssignedMechanicCard() {
     if (assignedMechanic == null) return const SizedBox();
 
-    return Row(
-      children: [
-         CircleAvatar(
-           radius: 24,
-           backgroundImage: NetworkImage(assignedMechanic!['avatar'] ?? "https://placehold.co/100"),
-           backgroundColor: Colors.grey[200],
-         ),
-         const SizedBox(width: 12),
-         Expanded(
-           child: Column(
-             crossAxisAlignment: CrossAxisAlignment.start,
-             children: [
-               Text(
-                 "Teknisi Bertugas",
-                 style: AppTextStyles.caption(color: AppColors.textSecondary),
-               ),
-               Text(
-                 assignedMechanic!['name'],
-                 style: AppTextStyles.heading5(),
-               ),
-               Row(
-                 children: [
-                   Container(
-                     width: 8,
-                     height: 8,
-                     decoration: const BoxDecoration(
-                       color: AppColors.primaryRed, 
-                       shape: BoxShape.circle,
-                     ),
-                   ),
-                   const SizedBox(width: 6),
-                   Text(
-                     "Menunggu Pengerjaan", 
-                     style: AppTextStyles.caption(color: AppColors.primaryRed),
-                   ),
-                 ],
-               ),
-             ],
-           ),
-         ),
-         Container(
-           decoration: const BoxDecoration(
-             color: Color(0xFFFFEBEE),
-             shape: BoxShape.circle,
-           ),
-           child: IconButton(
-             icon: const Icon(Icons.call, color: AppColors.primaryRed),
-             onPressed: () {
-               // Call action
-             },
-           ),
-         ),
-      ],
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 24,
+            backgroundImage: NetworkImage(assignedMechanic!['avatar'] ?? "https://placehold.co/100"),
+            backgroundColor: Colors.grey[200],
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  assignedMechanic!['name'],
+                  style: AppTextStyles.heading5(),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -617,7 +760,24 @@ class _ServiceDetailPageState extends State<ServiceDetailPage> {
            ScaffoldMessenger.of(context).showSnackBar(
              const SnackBar(content: Text('Mekanik berhasil ditetapkan!'), backgroundColor: Colors.green),
            );
-           await _refreshService();
+           
+           // Ensure state is updated first
+           await _refreshService(); 
+           
+           // Force delay slightly to ensure Snackbar is seen and state is settled
+           await Future.delayed(const Duration(milliseconds: 500)); 
+
+           if (mounted && _service != null) {
+              debugPrint("Redirecting to InvoiceFormScreen for Service: ${_service!.id}");
+              await Navigator.push(context, MaterialPageRoute(builder: (_) => InvoiceFormScreen(
+                serviceId: _service!.id, 
+                serviceType: _service!.type ?? 'on-site',
+                service: _service,
+              )));
+              
+              // Refresh again when returning
+              if (mounted) await _refreshService();
+           }
         }
       } catch (e) {
         if (mounted) {
@@ -626,6 +786,53 @@ class _ServiceDetailPageState extends State<ServiceDetailPage> {
           );
         }
       }
+    }
+  }
+
+  /// Navigate to invoice form to complete service
+  Future<void> _completeService() async {
+    if (_service == null) return;
+
+    // Navigate to invoice form
+      final result = await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => InvoiceFormScreen(
+            serviceId: _service!.id,
+            serviceType: _service!.type ?? 'on-site',
+            service: _service, // Pass full object for summary
+          ),
+        ),
+      );
+
+    // Refresh if invoice created / service completed
+    if (result == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Service selesai & Tagihan dibuat!'), backgroundColor: Colors.green),
+      );
+      await _refreshService();
+    }
+  }
+
+  /// Get mechanic status text based on service status
+  String _getMechanicStatusText(String status) {
+    final statusLower = status.toLowerCase().replaceAll(' ', '_');
+    
+    switch (statusLower) {
+      case 'completed':
+      case 'lunas':
+        return 'Pengerjaan Selesai';
+      case 'in_progress':
+      case 'in progress':
+        return 'Sedang Dikerjakan';
+      case 'accepted':
+      case 'accept':
+        return 'Siap Dikerjakan';
+      case 'pending':
+        return 'Menunggu Konfirmasi';
+      case 'cancelled':
+        return 'Dibatalkan';
+      default:
+        return 'Menunggu Pengerjaan';
     }
   }
 }

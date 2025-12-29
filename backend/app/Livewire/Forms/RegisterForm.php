@@ -70,6 +70,9 @@ class RegisterForm extends Form
         ]);
 
         // Assign superadmin role by default for web registration
+        // Superadmin uses 'web' guard, but User model defaults to 'sanctum'
+        // We need to temporarily override guard for this context
+        $user->guard_name = 'web';
         $user->assignRole('superadmin');
 
         return $user;

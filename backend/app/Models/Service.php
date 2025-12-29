@@ -89,6 +89,11 @@ class Service extends Model implements HasMedia
         return $this->hasOne(Transaction::class, 'service_uuid', 'id');
     }
 
+    public function invoice(): HasOne
+    {
+        return $this->hasOne(Invoice::class, 'service_uuid', 'id');
+    }
+
     /**
      * Service hanya punya 1 log
      */

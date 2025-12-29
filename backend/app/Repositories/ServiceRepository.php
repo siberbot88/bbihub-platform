@@ -64,10 +64,10 @@ class ServiceRepository
         string $workshopId,
         int $perPage = 15
     ): LengthAwarePaginator {
-        return Service::with(['customer', 'vehicle', 'mechanic.user'])
+        return Service::with(['customer', 'vehicle', 'mechanic.user', 'invoice.items'])
             ->where('workshop_uuid', $workshopId)
             ->where('acceptance_status', 'accepted')
-            ->where('status', 'in progress')
+            ->whereIn('status', ['in progress', 'completed']) // Include completed for billing processing
             ->orderBy('accepted_at', 'desc')
             ->paginate($perPage);
     }

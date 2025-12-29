@@ -718,6 +718,9 @@ class ApiService {
     String? dateTo,
     int page = 1,
     int perPage = 10,
+    String? type,
+    String? dateColumn,
+    bool useScheduleEndpoint = true, // Added for API consistency (not used for owner)
   }) async {
     try {
       final params = <String, String>{};
@@ -729,6 +732,8 @@ class ApiService {
       if (code != null && code.isNotEmpty) params['code'] = code;
       if (dateFrom != null && dateFrom.isNotEmpty) params['date_from'] = dateFrom;
       if (dateTo != null && dateTo.isNotEmpty) params['date_to'] = dateTo;
+      if (type != null && type.isNotEmpty) params['type'] = type;
+      if (dateColumn != null && dateColumn.isNotEmpty) params['date_column'] = dateColumn;
 
       params['page'] = page.toString();
       params['per_page'] = perPage.toString();
@@ -1167,18 +1172,27 @@ class ApiService {
     int page = 1,
     int perPage = 10,
     String? type,
+    String? dateColumn,
+    bool useScheduleEndpoint = true, // New param to control endpoint
   }) async {
     try {
-      final uri = Uri.parse('${_baseUrl}admins/services/schedule').replace(
+      // Use /schedule for grouped format (scheduling page)
+      // Use /services for flat pagination (history page)
+      final endpoint = useScheduleEndpoint
+          ? 'admins/services/schedule'
+          : 'admins/services';
+
+      final uri = Uri.parse('${_baseUrl}$endpoint').replace(
         queryParameters: {
           'page': page.toString(),
           'per_page': perPage.toString(),
-          if (status != null) 'status': status,
-          if (workshopUuid != null) 'workshop_uuid': workshopUuid,
-          if (code != null) 'code': code,
+          if (status != null && status != 'all') 'filter[status]': status,
+          if (workshopUuid != null) 'filter[workshop_uuid]': workshopUuid,
+          if (code != null) 'filter[code]': code,
           if (dateFrom != null) 'date_from': dateFrom,
           if (dateTo != null) 'date_to': dateTo,
-          if (type != null) 'type': type,
+          if (type != null) 'filter[type]': type,
+          if (dateColumn != null) 'date_column': dateColumn,
         },
       );
 
@@ -1224,6 +1238,80 @@ class ApiService {
       throw Exception('Failed to fetch active services (HTTP ${res.statusCode})');
     } catch (e) {
       throw Exception('Failed to fetch active services: ${e.toString()}');
+    }
+  }
+
+  /// Complete service (mark as completed)
+  /// PATCH /v1/admins/services/{id}/complete
+  Future<Map<String, dynamic>> adminCompleteService(String serviceId) async {
+    try {
+      final uri = Uri.parse('${_baseUrl}admins/services/$serviceId/complete');
+      final res = await http.patch(uri, headers: await _getAuthHeaders());
+
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body);
+      }
+      throw Exception('Failed to complete service (HTTP ${res.statusCode})');
+    } catch (e) {
+      throw Exception('Failed to complete service: ${e.toString()}');
+    }
+  }
+
+  /// Create invoice for service
+  /// POST /v1/admins/services/{id}/invoice
+  Future<Map<String, dynamic>> adminCreateInvoice(
+    String serviceId, {
+    required List<Map<String, dynamic>> items,
+    double? tax,
+    double? discount,
+    String? notes,
+  }) async {
+    try {
+      final uri = Uri.parse('${_baseUrl}admins/services/$serviceId/invoice');
+      final body = {
+        'items': items,
+        if (tax != null) 'tax': tax,
+        if (discount != null) 'discount': discount,
+        if (notes != null) 'notes': notes,
+      };
+
+      final res = await http.post(
+        uri,
+        headers: await _getAuthHeaders(),
+        body: jsonEncode(body),
+      );
+
+      if (res.statusCode == 201 || res.statusCode == 200) {
+        return jsonDecode(res.body);
+      }
+      throw Exception('Failed to create invoice (HTTP ${res.statusCode}): ${res.body}');
+    } catch (e) {
+      throw Exception('Failed to create invoice: ${e.toString()}');
+    }
+  }
+
+  /// Process cash payment for invoice
+  /// POST /v1/admins/invoices/{id}/cash-payment
+  Future<Map<String, dynamic>> adminProcessCashPayment(
+    String invoiceId,
+    double amountPaid,
+  ) async {
+    try {
+      final uri = Uri.parse('${_baseUrl}admins/invoices/$invoiceId/cash-payment');
+      final body = {'amount_paid': amountPaid};
+
+      final res = await http.post(
+        uri,
+        headers: await _getAuthHeaders(),
+        body: jsonEncode(body),
+      );
+
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body);
+      }
+      throw Exception('Failed to process payment (HTTP ${res.statusCode}): ${res.body}');
+    } catch (e) {
+      throw Exception('Failed to process payment: ${e.toString()}');
     }
   }
 
@@ -1441,6 +1529,32 @@ class ApiService {
       throw Exception('Gagal mengambil data mekanik (HTTP ${res.statusCode})');
     } catch (e) {
       throw Exception('Gagal mengambil data mekanik: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> adminFetchInvoiceByServiceId(String serviceId) async {
+    try {
+      // Endpoint: GET /api/v1/admins/services/{id}/invoice
+      // Note: Make sure backend route uses 'admins' or 'admin' correctly.
+      // Based on ServiceLoggingController it is usually under 'admin' prefix but user used 'admins' in other calls.
+      // Let's try 'admins' consistent with other admin methods here first.
+      // Wait, ServiceLoggingController usually maps to /admin/services...
+      // I'll check route list if possible, but let's guess 'admins' based on ApiService trend.
+      // Actually ServiceLoggingController usually is under `apiResource('services')`.
+      final uri = Uri.parse('${_baseUrl}admins/services/$serviceId/invoice');
+      final headers = await _getAuthHeaders();
+
+      final res = await http.get(uri, headers: headers);
+      
+      if (res.statusCode == 200) {
+        final j = _tryDecodeJson(res.body);
+        if (j is Map<String, dynamic> && j['data'] is Map) {
+             return j['data'];
+        }
+      }
+      throw Exception('Invoice tidak ditemukan');
+    } catch (e) {
+      rethrow;
     }
   }
 

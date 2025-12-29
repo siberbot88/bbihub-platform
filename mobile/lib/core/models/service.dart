@@ -82,6 +82,7 @@ class ServiceModel {
   final String? imageUrl;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final Map<String, dynamic>? invoice; // Helper for logging UI
 
   ServiceModel({
     required this.id,
@@ -114,6 +115,7 @@ class ServiceModel {
     this.imageUrl,
     this.createdAt,
     this.updatedAt,
+    this.invoice,
   });
 
   factory ServiceModel.fromJson(Map<String, dynamic> json) {
@@ -221,6 +223,7 @@ class ServiceModel {
       updatedAt: parseDT(json['updated_at']),
       // imagePath: json['image_path']?.toString(),
       imageUrl: sanitizeUrl(json['image_url']?.toString()),
+      invoice: json['invoice'] != null ? Map<String, dynamic>.from(json['invoice']) : null,
     );
   }
 
@@ -318,7 +321,9 @@ class ServiceModel {
         'reason_description': reasonDescription,
       if (feedbackMechanic != null) 'feedback_mechanic': feedbackMechanic,
       if (createdAt != null) 'created_at': createdAt!.toIso8601String(),
+      if (createdAt != null) 'created_at': createdAt!.toIso8601String(),
       if (updatedAt != null) 'updated_at': updatedAt!.toIso8601String(),
+      if (invoice != null) 'invoice': invoice,
     };
   }
 

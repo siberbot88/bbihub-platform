@@ -38,6 +38,7 @@ class ServiceApiController extends Controller
                 'mechanic',
                 'mechanic.user',
                 'transaction.items',
+                'invoice', // Include invoice data for payment status
                 'extras', // Dummy relation for mobile backward compatibility
             ])
             ->allowedFilters([
@@ -47,20 +48,29 @@ class ServiceApiController extends Controller
                 AllowedFilter::exact('workshop_uuid'),
                 // Keep these for standard compliant clients
                 AllowedFilter::callback('date_from', function ($query, $value) {
-                    $query->whereDate('scheduled_date', '>=', $value);
+                    $column = request('date_column', 'scheduled_date');
+                    $query->whereDate($column, '>=', $value);
                 }),
                 AllowedFilter::callback('date_to', function ($query, $value) {
-                    $query->whereDate('scheduled_date', '<=', $value);
+                    $column = request('date_column', 'scheduled_date');
+                    $query->whereDate($column, '<=', $value);
                 }),
             ])
             ->defaultSort('-created_at');
 
         // [Manual Filter Support] for Mobile App (flat params)
+        $dateColumn = $request->input('date_column', 'scheduled_date');
+
+        // If filtering by completed_at, only show services that are actually completed
+        if ($dateColumn === 'completed_at') {
+            $query->whereNotNull('completed_at');
+        }
+
         if ($request->has('date_from')) {
-            $query->whereDate('scheduled_date', '>=', $request->input('date_from'));
+            $query->whereDate($dateColumn, '>=', $request->input('date_from'));
         }
         if ($request->has('date_to')) {
-            $query->whereDate('scheduled_date', '<=', $request->input('date_to'));
+            $query->whereDate($dateColumn, '<=', $request->input('date_to'));
         }
 
         // Scope query based on role
@@ -92,7 +102,7 @@ class ServiceApiController extends Controller
 
         // Always load essential relations for mobile app compatibility
         // QueryBuilder allowedIncludes will handle additional includes if requested
-        $query->with(['customer', 'vehicle', 'mechanic.user', 'workshop']);
+        $query->with(['customer', 'vehicle', 'mechanic.user', 'workshop', 'invoice']);
 
         $perPage = (int) $request->get('per_page', 15);
         $services = $query->paginate($perPage)->appends($request->query());

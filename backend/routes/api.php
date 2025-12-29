@@ -189,7 +189,14 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::get('mechanics', [\App\Http\Controllers\Api\Admin\AdminEmployeeController::class, 'getMechanics']);
 
         Route::get('services/schedule', [\App\Http\Controllers\Api\Admin\ServiceSchedulingController::class, 'index'])->name('api.admin.services.schedule');
+
+        // Service Logging Routes
         Route::get('services/active', [\App\Http\Controllers\Api\Admin\ServiceLoggingController::class, 'index'])->name('api.admin.services.active');
+        Route::patch('services/{id}/complete', [\App\Http\Controllers\Api\Admin\ServiceLoggingController::class, 'complete'])->name('api.admin.services.complete');
+        Route::post('services/{id}/invoice', [\App\Http\Controllers\Api\Admin\ServiceLoggingController::class, 'createInvoice'])->name('api.admin.services.invoice.create');
+        Route::get('services/{id}/invoice', [\App\Http\Controllers\Api\Admin\ServiceLoggingController::class, 'getInvoice'])->name('api.admin.services.invoice.get');
+        Route::post('invoices/{id}/cash-payment', [\App\Http\Controllers\Api\Admin\ServiceLoggingController::class, 'processCashPayment'])->name('api.admin.invoices.cash-payment');
+
         // Route::post('services/walk-in', [ServiceApiController::class, 'storeWalkIn']); // OLD - use ServiceSchedulingController instead
 
         // Generic CRUD routes (after specific routes)

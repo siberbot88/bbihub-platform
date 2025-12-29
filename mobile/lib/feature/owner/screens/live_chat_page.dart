@@ -169,6 +169,16 @@ class _LiveChatPageState extends State<LiveChatPage> {
       _isAiTyping = true; // Show typing indicator immediately
     });
 
+    // Set timeout to clear typing indicator if no response after 30 seconds
+    Future.delayed(const Duration(seconds: 30), () {
+      if (mounted && _isAiTyping) {
+        setState(() {
+          _isAiTyping = false;
+        });
+        debugPrint('⚠️ AI typing timeout - cleared indicator');
+      }
+    });
+
     try {
       final auth = context.read<AuthProvider>();
       final token = auth.token;

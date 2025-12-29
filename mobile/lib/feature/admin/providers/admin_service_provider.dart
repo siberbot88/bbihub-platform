@@ -25,7 +25,9 @@ class AdminServiceProvider extends ServiceProvider {
     String? dateTo,
     int page = 1,
     int perPage = 10,
-    String? type, // Added type param
+    String? type,
+    String? dateColumn, // Added dateColumn param
+    bool useScheduleEndpoint = true, // Control endpoint: true for scheduling (grouped), false for history (flat)
   }) async {
     // 1. Ambil raw response asli
     final res = await _adminApi.adminFetchServicesRaw(
@@ -36,19 +38,22 @@ class AdminServiceProvider extends ServiceProvider {
       code: code,
       dateFrom: dateFrom,
       dateTo: dateTo,
-      type: type, // Pass type
+      type: type,
+      dateColumn: dateColumn, // Pass to API
+      useScheduleEndpoint: useScheduleEndpoint, // Control which endpoint to use
     );
 
-    // 2. Transform struktur: grouped_services -> flat list
-    // Response asli: { data: { grouped_services: { date: [s1, s2] } }, ... }
-    // Target: { data: [s1, s2], ... }
+    // 2. Transform struktur berdasarkan format response
+    // Format 1: { data: { grouped_services: { date: [s1, s2] } } } (Scheduling)
+    // Format 2: { data: [s1, s2], meta: {...} } (History/Regular List)
     
     try {
+      // Check if response has grouped_services (Scheduling format)
       if (res['data'] is Map && res['data']['grouped_services'] is Map) {
         final grouped = res['data']['grouped_services'] as Map<String, dynamic>;
         final flatList = <dynamic>[];
         
-        // Flatten
+        // Flatten grouped services
         for (var key in grouped.keys) {
           final listDetails = grouped[key];
           if (listDetails is List) {
@@ -56,12 +61,16 @@ class AdminServiceProvider extends ServiceProvider {
           }
         }
         
-        // Modifikasi 'data' agar jadi list
-        // Kita copy res biar aman
+        // Transform to flat list format
         final newRes = Map<String, dynamic>.from(res);
-        newRes['data'] = flatList; // Ganti object data dengan list services
+        newRes['data'] = flatList;
         
         return newRes;
+      }
+      
+      // If already in list format (History), return as-is
+      if (res['data'] is List) {
+        return res;
       }
     } catch (e) {
       if (kDebugMode) print('Error transforming admin services: $e');
@@ -222,6 +231,66 @@ class AdminServiceProvider extends ServiceProvider {
     }
   }
 
+  /// Complete service (mark as completed)
+  Future<ServiceModel> completeService(String serviceId) async {
+    try {
+      final res = await _adminApi.adminCompleteService(serviceId);
+      
+      if (res['data'] == null) {
+        throw Exception('Invalid response');
+      }
+      
+      return ServiceModel.fromJson(res['data']);
+    } catch (e) {
+      if (kDebugMode) print('completeService error: $e');
+      rethrow;
+    }
+  }
+
+  /// Create invoice for service
+  Future<Map<String, dynamic>> createInvoice(
+    String serviceId, {
+    required List<Map<String, dynamic>> items,
+    double? tax,
+    double? discount,
+    String? notes,
+  }) async {
+    try {
+      final res = await _adminApi.adminCreateInvoice(
+        serviceId,
+        items: items,
+        tax: tax,
+        discount: discount,
+        notes: notes,
+      );
+      
+      if (res['data'] == null) {
+        throw Exception('Invalid response');
+      }
+      
+      return res['data'];
+    } catch (e) {
+      if (kDebugMode) print('createInvoice error: $e');
+      rethrow;
+    }
+  }
+
+  /// Process cash payment for invoice
+  Future<Map<String, dynamic>> processCashPayment(String invoiceId, double amountPaid) async {
+    try {
+      final res = await _adminApi.adminProcessCashPayment(invoiceId, amountPaid);
+      
+      if (res['data'] == null) {
+        throw Exception('Invalid response');
+      }
+      
+      return res['data'];
+    } catch (e) {
+      if (kDebugMode) print('processCashPayment error: $e');
+      rethrow;
+    }
+  }
+
   /// ADMIN: Fetch mechanics for assignment
   Future<List<Map<String, dynamic>>> fetchMechanicsForAssignment() async {
     try {
@@ -249,6 +318,16 @@ class AdminServiceProvider extends ServiceProvider {
       }
     } catch (e) {
       if (kDebugMode) print('deleteServiceAsAdmin error: $e');
+      rethrow;
+    }
+  }
+
+  /// ADMIN: Fetch Invoice by Service ID
+  Future<Map<String, dynamic>> fetchInvoiceByService(String serviceId) async {
+    try {
+      return await _adminApi.adminFetchInvoiceByServiceId(serviceId);
+    } catch (e) {
+      if (kDebugMode) print('fetchInvoiceByService error: $e');
       rethrow;
     }
   }

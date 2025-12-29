@@ -228,6 +228,9 @@ class ServiceService
         $this->ensureMechanicExistsInWorkshop($mechanicUuid, $service->workshop_uuid);
 
 
+        // Fetch employment to get user_uuid for logging
+        $employment = Employment::find($mechanicUuid);
+
         // ✅ begitu mekanik di-assign, status auto jadi in progress
         $this->handleStatusTransition($service, 'in progress');
 
@@ -241,9 +244,9 @@ class ServiceService
         \App\Models\ServiceLog::create([
             'id' => (string) Str::uuid(),
             'service_uuid' => $service->id,
-            'mechanic_uuid' => $mechanicUuid,
-            'transaction_uuid' => $service->transaction?->id ?? null, // Make nullable
-            'status' => 'in_progress', // Changed from 'in progress' to match ENUM
+            'mechanic_uuid' => $employment->user_uuid, // Use User UUID from Employment
+            'transaction_uuid' => $service->transaction?->id ?? null,
+            'status' => 'in_progress',
             'notes' => 'Mekanik telah ditetapkan',
         ]);
 

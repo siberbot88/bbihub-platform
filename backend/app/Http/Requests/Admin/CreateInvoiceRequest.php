@@ -15,10 +15,16 @@ class CreateInvoiceRequest extends FormRequest
     {
         return [
             'items' => ['required', 'array', 'min:1', 'max:50'],
+            'items.*.type' => ['required', 'in:part,service'], // part or service jasa
             'items.*.name' => ['required', 'string', 'max:200'],
-            'items.*.type' => ['required', 'in:jasa,sparepart'],
-            'items.*.price' => ['required', 'numeric', 'min:0', 'max:99999999'],
+            'items.*.description' => ['nullable', 'string', 'max:500'],
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:999'],
+            'items.*.unit_price' => ['required', 'numeric', 'min:0', 'max:99999999'],
+
+            // Optional tax and discount
+            'tax' => ['nullable', 'numeric', 'min:0'],
+            'discount' => ['nullable', 'numeric', 'min:0'],
+            'notes' => ['nullable', 'string', 'max:1000'],
         ];
     }
 
