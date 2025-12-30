@@ -93,7 +93,8 @@ class Index extends Component
             ->toArray();
 
         $totalMechanic = $roleCounts['mechanic'] ?? 0;
-        $totalOwner = $roleCounts['owner'] ?? 0;
+        // Count only owners who actually have workshops (not just role assignment)
+        $totalOwner = Workshop::distinct('user_uuid')->count('user_uuid');
 
         // Query users with workshop relationship
         $users = User::query()

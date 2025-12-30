@@ -38,8 +38,18 @@ class EisService
 
             // 2. Active Users (Snapshot - Currently always Realtime)
             // Ideally we query count of users created_at <= end of month if historical
+            // Exclude orphaned owners (users with owner role but no workshop)
+            $ownerUserIds = \DB::table('model_has_roles')
+                ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
+                ->where('roles.name', 'owner')
+                ->pluck('model_has_roles.model_id');
+
+            $workshopOwnerIds = \App\Models\Workshop::distinct('user_uuid')->pluck('user_uuid');
+            $orphanedOwnerIds = $ownerUserIds->diff($workshopOwnerIds);
+
             $activeUsers = User::where('created_at', '<=', $date->endOfMonth())
                 ->whereNotNull('email_verified_at')
+                ->whereNotIn('id', $orphanedOwnerIds)
                 ->count();
             $usersTarget = $this->getTarget('active_users', $monthKey, 100);
 
@@ -394,6 +404,37 @@ class EisService
     }
 
     /**
+     * Get ALL Workshops for Map Display
+     * Returns all workshops with their city and revenue for geospatial visualization
+     */
+    public function getAllWorkshopsForMap(): array
+    {
+        return \Illuminate\Support\Facades\Cache::remember('eis_all_workshops_map', 1800, function () {
+            return Transaction::join('workshops', 'transactions.workshop_uuid', '=', 'workshops.id')
+                ->where('transactions.status', 'success')
+                ->select(
+                    'workshops.id',
+                    'workshops.name',
+                    'workshops.city',
+                    DB::raw('SUM(transactions.amount) as total_revenue')
+                )
+                ->groupBy('workshops.id', 'workshops.name', 'workshops.city')
+                ->orderByDesc('total_revenue')
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'id' => $item->id,
+                        'name' => $item->name,
+                        'city' => $item->city,
+                        'revenue' => (float) $item->total_revenue
+                    ];
+                })
+                ->values()
+                ->toArray();
+        });
+    }
+
+    /**
      * Get Detailed Stats for a Specific Workshop (Drill-down)
      */
     public function getWorkshopDetail(string $workshopId): array
@@ -418,7 +459,7 @@ class EisService
             ->toArray();
 
         // 3. Top Services
-        $topServices = \App\Models\Service::where('workshop_uuid', $workshopId)
+        $topServices = \App\Models\Service::where('services.workshop_uuid', $workshopId)
             ->join('transactions', 'services.id', '=', 'transactions.service_uuid')
             ->where('transactions.status', 'success')
             ->select('services.name', DB::raw('COUNT(transactions.id) as count'))
@@ -429,7 +470,7 @@ class EisService
             ->toArray();
 
         // 4. Rating
-        $rating = \App\Models\Feedback::join('transactions', 'feedbacks.transaction_uuid', '=', 'transactions.id')
+        $rating = \App\Models\Feedback::join('transactions', 'feedback.transaction_uuid', '=', 'transactions.id')
             ->where('transactions.workshop_uuid', $workshopId)
             ->avg('rating') ?? 0;
 

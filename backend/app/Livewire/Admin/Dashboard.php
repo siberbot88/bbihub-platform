@@ -45,8 +45,9 @@ class Dashboard extends Component
         $totalWorkshops = Workshop::count();
         $activeWorkshops = Workshop::where('status', 'active')->count();
 
-        // 2. Total User (Pelanggan)
-        $totalUsers = User::doesntHave('roles')->count();
+        // 2. Total User (All Users including owners, mechanics, admins)
+        $totalUsers = User::count();
+        $regularUsers = User::doesntHave('roles')->count();
 
         // 3. Total Teknisi
         $totalMechanics = Employment::where('status', 'active')->count();
@@ -67,7 +68,7 @@ class Dashboard extends Component
             [
                 'title' => 'Total User',
                 'value' => $totalUsers,
-                'desc' => 'Pelanggan terdaftar',
+                'desc' => "{$regularUsers} Pelanggan Reguler",
                 'icon' => 'pengguna',
                 'delta' => '+0%',
                 'chart' => $this->getSparklineDataOptimized(User::class)

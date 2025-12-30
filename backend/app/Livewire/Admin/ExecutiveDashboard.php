@@ -17,6 +17,7 @@ class ExecutiveDashboard extends Component
     public array $customerSegmentation = [];
     public array $platformOutlook = [];
     public array $topWorkshops = [];
+    public array $allWorkshops = [];
 
     // Drill Down State
     public bool $showWorkshopModal = false;
@@ -49,6 +50,7 @@ class ExecutiveDashboard extends Component
         $this->platformOutlook = $this->getPlatformOutlookFromML();
 
         $this->topWorkshops = $eisService->getTopWorkshops();
+        $this->allWorkshops = $eisService->getAllWorkshopsForMap();
 
         // Set filters
         $this->selectedYear = now()->year;

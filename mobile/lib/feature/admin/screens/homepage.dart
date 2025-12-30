@@ -258,22 +258,7 @@ class _HomePageState extends State<HomePage> {
                               ),
                               const SizedBox(height: 20),
                               const Spacer(),
-                              Consumer<AdminAnalyticsProvider>(
-                                builder: (context, provider, child) {
-                                  if (provider.isLoading && provider.quickStats == null) {
-                                     return const Center(
-                                        child: CircularProgressIndicator(color: Colors.white),
-                                     );
-                                  }
-                                  
-                                  return AdminMiniDashboard(
-                                    servisHariIni: '${provider.serviceToday}',
-                                    perluAssign: '${provider.needsAssign}',
-                                    feedback: '4', // Static or fetch logic needed
-                                    selesai: '${provider.completedToday}',
-                                  );
-                                },
-                              ),
+                              const AdminMiniDashboard(),
                             ],
                           ),
                         ),
