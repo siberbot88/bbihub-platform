@@ -1562,4 +1562,58 @@ class ApiService {
     }
   }
 
+  /* ================= ADMIN DASHBOARD ================= */
+
+  /// GET /api/v1/admins/dashboard
+  Future<Map<String, dynamic>> adminFetchDashboard() async {
+    try {
+      final uri = Uri.parse('${_baseUrl}admins/dashboard');
+      final headers = await _getAuthHeaders();
+      
+      _debugRequest('ADMIN_DASHBOARD', uri, headers, null);
+      final res = await http.get(uri, headers: headers);
+      _debugResponse('ADMIN_DASHBOARD', res);
+
+      if (res.statusCode == 200) {
+        final j = _tryDecodeJson(res.body);
+        if (j is Map<String, dynamic>) {
+          return j;
+        }
+      }
+      throw Exception('Failed to fetch dashboard (HTTP ${res.statusCode})');
+    } catch (e) {
+      throw Exception('Failed to fetch dashboard: $e');
+    }
+  }
+
+  /// GET /api/v1/admins/dashboard/stats
+  Future<Map<String, dynamic>> adminFetchDashboardStats({
+    String? dateFrom,
+    String? dateTo,
+  }) async {
+    try {
+      final params = <String, String>{};
+      if (dateFrom != null) params['date_from'] = dateFrom;
+      if (dateTo != null) params['date_to'] = dateTo;
+
+      final uri = Uri.parse('${_baseUrl}admins/dashboard/stats')
+          .replace(queryParameters: params);
+      final headers = await _getAuthHeaders();
+      
+      _debugRequest('ADMIN_DASHBOARD_STATS', uri, headers, null);
+      final res = await http.get(uri, headers: headers);
+      _debugResponse('ADMIN_DASHBOARD_STATS', res);
+
+      if (res.statusCode == 200) {
+        final j = _tryDecodeJson(res.body);
+        if (j is Map<String, dynamic>) {
+          return j;
+        }
+      }
+      throw Exception('Failed to fetch dashboard stats (HTTP ${res.statusCode})');
+    } catch (e) {
+      throw Exception('Failed to fetch dashboard stats: $e');
+    }
+  }
+
 }

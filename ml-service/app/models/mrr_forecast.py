@@ -39,12 +39,17 @@ class MRRForecastModel(MLModel):
                 print("No data found in owner_subscriptions.")
                 return False
                 
-            dates = []
-            mrr_values = []
-            
+            self.history_data = []
             for row in results:
                 dates.append(row['month'])
                 mrr_values.append(float(row['mrr']))
+                
+                # Format for API
+                dt = datetime.strptime(row['month'], "%Y-%m-%d")
+                self.history_data.append({
+                    "label": dt.strftime('%b %Y'),
+                    "y": float(row['mrr'])
+                })
             
             # Simple Linear Regression Logic (Manual)
             X = [datetime.strptime(d, "%Y-%m-%d").timestamp() for d in dates]
@@ -53,7 +58,9 @@ class MRRForecastModel(MLModel):
             n = len(X)
             if n < 2:
                 print("Not enough data points for regression.")
-                return False
+                self.slope = 0
+                self.intercept = 0
+                return True # Return true but no regression
 
             sum_x = sum(X)
             sum_y = sum(y)
@@ -61,11 +68,12 @@ class MRRForecastModel(MLModel):
             sum_xx = sum(i*i for i in X)
 
             # Slope (m) and Intercept (b)
-            # Denominator check to avoid div by zero
             denom = (n * sum_xx - sum_x**2)
             if denom == 0:
                 print("Variance is zero, cannot regression.")
-                return False
+                self.slope = 0
+                self.intercept = 0
+                return True
 
             self.slope = (n * sum_xy - sum_x * sum_y) / denom
             self.intercept = (sum_y - self.slope * sum_x) / n
@@ -89,49 +97,34 @@ class MRRForecastModel(MLModel):
         # Auto-train for real-time
         self.train()
 
-        if self.slope == 0 and self.intercept == 0:
+        # If no history, return empty
+        if not hasattr(self, 'history_data') or not self.history_data:
              return {
                  "prediction": 0,
                  "growth_rate": 0,
                  "history": []
              }
 
-        predictions = []
-        import calendar
-        
         start_ts = datetime.now().timestamp()
         
         # Calculate Next Month Prediction
+        # If possible, use last known date from history + 1 month
+        # But simple logic uses current time
         future_ts = start_ts + (30 * 24 * 3600)
         next_month_val = self.slope * future_ts + self.intercept
         next_month_val = max(0, next_month_val)
 
-        # Calculate Growth Rate (vs Intercept/Current?)
-        # Base it on slope? Slope is change per second.
-        # Monthly change = slope * 30days
+        # Calculate Growth Rate
         monthly_growth = self.slope * (30 * 24 * 3600)
         current_val = self.slope * start_ts + self.intercept
         growth_rate = 0
         if current_val > 0:
             growth_rate = (monthly_growth / current_val) * 100
-        
-        # Generare Forecast List
-        for i in range(1, months_ahead + 1):
-            future_ts_i = start_ts + (i * 30 * 24 * 3600) 
-            pred_value = self.slope * future_ts_i + self.intercept
-            
-            future_dt = datetime.fromtimestamp(future_ts_i)
-            month_str = future_dt.strftime('%b %Y')
-            
-            predictions.append({
-                "month": month_str,
-                "value": round(max(0, pred_value), 2)
-            })
             
         return {
             "prediction": round(next_month_val, 2),
             "growth_rate": round(growth_rate, 2),
-            "history": predictions
+            "history": self.history_data  # Return ACTUAL history
         }
 
     def save(self):

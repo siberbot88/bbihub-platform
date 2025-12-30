@@ -1,5 +1,5 @@
 <div class="space-y-8" x-data="{ loaded: false }"
-    x-init="setTimeout(() => { loaded = true; setTimeout(() => initCharts(), 100); }, 500)">
+    x-init="setTimeout(() => { loaded = true; setTimeout(() => initCharts(), 1000); }, 500)">
     {{-- Header & Controls --}}
     <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
@@ -325,7 +325,7 @@
                 </div>
 
                 {{-- Map Container --}}
-                <div id="marketMap" class="w-full h-80 rounded-xl border border-gray-200 bg-gray-50 relative"></div>
+                <div id="marketMap" class="w-full h-80 rounded-xl border border-gray-200 bg-gray-50 relative z-0"></div>
 
                 <div class="mt-4 grid grid-cols-2 gap-2 max-h-40 overflow-y-auto custom-scrollbar">
                     @forelse(array_slice($marketGap, 0, 5) as $city)
@@ -384,9 +384,7 @@
 
     {{-- 3. Operational Deep Dive (Drill-Down Capable) --}}
     <div wire:loading.remove
-        class="mt-8 bg-white rounded-2xl shadow-sm border border-gray-100 p-8 relative overflow-hidden" x-show="loaded"
-        x-transition:enter="transition ease-out duration-700 delay-150"
-        x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0">
+        class="mt-8 bg-white rounded-2xl shadow-sm border border-gray-100 p-8 relative overflow-hidden">
 
         {{-- Decorative Background --}}
         <div class="absolute top-0 right-0 w-64 h-64 bg-indigo-50 rounded-bl-full opacity-50 pointer-events-none">
@@ -711,14 +709,16 @@
         });
 
         function initTopWorkshopsChart() {
+            console.log('[DRILL-DOWN] Starting initialization...');
             const ctx = document.getElementById('topWorkshopsChart');
             if (!ctx) {
-                console.warn('Canvas topWorkshopsChart not found!');
+                console.error('[DRILL-DOWN] Canvas topWorkshopsChart not found!');
                 return;
             }
+            console.log('[DRILL-DOWN] Canvas found:', ctx);
 
             const rawData = @json($topWorkshops);
-            console.log('Top Workshops Data:', rawData);
+            console.log('[DRILL-DOWN] Top Workshops Data:', rawData);
 
             if (!rawData || rawData.length === 0) {
                 console.warn('No data for Top Workshops Chart');
@@ -1107,15 +1107,15 @@
 
                     // Tooltip Content
                     const tooltipContent = `
-                                                            <div class="p-1">
-                                                                <h4 class="font-bold text-sm">${city.city}</h4>
-                                                                <div class="text-xs text-gray-600">Gap Score: <span class="font-bold text-indigo-600">${parseInt(city.gap_score)}%</span></div>
-                                                                <div class="text-[10px] text-gray-500 mt-1">
-                                                                    Demand: ${city.demand}<br>
-                                                                    Supply: ${city.supply}
+                                                                <div class="p-1">
+                                                                    <h4 class="font-bold text-sm">${city.city}</h4>
+                                                                    <div class="text-xs text-gray-600">Gap Score: <span class="font-bold text-indigo-600">${parseInt(city.gap_score)}%</span></div>
+                                                                    <div class="text-[10px] text-gray-500 mt-1">
+                                                                        Demand: ${city.demand}<br>
+                                                                        Supply: ${city.supply}
+                                                                    </div>
                                                                 </div>
-                                                            </div>
-                                                        `;
+                                                            `;
                     circle.bindPopup(tooltipContent);
 
                     // If it's the top gap, open popup automatically
