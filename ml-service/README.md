@@ -99,7 +99,7 @@ Main endpoint consumed by the Admin Dashboard.
         "prediction": 15000000,
         "growth_rate": 5.2,
         "history": [
-            {"month": "Jan 2026", "value": 15000000}
+            {"label": "Jan 2026", "y": 15000000}
         ]
     },
     "churn_candidates": [

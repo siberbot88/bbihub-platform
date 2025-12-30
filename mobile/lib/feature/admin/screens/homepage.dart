@@ -5,6 +5,9 @@ import 'service_page.dart';
 import '../widgets/dashboard/admin_mini_dashboard.dart';
 import '../widgets/dashboard/admin_quick_menu.dart';
 
+import 'package:provider/provider.dart';
+import '../providers/admin_analytics_provider.dart';
+
 const Color primaryRed = Color(0xFFB70F0F);
 const Color gradientRedStart = Color(0xFF9B0F0D);
 const Color gradientRedEnd = Color(0xFFB70F0F);
@@ -35,6 +38,11 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     if (autoScroll) _startAutoScroll();
+    
+    // Fetch dashboard stats on load
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AdminAnalyticsProvider>().fetchQuickStats();
+    });
   }
 
   void _startAutoScroll() {
@@ -42,11 +50,13 @@ class _HomePageState extends State<HomePage> {
     _autoScrollTimer = Timer.periodic(const Duration(seconds: 5), (_) {
       if (!mounted || banners.isEmpty) return;
       final next = (_currentBannerIndex + 1) % banners.length;
-      _bannerController.animateToPage(
-        next,
-        duration: const Duration(milliseconds: 450),
-        curve: Curves.easeInOut,
-      );
+      if (_bannerController.hasClients) {
+        _bannerController.animateToPage(
+          next,
+          duration: const Duration(milliseconds: 450),
+          curve: Curves.easeInOut,
+        );
+      }
     });
   }
 
@@ -97,8 +107,7 @@ class _HomePageState extends State<HomePage> {
       backgroundColor: Colors.white,
       body: RefreshIndicator(
         onRefresh: () async {
-          // Add refresh logic here
-          await Future.delayed(const Duration(seconds: 1));
+          await context.read<AdminAnalyticsProvider>().fetchQuickStats();
         },
         child: CustomScrollView(
           physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
@@ -249,11 +258,21 @@ class _HomePageState extends State<HomePage> {
                               ),
                               const SizedBox(height: 20),
                               const Spacer(),
-                              const AdminMiniDashboard(
-                                servisHariIni: '24',
-                                perluAssign: '12',
-                                feedback: '5',
-                                selesai: '2',
+                              Consumer<AdminAnalyticsProvider>(
+                                builder: (context, provider, child) {
+                                  if (provider.isLoading && provider.quickStats == null) {
+                                     return const Center(
+                                        child: CircularProgressIndicator(color: Colors.white),
+                                     );
+                                  }
+                                  
+                                  return AdminMiniDashboard(
+                                    servisHariIni: '${provider.serviceToday}',
+                                    perluAssign: '${provider.needsAssign}',
+                                    feedback: '4', // Static or fetch logic needed
+                                    selesai: '${provider.completedToday}',
+                                  );
+                                },
                               ),
                             ],
                           ),

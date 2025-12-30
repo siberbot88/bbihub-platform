@@ -28,6 +28,7 @@ import 'package:bengkel_online_flutter/core/widgets/connectivity_wrapper.dart';
 
 // ADMIN
 import 'package:bengkel_online_flutter/feature/admin/screens/dashboard.dart';
+import 'package:bengkel_online_flutter/feature/admin/providers/admin_analytics_provider.dart';
 import 'package:bengkel_online_flutter/feature/admin/screens/profil_page.dart' as admin_profil;
 import 'package:bengkel_online_flutter/feature/admin/widgets/bottom_nav.dart';
 import 'package:bengkel_online_flutter/core/screens/registers/change_password.dart' as change_screen;
@@ -69,6 +70,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => EmployeeProvider()),
         ChangeNotifierProvider(create: (_) => ServiceProvider()),
         ChangeNotifierProvider(create: (_) => AdminServiceProvider()),
+        ChangeNotifierProvider(create: (_) => AdminAnalyticsProvider()),
         ChangeNotifierProxyProvider<AuthProvider, NotificationProvider>(
           create: (context) => NotificationProvider(context.read<AuthProvider>()),
           update: (context, auth, previous) => NotificationProvider(auth),

@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
+import 'package:provider/provider.dart';
 
 // Reuse widgets from Owner feature to ensure exact design match
 import '../../owner/widgets/report/report_kpi_card.dart';
+import '../providers/admin_analytics_provider.dart';
 import 'tabs/technician_tab.dart';
 import 'tabs/customer_tab.dart';
 
@@ -45,6 +47,11 @@ class _DashboardPageState extends State<DashboardPage> {
   void initState() {
     super.initState();
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light);
+    
+    // Fetch stats
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AdminAnalyticsProvider>().fetchQuickStats();
+    });
   }
 
   @override
@@ -222,55 +229,64 @@ class _DashboardPageState extends State<DashboardPage> {
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
       physics: const BouncingScrollPhysics(),
       children: [
-        // KPI Grid using ReportKpiCard (2 Rows of 2)
-        Row(
-          children: [
-            ReportKpiCard(
-              icon: Icons.car_repair_rounded, // Better icon for Service
-              title: '12',
-              subtitle: 'Servis Hari Ini',
-              growthText: '+2.0%',
-              iconSize: 26,
-              onTap: () {},
-            ),
-            const SizedBox(width: 14),
-            ReportKpiCard(
-              icon: Icons.person_search_rounded, // Better icon for Assign
-              title: '8',
-              subtitle: 'Perlu di Assign',
-              growthText: '!', 
-              iconBgColor: const Color(0xFFFFF8E1), 
-              iconColor: const Color(0xFFFFA000),
-              iconSize: 26,
-              onTap: () {},
-            ),
-          ],
-        ),
-        const SizedBox(height: 14),
-        Row(
-          children: [
-            ReportKpiCard(
-              icon: Icons.star_rounded, // Better icon for Feedback
-              title: '4',
-              subtitle: 'Feedback',
-              growthText: '+1',
-              iconBgColor: const Color(0xFFE3F2FD), 
-              iconColor: const Color(0xFF1976D2),
-              iconSize: 26,
-              onTap: () {},
-            ),
-            const SizedBox(width: 14),
-            ReportKpiCard(
-              icon: Icons.task_alt_rounded, // Better icon for Completed
-              title: '2',
-              subtitle: 'Selesai',
-              growthText: '+5',
-              iconBgColor: const Color(0xFFE8F5E9), 
-              iconColor: const Color(0xFF2E7D32),
-              iconSize: 26,
-              onTap: () {},
-            ),
-          ],
+        Consumer<AdminAnalyticsProvider>(
+          builder: (context, provider, child) {
+            final isLoading = provider.isLoading && provider.quickStats == null;
+            
+            return Column(
+              children: [
+                Row(
+                  children: [
+                    ReportKpiCard(
+                      icon: Icons.car_repair_rounded,
+                      title: isLoading ? '...' : '${provider.serviceToday}',
+                      subtitle: 'Servis Hari Ini',
+                      growthText: '-', // Dynamic growth not yet available
+                      iconSize: 26,
+                      onTap: () {},
+                    ),
+                    const SizedBox(width: 14),
+                    ReportKpiCard(
+                      icon: Icons.person_search_rounded,
+                      title: isLoading ? '...' : '${provider.needsAssign}',
+                      subtitle: 'Perlu di Assign',
+                      growthText: '!', 
+                      iconBgColor: const Color(0xFFFFF8E1), 
+                      iconColor: const Color(0xFFFFA000),
+                      iconSize: 26,
+                      onTap: () {},
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    ReportKpiCard(
+                      icon: Icons.star_rounded,
+                      title: '4', // Static as backend doesn't provide feedback count yet
+                      subtitle: 'Feedback',
+                      growthText: '-',
+                      iconBgColor: const Color(0xFFE3F2FD), 
+                      iconColor: const Color(0xFF1976D2),
+                      iconSize: 26,
+                      onTap: () {},
+                    ),
+                    const SizedBox(width: 14),
+                    ReportKpiCard(
+                      icon: Icons.task_alt_rounded,
+                      title: isLoading ? '...' : '${provider.completedToday}',
+                      subtitle: 'Selesai',
+                      growthText: '-',
+                      iconBgColor: const Color(0xFFE8F5E9), 
+                      iconColor: const Color(0xFF2E7D32),
+                      iconSize: 26,
+                      onTap: () {},
+                    ),
+                  ],
+                ),
+              ],
+            );
+          },
         ),
 
         const SizedBox(height: 24),

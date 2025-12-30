@@ -62,6 +62,7 @@ class ExecutiveDashboard extends Component
     private function getPlatformOutlookFromML(): array
     {
         try {
+            /** @var \Illuminate\Http\Client\Response $response */
             $response = \Illuminate\Support\Facades\Http::timeout(5)->get(
                 env('ML_API_URL', 'http://localhost:5000') . '/predict/platform-outlook'
             );
@@ -116,6 +117,7 @@ class ExecutiveDashboard extends Component
         \Illuminate\Support\Facades\Cache::forget("eis_clv");
         \Illuminate\Support\Facades\Cache::forget("eis_market_gap");
         \Illuminate\Support\Facades\Cache::forget("eis_segmentation");
+        \Illuminate\Support\Facades\Cache::forget("eis_top_workshops");
 
         $this->loadData($eisService, $platformService);
 
