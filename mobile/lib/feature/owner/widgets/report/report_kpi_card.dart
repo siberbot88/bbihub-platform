@@ -57,8 +57,7 @@ class ReportKpiCard extends StatelessWidget {
                     padding: const EdgeInsets.all(10), // Increased from 8
                     decoration: BoxDecoration(
                       color: iconBgColor ?? const Color(0xFFFFF0F1), // Default soft red
-                      borderRadius: BorderRadius.circular(12), // Changed from circle to rounded rect for better look with larger icons? Or stick to circle. User said "agak di besarkan". Let's stick to circle but larger.
-                      shape: BoxShape.circle,
+                      borderRadius: BorderRadius.circular(12), // Squircle shape for modern look
                     ),
                     child: Icon(
                       icon,
