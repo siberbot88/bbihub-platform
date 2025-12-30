@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -13,21 +12,10 @@ return new class extends Migration
     {
         Schema::create('notifications', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->foreignUuid('user_uuid')->constrained('users');
-            $table->string('title');
-            $table->text('message');
-            $table->enum('type', [
-                'transaction',
-                'task_assignment',
-                'task_completed',
-                'feedback_received',
-                'voucher_active',
-                'service_logged',
-                'report_ready',
-                'reminder',
-                'system'
-            ]);
-            $table->boolean('is_read')->default(false);
+            $table->string('type');
+            $table->uuidMorphs('notifiable'); // Creates notifiable_type and notifiable_id as UUID
+            $table->text('data');
+            $table->timestamp('read_at')->nullable();
             $table->timestamps();
         });
     }

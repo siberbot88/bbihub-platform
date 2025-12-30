@@ -26,6 +26,7 @@ class Transaction extends Model
         'workshop_uuid',
         'admin_uuid',
         'mechanic_uuid',
+        'invoice_uuid', // NEW: link to invoice
         'status',
         'amount',
         'payment_method',
@@ -41,43 +42,48 @@ class Transaction extends Model
     {
         return $this->belongsTo(Service::class, 'service_uuid', 'id');
     }
-    public function customer(): BelongsTo{
+    public function customer(): BelongsTo
+    {
         return $this->belongsTo(Customer::class, 'customer_uuid');
     }
 
-//    public function service():   BelongsTo{
+    //    public function service():   BelongsTo{
 //        return $this->belongsTo(Service::class, 'service_uuid');
 //    }
 
-    public function workshop(): BelongsTo{
+    public function workshop(): BelongsTo
+    {
         return $this->belongsTo(Workshop::class, 'workshop_uuid');
     }
 
-    public function mechanic(): BelongsTo{
+    public function mechanic(): BelongsTo
+    {
         return $this->belongsTo(Employment::class, 'mechanic_uuid')->with('user');
     }
 
-    public function admin(): BelongsTo{
+    public function admin(): BelongsTo
+    {
         return $this->belongsTo(User::class, 'admin_uuid');
     }
 
-    public function items(): HasMany{
-        return $this->hasMany(TransactionItem::class, 'transaction_uuid');
-    }
 
-    public function logs(): HasMany{
+    public function logs(): HasMany
+    {
         return $this->hasMany(ServiceLog::class, 'service_uuid', 'id');
     }
 
-    public function invoice(): HasOne{
+    public function invoice(): HasOne
+    {
         return $this->hasOne(Invoice::class, 'uuid', 'id');
     }
 
-    public function task(): HasOne{
+    public function task(): HasOne
+    {
         return $this->hasOne(Task::class, 'transaction_uuid', 'id');
     }
 
-    public function feedback(): HasOne{
+    public function feedback(): HasOne
+    {
         return $this->hasOne(Feedback::class, 'transaction_uuid', 'id');
     }
 }

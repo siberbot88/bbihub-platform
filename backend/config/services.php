@@ -40,4 +40,12 @@ return [
         'service_account_path' => env('FCM_SERVICE_ACCOUNT_PATH', 'firebase/firebase-service-account.json'),
     ],
 
+    'chat_ai' => [
+        'base_url' => env('CHAT_AI_BASE_URL', 'https://api.groq.com/openai'),
+        'api_key' => env('CHAT_AI_API_KEY'),
+        'model' => env('CHAT_AI_MODEL', 'llama-3.3-70b-versatile'),
+        'temperature' => env('CHAT_AI_TEMPERATURE', 0.7),
+        'max_tokens' => env('CHAT_AI_MAX_TOKENS', 500),
+    ],
+
 ];

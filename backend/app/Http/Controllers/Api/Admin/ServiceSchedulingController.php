@@ -52,8 +52,9 @@ class ServiceSchedulingController extends Controller
                 : null;
 
             $perPage = $request->input('per_page', 15);
+            $type = $request->input('type') ?? $request->input('filter.type');
 
-            $result = $this->serviceManager->getScheduledServices($workshopId, $date, $perPage);
+            $result = $this->serviceManager->getScheduledServices($workshopId, $date, $perPage, $type);
 
             return $this->successResponse(
                 'Data berhasil diambil',

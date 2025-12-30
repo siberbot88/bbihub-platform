@@ -13,17 +13,14 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
-
-/**
- * Implement MustVerifyEmail so Laravel knows this user must verify email.
- */
-use \Illuminate\Contracts\Auth\MustVerifyEmail;
-
-class User extends Authenticatable implements MustVerifyEmail
+class User extends Authenticatable implements MustVerifyEmail, HasMedia
 {
     /** @use HasFactory<UserFactory> */
-    use HasUuids, HasFactory, Notifiable, HasRoles, HasApiTokens;
+    use HasUuids, HasFactory, Notifiable, HasRoles, HasApiTokens, InteractsWithMedia;
 
     protected $primaryKey = 'id';
     public $incrementing = false;
@@ -58,6 +55,32 @@ class User extends Authenticatable implements MustVerifyEmail
             'trial_used' => 'boolean',
             'must_change_password' => 'boolean',
         ];
+    }
+
+    protected $appends = ['photo_url'];
+
+    public function getPhotoUrlAttribute(): ?string
+    {
+        // 1. Spatie Media Library (Priority)
+        $mediaUrl = $this->getFirstMediaUrl('profile_photo');
+        if ($mediaUrl) {
+            return $mediaUrl;
+        }
+
+        // 2. Legacy / Manual Path (Fallback)
+        if ($this->photo) {
+            if (str_starts_with($this->photo, 'http')) {
+                return $this->photo;
+            }
+            return asset('storage/' . $this->photo);
+        }
+        return null;
+    }
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('profile_photo')
+            ->singleFile();
     }
 
     /**
@@ -151,10 +174,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(ServiceLog::class, 'mechanic_uuid', 'id');
     }
 
-    public function notifications(): HasMany
-    {
-        return $this->hasMany(Notification::class, 'mechanic_uuid', 'id');
-    }
+    // Relationship removed: Use Notifiable trait's notifications() instead
+    // public function notifications(): HasMany
+    // {
+    //     return $this->hasMany(Notification::class, 'mechanic_uuid', 'id');
+    // }
 
     /**
      * Subscription owner.

@@ -118,6 +118,7 @@ class AuthProvider with ChangeNotifier {
 
       if (_token != null) {
         await _storage.write(key: 'auth_token', value: _token);
+        FcmService.saveTokenToBackend(_token!);
       }
 
       notifyListeners();

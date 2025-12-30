@@ -25,4 +25,12 @@ class Customer {
 
   // Getter compatibility
   String? get phoneNumber => phone;
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    if (email != null) 'email': email,
+    if (phone != null) 'phone': phone,
+    if (address != null) 'address': address,
+  };
 }

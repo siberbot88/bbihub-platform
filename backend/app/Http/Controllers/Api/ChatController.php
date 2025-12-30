@@ -25,7 +25,7 @@ class ChatController extends Controller
 
             $user = Auth::user();
             \Log::info('Chat send - User:', ['id' => $user->id, 'name' => $user->name]);
-            
+
             // Determine user type based on role (with fallback)
             try {
                 $userType = $user->hasRole('admin') ? 'admin' : 'owner';
@@ -66,7 +66,7 @@ class ChatController extends Controller
                             ];
                         })
                         ->toArray();
-                    
+
                     // Remove the current message from history (since it's the trigger)
                     if (!empty($history)) {
                         array_pop($history);
@@ -76,7 +76,11 @@ class ChatController extends Controller
                     // Log for debugging
                     \Log::info('Chat Intercept Check', ['msg' => $request->message]);
 
-                    if (stripos(strtolower($request->message), 'admin') !== false) {
+                    $aiResponse = null;
+                    if (
+                        stripos(strtolower($request->message), 'hubungi admin') !== false ||
+                        stripos(strtolower($request->message), 'contact admin') !== false
+                    ) {
                         $aiResponse = "Anda dapat menghubungi Admin kami melalui:\n\n"
                             . "WhatsApp: 0877-2189-3340\n"
                             . "Email: admin@bbihub.com\n\n"
@@ -88,25 +92,26 @@ class ChatController extends Controller
                             $aiResponse = $chatbotService->generateResponse($request->message, $history);
                         } catch (\Exception $e) {
                             \Log::error('Chatbot Service Failed: ' . $e->getMessage());
-                            $aiResponse = null;
+                            $aiResponse = "Maaf, sistem chatbot sedang bermasalah. Silakan coba lagi atau hubungi admin kami.";
                         }
                     }
-                    
+
+                    // ALWAYS create AI message reply
                     if ($aiResponse) {
                         try {
                             // Try to find a real admin to attribute the message to
                             // This prevents FK errors if user_id is constrained
-                            $adminUser = \App\Models\User::whereHas('roles', function($q) {
+                            $adminUser = \App\Models\User::whereHas('roles', function ($q) {
                                 $q->where('name', 'admin');
                             })->first();
 
                             // Fallback to a zero UUID if no admin found (or if using simple ID)
-                            $aiUserId = $adminUser ? $adminUser->id : '00000000-0000-0000-0000-000000000000'; 
-                            
+                            $aiUserId = $adminUser ? $adminUser->id : '00000000-0000-0000-0000-000000000000';
+
                             // Save AI Message as 'admin'
                             $aiMessage = ChatMessage::create([
                                 'room_id' => $request->room_id,
-                                'user_id' => $aiUserId, 
+                                'user_id' => $aiUserId,
                                 'user_type' => 'admin', // AI acts as admin
                                 'message' => $aiResponse,
                                 'is_read' => false,
@@ -143,7 +148,7 @@ class ChatController extends Controller
             \Log::error('Chat send error: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to send message: ' . $e->getMessage(),
@@ -263,7 +268,7 @@ class ChatController extends Controller
     public function getRooms(Request $request)
     {
         $user = Auth::user();
-        
+
         if (!$user->hasRole('admin')) {
             return response()->json([
                 'success' => false,

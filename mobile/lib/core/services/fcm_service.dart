@@ -1,7 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -21,6 +20,20 @@ class FcmService {
 
     print('User granted permission: ${settings.authorizationStatus}');
 
+    // ✅ CREATE NOTIFICATION CHANNEL FIRST (Android 8.0+)
+    const AndroidNotificationChannel channel = AndroidNotificationChannel(
+      'high_importance_channel', // id
+      'High Importance Notifications', // title
+      description: 'This channel is used for important notifications.',
+      importance: Importance.max,
+      playSound: true,
+      enableVibration: true,
+    );
+
+    await _localNotifications
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(channel);
+
     // Initialize local notifications
     const AndroidInitializationSettings androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -33,31 +46,39 @@ class FcmService {
       print('Notification tapped: ${response.payload}');
     });
 
-    // Foreground handler
+    // ✅ Foreground handler - ALWAYS SHOW NOTIFICATION
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      print('Got a message whilst in the foreground!');
-      print('Message data: ${message.data}');
+      print('🔔 FCM: Got a message in FOREGROUND!');
+      print('📦 Message data: ${message.data}');
 
       if (message.notification != null) {
-        print('Message also contained a notification: ${message.notification}');
+        print('✉️  Notification title: ${message.notification!.title}');
+        print('✉️  Notification body: ${message.notification!.body}');
+        // FORCE SHOW LOCAL NOTIFICATION
         showLocalNotification(message);
+      } else {
+        print('⚠️  No notification payload, only data');
       }
     });
 
     // Background/Terminated handler
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      print('A new onMessageOpenedApp event was published!');
+      print('📬 A new onMessageOpenedApp event was published!');
       // Navigate to page based on data
     });
   }
 
   static Future<void> showLocalNotification(RemoteMessage message) async {
+    // ✅ Use the SAME channel ID created in initialize()
     const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-      'high_importance_channel', // id
-      'High Importance Notifications', // title
+      'high_importance_channel', // MUST match channel ID above
+      'High Importance Notifications',
       channelDescription: 'This channel is used for important notifications.',
       importance: Importance.max,
       priority: Priority.high,
+      playSound: true,
+      enableVibration: true,
+      styleInformation: BigTextStyleInformation(''),
     );
 
     const NotificationDetails platformDetails =
@@ -65,11 +86,13 @@ class FcmService {
 
     await _localNotifications.show(
       message.hashCode,
-      message.notification?.title,
-      message.notification?.body,
+      message.notification?.title ?? 'BBI Hub',
+      message.notification?.body ?? 'Anda mendapat notifikasi baru',
       platformDetails,
       payload: jsonEncode(message.data),
     );
+
+    print('✅ Local notification displayed!');
   }
 
   static Future<void> saveTokenToBackend(String authToken) async {

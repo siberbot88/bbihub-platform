@@ -21,9 +21,8 @@
         <label class="block text-sm font-medium text-neutral-700">
           Nama
         </label>
-        <input type="text"
-               wire:model.defer="name"
-               class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-red-500 focus:ring-red-500">
+        <input type="text" wire:model.defer="name"
+          class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-red-500 focus:ring-red-500">
         @error('name')
           <p class="text-xs text-rose-600 mt-1">{{ $message }}</p>
         @enderror
@@ -34,9 +33,8 @@
         <label class="block text-sm font-medium text-neutral-700">
           Email
         </label>
-        <input type="email"
-               wire:model.defer="email"
-               class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-red-500 focus:ring-red-500">
+        <input type="email" wire:model.defer="email"
+          class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-red-500 focus:ring-red-500">
         @error('email')
           <p class="text-xs text-rose-600 mt-1">{{ $message }}</p>
         @enderror
@@ -49,7 +47,7 @@
             Status
           </label>
           <select wire:model.defer="status"
-                  class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-red-500 focus:ring-red-500">
+            class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-red-500 focus:ring-red-500">
             <option value="">Pilih status…</option>
             <option value="active">Aktif</option>
             <option value="inactive">Nonaktif</option>
@@ -62,12 +60,11 @@
       @endif
 
       <div class="flex items-center justify-end gap-3 pt-4 border-t border-neutral-100">
-        <a href="{{ route('admin.users.index') }}"
-           class="rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50">
+        <a href="{{ route('admin.users.index') }}" wire:navigate
+          class="rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50">
           Batal
         </a>
-        <button type="submit"
-                class="rounded-xl bg-red-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-red-700">
+        <button type="submit" class="rounded-xl bg-red-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-red-700">
           Simpan Perubahan
         </button>
       </div>
@@ -75,4 +72,3 @@
 
   </div>
 </div>
- 

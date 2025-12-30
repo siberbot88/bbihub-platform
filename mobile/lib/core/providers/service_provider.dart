@@ -68,6 +68,10 @@ class ServiceProvider extends ChangeNotifier {
     String? dateTo,
     int page = 1,
     int perPage = 10,
+    String? type,
+    String? dateColumn,
+    String? search, // Added search param
+    bool useScheduleEndpoint = true, // Control endpoint selection
   }) {
     return _api.fetchServicesRaw(
       status: status ?? _statusFilter,
@@ -78,6 +82,10 @@ class ServiceProvider extends ChangeNotifier {
       dateTo: dateTo,
       page: page,
       perPage: perPage,
+      type: type,
+      dateColumn: dateColumn,
+      search: search, // Pass search
+      useScheduleEndpoint: useScheduleEndpoint, // Note: Base ServiceProvider uses owner endpoint, not admin // So useScheduleEndpoint doesn't apply here, but needed for signature
     );
   }
 
@@ -122,6 +130,10 @@ class ServiceProvider extends ChangeNotifier {
     String? dateTo, // 'YYYY-MM-DD'
     int page = 1,
     int? perPage,
+    String? type, // Added type param
+    String? dateColumn,
+    String? search, // Added search param
+    bool useScheduleEndpoint = true, // Control endpoint type
   }) async {
     _loading = true;
     _lastError = null;
@@ -144,6 +156,10 @@ class ServiceProvider extends ChangeNotifier {
         dateTo: dateTo,
         page: page,
         perPage: perPage ?? _perPage,
+        type: type, // Pass type
+        dateColumn: dateColumn,
+        search: search, // Pass search
+        useScheduleEndpoint: useScheduleEndpoint, // Pass through to API
       );
 
       final data = res['data'];

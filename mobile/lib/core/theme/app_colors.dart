@@ -9,7 +9,7 @@ class AppColors {
 
   // ===== Primary Colors =====
   /// Main brand color (Red) - #D72B1C
-  static const Color primaryRed = Color(0xFFD72B1C);
+  static const Color primaryRed = Color(0xFFC62828);
   
   /// Darker shade of primary red - #B70F0F
   static const Color primaryDark = Color(0xFFB70F0F);

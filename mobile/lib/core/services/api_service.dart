@@ -141,7 +141,7 @@ class ApiService {
     try {
       final uri = Uri.parse('${_baseUrl}auth/login');
       final headers = _getJsonHeaders();
-      final body = jsonEncode({'email': email, 'password': password});
+      final body = jsonEncode({'login': email, 'password': password});
 
       _debugRequest('LOGIN', uri, headers, body);
       final res = await http.post(uri, headers: headers, body: body);
@@ -718,6 +718,10 @@ class ApiService {
     String? dateTo,
     int page = 1,
     int perPage = 10,
+    String? type,
+    String? dateColumn,
+    String? search, // Added search param
+    bool useScheduleEndpoint = true, 
   }) async {
     try {
       final params = <String, String>{};
@@ -729,6 +733,9 @@ class ApiService {
       if (code != null && code.isNotEmpty) params['code'] = code;
       if (dateFrom != null && dateFrom.isNotEmpty) params['date_from'] = dateFrom;
       if (dateTo != null && dateTo.isNotEmpty) params['date_to'] = dateTo;
+      if (type != null && type.isNotEmpty) params['type'] = type;
+      if (dateColumn != null && dateColumn.isNotEmpty) params['date_column'] = dateColumn;
+      if (search != null && search.isNotEmpty) params['search'] = search; // Handle search
 
       params['page'] = page.toString();
       params['per_page'] = perPage.toString();
@@ -1166,17 +1173,150 @@ class ApiService {
     String? dateTo,
     int page = 1,
     int perPage = 10,
-  }) {
-    return fetchServicesRaw(
-      status: status,
-      includeExtras: includeExtras,
-      workshopUuid: workshopUuid,
-      code: code,
-      dateFrom: dateFrom,
-      dateTo: dateTo,
-      page: page,
-      perPage: perPage,
-    );
+    String? type,
+    String? dateColumn,
+    String? search, // Added search param
+    bool useScheduleEndpoint = true, // New param to control endpoint
+  }) async {
+    try {
+      // Use /schedule for grouped format (scheduling page)
+      // Use /services for flat pagination (history page)
+      final endpoint = useScheduleEndpoint
+          ? 'admins/services/schedule'
+          : 'admins/services';
+
+      final uri = Uri.parse('${_baseUrl}$endpoint').replace(
+        queryParameters: {
+          'page': page.toString(),
+          'per_page': perPage.toString(),
+          if (status != null && status != 'all') 'filter[status]': status,
+          if (workshopUuid != null) 'filter[workshop_uuid]': workshopUuid,
+          if (code != null) 'filter[code]': code,
+          if (dateFrom != null) 'date_from': dateFrom,
+          if (dateTo != null) 'date_to': dateTo,
+          if (type != null) 'filter[type]': type,
+          if (dateColumn != null) 'date_column': dateColumn,
+          if (search != null && search.isNotEmpty) 'filter[search]': search, // Send filter[search]
+        },
+      );
+
+      final headers = await _getAuthHeaders();
+      _debugRequest('ADMIN_FETCH_SERVICES', uri, headers, null);
+
+      final res = await http.get(uri, headers: headers);
+      _debugResponse('ADMIN_FETCH_SERVICES', res);
+
+      if (res.statusCode == 200) {
+        final json = _tryDecodeJson(res.body);
+        if (json is Map<String, dynamic>) return json;
+        throw Exception('Response is not valid JSON');
+      }
+
+      final json = _tryDecodeJson(res.body);
+      if (json is Map<String, dynamic>) {
+        throw Exception(_getErrorMessage(json));
+      }
+      throw Exception('Failed to fetch admin services (HTTP ${res.statusCode})');
+    } catch (e) {
+      throw Exception('Failed to fetch admin services: ${e.toString()}');
+    }
+  }
+
+  /// Fetch ACTIVE (in-progress + completed) services for logging/pencatatan
+  /// GET /v1/admins/services/active
+  Future<Map<String, dynamic>> adminFetchActiveServices({
+    int page = 1,
+    int perPage = 15,
+  }) async {
+    try {
+      final uri = Uri.parse('${_baseUrl}admins/services/active').replace(queryParameters: {
+        'page': page.toString(),
+        'per_page': perPage.toString(),
+      });
+
+      final res = await http.get(uri, headers: await _getAuthHeaders());
+
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body);
+      }
+      throw Exception('Failed to fetch active services (HTTP ${res.statusCode})');
+    } catch (e) {
+      throw Exception('Failed to fetch active services: ${e.toString()}');
+    }
+  }
+
+  /// Complete service (mark as completed)
+  /// PATCH /v1/admins/services/{id}/complete
+  Future<Map<String, dynamic>> adminCompleteService(String serviceId) async {
+    try {
+      final uri = Uri.parse('${_baseUrl}admins/services/$serviceId/complete');
+      final res = await http.patch(uri, headers: await _getAuthHeaders());
+
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body);
+      }
+      throw Exception('Failed to complete service (HTTP ${res.statusCode})');
+    } catch (e) {
+      throw Exception('Failed to complete service: ${e.toString()}');
+    }
+  }
+
+  /// Create invoice for service
+  /// POST /v1/admins/services/{id}/invoice
+  Future<Map<String, dynamic>> adminCreateInvoice(
+    String serviceId, {
+    required List<Map<String, dynamic>> items,
+    double? tax,
+    double? discount,
+    String? notes,
+  }) async {
+    try {
+      final uri = Uri.parse('${_baseUrl}admins/services/$serviceId/invoice');
+      final body = {
+        'items': items,
+        if (tax != null) 'tax': tax,
+        if (discount != null) 'discount': discount,
+        if (notes != null) 'notes': notes,
+      };
+
+      final res = await http.post(
+        uri,
+        headers: await _getAuthHeaders(),
+        body: jsonEncode(body),
+      );
+
+      if (res.statusCode == 201 || res.statusCode == 200) {
+        return jsonDecode(res.body);
+      }
+      throw Exception('Failed to create invoice (HTTP ${res.statusCode}): ${res.body}');
+    } catch (e) {
+      throw Exception('Failed to create invoice: ${e.toString()}');
+    }
+  }
+
+  /// Process cash payment for invoice
+  /// POST /v1/admins/invoices/{id}/cash-payment
+  Future<Map<String, dynamic>> adminProcessCashPayment(
+    String invoiceId,
+    double amountPaid,
+  ) async {
+    try {
+      final uri = Uri.parse('${_baseUrl}admins/invoices/$invoiceId/cash-payment');
+      final body = {'amount_paid': amountPaid};
+
+      final res = await http.post(
+        uri,
+        headers: await _getAuthHeaders(),
+        body: jsonEncode(body),
+      );
+
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body);
+      }
+      throw Exception('Failed to process payment (HTTP ${res.statusCode}): ${res.body}');
+    } catch (e) {
+      throw Exception('Failed to process payment: ${e.toString()}');
+    }
   }
 
   Future<ServiceModel> adminFetchServiceDetail(String id) {
@@ -1185,14 +1325,13 @@ class ApiService {
 
   Future<void> adminAcceptService(String id, {String? mechanicUuid}) async {
     final body = {
-      'status': 'accept', // Sesuai validasi backend: 'accept'
       if (mechanicUuid != null) 'mechanic_uuid': mechanicUuid,
     };
     
-    // Perbaikan: gunakan POST/PUT ke generic update endpoint
-    final response = await http.put(
-      Uri.parse('$baseUrl/services/$id'),
-      headers: _getJsonHeaders(),
+    final uri = Uri.parse('${_baseUrl}admins/services/$id/accept');
+    final response = await http.post(
+      uri,
+      headers: await _getAuthHeaders(),
       body: jsonEncode(body),
     );
 
@@ -1203,13 +1342,14 @@ class ApiService {
 
   Future<void> adminDeclineService(String id, {required String reason, String? reasonDescription}) async {
     final body = {
-      'status': 'cancelled',
-      'reason': reason == 'Lainnya' && reasonDescription != null ? reasonDescription : reason,
+      'reason': reason, // Backend expects 'reason'
+      if (reasonDescription != null) 'reason_description': reasonDescription,
     };
 
-    final response = await http.put(
-      Uri.parse('$baseUrl/services/$id'),
-      headers: _getJsonHeaders(),
+    final uri = Uri.parse('${_baseUrl}admins/services/$id/decline');
+    final response = await http.post(
+      uri,
+      headers: await _getAuthHeaders(),
       body: jsonEncode(body),
     );
 
@@ -1221,18 +1361,76 @@ class ApiService {
   Future<void> adminAssignMechanic(String id, {required String mechanicUuid}) async {
     final body = {
       'mechanic_uuid': mechanicUuid,
-      // Optional: auto change status to 'in progress' if needed, but backend logic might handle it
-      'status': 'in progress',
     };
 
-    final response = await http.put(
-      Uri.parse('$baseUrl/services/$id'),
-      headers: _getJsonHeaders(),
+    final uri = Uri.parse('${_baseUrl}admins/services/$id/assign-mechanic');
+    
+    // Fix: Use POST and correct endpoint
+    final response = await http.post(
+      uri,
+      headers: await _getAuthHeaders(), // Use auth headers
       body: jsonEncode(body),
     );
 
     if (response.statusCode != 200) {
       throw Exception(_getErrorMessage(jsonDecode(response.body)));
+    }
+  }
+
+  // Updated signature to inclue vehicle details
+  Future<void> adminCreateWalkInService({
+    required String customerName,
+    required String customerPhone,
+    required String vehicleBrand,
+    required String vehicleModel,
+    required String vehiclePlate,
+    required String vehicleYear,
+    required String vehicleColor,
+    required String vehicleCategory, // 'motor' or 'mobil'
+    required String serviceName,
+    String? serviceDescription,
+    File? image,
+  }) async {
+    final uri = Uri.parse('${_baseUrl}admins/services/walk-in');
+    final token = await _getToken();
+    if (token == null) throw Exception('Token not found');
+
+    final request = http.MultipartRequest('POST', uri);
+    request.headers.addAll({
+      'Authorization': 'Bearer $token',
+      'Accept': 'application/json',
+    });
+
+    request.fields['customer_name'] = customerName;
+    request.fields['customer_phone'] = customerPhone;
+    request.fields['vehicle_brand'] = vehicleBrand;
+    request.fields['vehicle_model'] = vehicleModel;
+    request.fields['vehicle_plate'] = vehiclePlate;
+    request.fields['vehicle_year'] = vehicleYear;
+    request.fields['vehicle_color'] = vehicleColor;
+    request.fields['vehicle_category'] = vehicleCategory.toLowerCase();
+    request.fields['service_name'] = serviceName;
+    request.fields['service_description'] = serviceDescription ?? '';
+    request.fields['status'] = 'pending';
+    // Use Jakarta timezone (UTC+7 / WIB)
+    final jakartaTime = DateTime.now().toUtc().add(const Duration(hours: 7));
+    request.fields['scheduled_date'] = jakartaTime.toIso8601String();
+
+    if (image != null) {
+      request.files.add(await http.MultipartFile.fromPath(
+        'image',
+        image.path,
+      ));
+    }
+
+    _debugRequest('CREATE_WALKIN', uri, request.headers, 'Multipart body: ${request.fields}');
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+    _debugResponse('CREATE_WALKIN', response);
+
+    if (response.statusCode != 201 && response.statusCode != 200) {
+       throw Exception(_getErrorMessage(jsonDecode(response.body)));
     }
   }
 
@@ -1307,6 +1505,60 @@ class ApiService {
       }
     } catch (e) {
       throw Exception('Gagal mark read: ${e.toString()}');
+    }
+  }
+
+  /// ADMIN: Fetch mechanics (employees with mechanic role)
+  /// GET /admins/mechanics
+  Future<Map<String, dynamic>> adminFetchMechanics() async {
+    try {
+      final uri = Uri.parse('${_baseUrl}admins/mechanics');
+      final headers = await _getAuthHeaders();
+
+      _debugRequest('ADMIN_FETCH_MECHANICS', uri, headers, null);
+      final res = await http.get(uri, headers: headers);
+      _debugResponse('ADMIN_FETCH_MECHANICS', res);
+
+      if (res.statusCode == 200) {
+        final j = _tryDecodeJson(res.body);
+        if (j is Map<String, dynamic>) {
+          return j;
+        }
+      }
+      
+      final j = _tryDecodeJson(res.body);
+      if (j is Map<String, dynamic>) {
+          throw Exception(_getErrorMessage(j));
+      }
+      throw Exception('Gagal mengambil data mekanik (HTTP ${res.statusCode})');
+    } catch (e) {
+      throw Exception('Gagal mengambil data mekanik: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> adminFetchInvoiceByServiceId(String serviceId) async {
+    try {
+      // Endpoint: GET /api/v1/admins/services/{id}/invoice
+      // Note: Make sure backend route uses 'admins' or 'admin' correctly.
+      // Based on ServiceLoggingController it is usually under 'admin' prefix but user used 'admins' in other calls.
+      // Let's try 'admins' consistent with other admin methods here first.
+      // Wait, ServiceLoggingController usually maps to /admin/services...
+      // I'll check route list if possible, but let's guess 'admins' based on ApiService trend.
+      // Actually ServiceLoggingController usually is under `apiResource('services')`.
+      final uri = Uri.parse('${_baseUrl}admins/services/$serviceId/invoice');
+      final headers = await _getAuthHeaders();
+
+      final res = await http.get(uri, headers: headers);
+      
+      if (res.statusCode == 200) {
+        final j = _tryDecodeJson(res.body);
+        if (j is Map<String, dynamic> && j['data'] is Map) {
+             return j['data'];
+        }
+      }
+      throw Exception('Invoice tidak ditemukan');
+    } catch (e) {
+      rethrow;
     }
   }
 

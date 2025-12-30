@@ -25,8 +25,8 @@
       @foreach($items as $it)
         @php $active = $current === $it['route']; @endphp
         <li>
-          <a href="{{ $it['route'] }}" class="group flex items-center gap-3 rounded-xl px-3 py-2
-                      {{ $active ? 'bg-rose-50 text-rose-600' : 'text-gray-700 hover:bg-gray-50' }}">
+          <a href="{{ $it['route'] }}" wire:navigate class="group flex items-center gap-3 rounded-xl px-3 py-2
+                        {{ $active ? 'bg-rose-50 text-rose-600' : 'text-gray-700 hover:bg-gray-50' }}">
             <x-svg :name="$it['icon']"
               class="h-5 w-5 {{ $active ? 'text-rose-600' : 'text-gray-400 group-hover:text-gray-600' }}" />
             <span class="text-sm font-medium">{{ $it['label'] }}</span>

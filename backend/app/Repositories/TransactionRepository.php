@@ -53,26 +53,15 @@ class TransactionRepository
                 'payment_method' => null, // Will be set by Midtrans callback
             ]);
 
-            // Create transaction items
-            foreach ($items as $item) {
-                TransactionItem::create([
-                    'id' => Str::uuid(),
-                    'transaction_uuid' => $transaction->id,
-                    'service_uuid' => $serviceId,
-                    'name' => $item['name'],
-                    'type' => $item['type'], // 'jasa' or 'sparepart'
-                    'price' => $item['price'],
-                    'quantity' => $item['quantity'],
-                    'subtotal' => $item['price'] * $item['quantity'],
-                ]);
-            }
+            // Transaction Items REMOVED (Legacy)
+            // Use InvoiceItems via Invoice model instead.
 
             // Update service status to 'menunggu pembayaran'
             DB::table('services')
                 ->where('id', $serviceId)
                 ->update(['status' => 'menunggu pembayaran']);
 
-            return $transaction->load('items');
+            return $transaction;
         });
     }
 
@@ -84,7 +73,7 @@ class TransactionRepository
      */
     public function getInvoiceByService(string $serviceId): ?Transaction
     {
-        return Transaction::with(['items', 'service.customer', 'service.vehicle'])
+        return Transaction::with(['service.customer', 'service.vehicle'])
             ->where('service_uuid', $serviceId)
             ->first();
     }
@@ -119,6 +108,6 @@ class TransactionRepository
                 ->update(['status' => 'lunas']);
         }
 
-        return $transaction->load('items');
+        return $transaction;
     }
 }

@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Implementation Guide - BBI HUB</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        background: '#0B0C0E',
+                        surface: '#141518',
+                        border: 'rgba(255, 255, 255, 0.08)',
+                        primary: '#DC2626',
+                        'primary-hover': '#B91C1C',
+                        text: { main: '#EDEDEF', muted: '#8A8F98' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0B0C0E;
+            color: #EDEDEF;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .glass-nav {
+            background: rgba(11, 12, 14, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .card {
+            background: #141518;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 24px;
+        }
+
+        .security-item {
+            background: #1A1B1E;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .code-block {
+            background: #0D0E10;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .tag-config {
+            background: rgba(59, 130, 246, 0.1);
+            color: #60A5FA;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+
+        .tag-implementation {
+            background: rgba(34, 197, 94, 0.1);
+            color: #4ADE80;
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="glass-nav fixed top-0 w-full z-50">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-8">
+                <a href="index.html" class="flex items-center gap-2">
+                    <div
+                        class="w-8 h-8 bg-primary rounded flex items-center justify-center text-white font-bold text-sm">
+                        B</div>
+                    <span class="font-semibold text-sm">BBI HUB</span>
+                </a>
+            </div>
+            <span class="text-xs text-text-muted font-mono border border-white/10 px-2 py-1 rounded">Security
+                Guide</span>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-6 pt-32 pb-20">
+        <div class="mb-12">
+            <h1 class="text-4xl font-bold text-white mb-4">Panduan Implementasi Security Features</h1>
+            <p class="text-text-muted text-lg">Dokumentasi lengkap konfigurasi dan implementasi fitur keamanan BBI HUB
+            </p>
+        </div>
+
+        <!-- 1. Authentication & Authorization -->
+        <section class="card mb-8">
+            <div class="flex items-center gap-3 mb-6">
+                <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
+                    </path>
+                </svg>
+                <h2 class="text-2xl font-bold text-white">1. Authentication & Authorization</h2>
+            </div>
+
+            <div class="security-item">
+                <h3 class="text-lg font-semibold text-white mb-3">Laravel Sanctum Multi-Guard</h3>
+                <p class="text-text-muted text-sm mb-4">Sistem autentikasi berbasis token untuk API dan session untuk
+                    web admin</p>
+
+                <div class="mb-4">
+                    <span class="tag tag-config">Konfigurasi</span>
+                    <div class="code-block mt-2">
+                        <span class="text-gray-500">// config/sanctum.php</span>
+                        'guard' => ['web', 'sanctum'],
+                        'expiration' => null,
+                        'middleware' => ['encrypted_cookies']
+
+                        <span class="text-gray-500">// config/auth.php</span>
+                        'guards' => [
+                        'web' => ['driver' => 'session'],
+                        'sanctum' => ['driver' => 'sanctum']
+                        ]
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <span class="tag tag-implementation">Implementasi</span>
+                    <div class="mt-2 space-y-2 text-sm">
+                        <div class="flex items-start gap-2">
+                            <svg class="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span class="text-text-muted"><code
+                                    class="text-green-400">app/Http/Controllers/Api/Auth/LoginController.php</code> -
+                                Token generation</span>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <svg class="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span class="text-text-muted"><code class="text-green-400">routes/api.php</code> - Protected
+                                routes dengan middleware auth:sanctum</span>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <svg class="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span class="text-text-muted"><code class="text-green-400">app/Models/User.php</code> -
+                                HasApiTokens trait</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-green-500/5 border border-green-500/20 rounded p-3">
+                    <div class="flex gap-2">
+                        <svg class="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
+                            </path>
+                        </svg>
+                        <div>
+                            <p class="text-sm font-semibold text-green-400">Proteksi Terhadap</p>
+                            <p class="text-xs text-text-muted mt-1">Session hijacking, unauthorized API access, token
+                                theft</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="security-item">
+                <h3 class="text-lg font-semibold text-white mb-3">Role-Based Access Control (RBAC)</h3>
+                <p class="text-text-muted text-sm mb-4">Kontrol akses granular menggunakan Spatie Laravel Permission</p>
+
+                <div class="mb-4">
+                    <span class="tag tag-config">Konfigurasi</span>
+                    <div class="code-block mt-2">
+                        <span class="text-gray-500">// config/permission.php</span>
+                        'models' => [
+                        'role' => Spatie\Permission\Models\Role::class,
+                        ],
+                        'table_names' => [
+                        'roles' => 'roles',
+                        'model_has_roles' => 'model_has_roles',
+                        ],
+                        'cache' => ['expiration_time' => 86400]
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <span class="tag tag-implementation">Implementasi</span>
+                    <div class="mt-2 space-y-2 text-sm">
+                        <div class="flex items-start gap-2">
+                            <svg class="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span class="text-text-muted"><code
+                                    class="text-green-400">database/seeders/RoleSeeder.php</code> - Role
+                                initialization</span>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <svg class="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span class="text-text-muted"><code
+                                    class="text-green-400">app/Http/Middleware/RoleMiddleware.php</code> - Route
+                                protection</span>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <svg class="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span class="text-text-muted"><code class="text-green-400">app/Models/User.php</code> -
+                                HasRoles trait</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-green-500/5 border border-green-500/20 rounded p-3">
+                    <div class="flex gap-2">
+                        <svg class="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
+                            </path>
+                        </svg>
+                        <div>
+                            <p class="text-sm font-semibold text-green-400">Proteksi Terhadap</p>
+                            <p class="text-xs text-text-muted mt-1">Privilege escalation, unauthorized feature access
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="security-item">
+                <h3 class="text-lg font-semibold text-white mb-3">Password Security</h3>
+                <p class="text-text-muted text-sm mb-4">Policy password yang kuat dengan hashing bcrypt</p>
+
+                <div class="mb-4">
+                    <span class="tag tag-config">Konfigurasi</span>
+                    <div class="code-block mt-2">
+                        <span class="text-gray-500">// config/hashing.php</span>
+                        'driver' => 'bcrypt',
+                        'bcrypt' => ['rounds' => 12],
+
+                        <span class="text-gray-500">// Validation Rules</span>
+                        'password' => 'required|min:8|regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/'
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <span class="tag tag-implementation">Implementasi</span>
+                    <div class="mt-2 space-y-2 text-sm">
+                        <div class="flex items-start gap-2">
+                            <svg class="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span class="text-text-muted"><code
+                                    class="text-green-400">app/Http/Requests/RegisterRequest.php</code> - Password
+                                validation</span>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <svg class="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span class="text-text-muted"><code
+                                    class="text-green-400">database/migrations/*_users_table.php</code> -
+                                must_change_password column</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-green-500/5 border border-green-500/20 rounded p-3">
+                    <div class="flex gap-2">
+                        <svg class="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
+                            </path>
+                        </svg>
+                        <div>
+                            <p class="text-sm font-semibold text-green-400">Proteksi Terhadap</p>
+                            <p class="text-xs text-text-muted mt-1">Brute force attacks, weak passwords, rainbow table
+                                attacks</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. Authorization & Access Control -->
+        <section class="card mb-8">
+            <div class="flex items-center gap-3 mb-6">
+                <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
+                    </path>
+                </svg>
+                <h2 class="text-2xl font-bold text-white">2. IDOR Protection (Policy-Based Authorization)</h2>
+            </div>
+
+            <div class="security-item">
+                <h3 class="text-lg font-semibold text-white mb-3">Laravel Policy Authorization</h3>
+                <p class="text-text-muted text-sm mb-4">Mencegah akses data lintas user/workshop dengan policy checks
+                </p>
+
+                <div class="mb-4">
+                    <span class="tag tag-implementation">Implementasi</span>
+                    <div class="mt-2 space-y-2 text-sm">
+                        <div class="flex items-start gap-2">
+                            <svg class="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span class="text-text-muted"><code
+                                    class="text-green-400">app/Policies/ServicePolicy.php</code> - Service access
+                                control</span>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <svg class="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span class="text-text-muted"><code
+                                    class="text-green-400">app/Policies/WorkshopPolicy.php</code> - Workshop ownership
+                                validation</span>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <svg class="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span class="text-text-muted"><code
+                                    class="text-green-400">app/Http/Controllers/Api/ServiceApiController.php</code> -
+                                $this->authorize() calls</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="code-block mb-4">
+                    <span class="text-gray-500">// Contoh implementasi di Controller</span>
+                    public function show(Service $service) {
+                    <span class="text-yellow-300">$this->authorize('view', $service);</span>
+                    return new ServiceResource($service);
+                    }
+
+                    <span class="text-gray-500">// Policy check di ServicePolicy.php</span>
+                    public function view(User $user, Service $service) {
+                    if ($user->hasRole('admin')) {
+                    return $service->workshop_uuid === $user->employment?->workshop_uuid;
+                    }
+                    return $user->workshops->contains($service->workshop_uuid);
+                    }
+                </div>
+
+                <div class="bg-green-500/5 border border-green-500/20 rounded p-3">
+                    <div class="flex gap-2">
+                        <svg class="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
+                            </path>
+                        </svg>
+                        <div>
+                            <p class="text-sm font-semibold text-green-400">Proteksi Terhadap</p>
+                            <p class="text-xs text-text-muted mt-1">IDOR (Insecure Direct Object Reference),
+                                cross-tenant data access</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. Data Protection -->
+        <section class="card mb-8">
+            <div class="flex items-center gap-3 mb-6">
+                <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
+                    </path>
+                </svg>
+                <h2 class="text-2xl font-bold text-white">3. HTTPS/TLS & MITM Protection</h2>
+            </div>
+
+            <div class="security-item">
+                <h3 class="text-lg font-semibold text-white mb-3">Forced HTTPS & Secure Headers</h3>
+                <p class="text-text-muted text-sm mb-4">Enkripsi komunikasi dan header keamanan untuk mencegah MITM
+                    attacks</p>
+
+                <div class="mb-4">
+                    <span class="tag tag-config">Konfigurasi</span>
+                    <div class="code-block mt-2">
+                        <span class="text-gray-500">// .env (Production)</span>
+                        APP_URL=https://yourdomain.com
+                        APP_ENV=production
+                        SESSION_SECURE_COOKIE=true
+                        SANCTUM_STATEFUL_DOMAINS=yourdomain.com
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <span class="tag tag-implementation">Implementasi</span>
+                    <div class="mt-2 space-y-2 text-sm">
+                        <div class="flex items-start gap-2">
+                            <svg class="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span class="text-text-muted"><code
+                                    class="text-green-400">app/Http/Middleware/ForceHttps.php</code> - Redirect HTTP to
+                                HTTPS</span>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <svg class="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span class="text-text-muted"><code
+                                    class="text-green-400">app/Http/Middleware/SecurityHeaders.php</code> - HSTS,
+                                X-Frame-Options, dll</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="code-block mb-4">
+                    <span class="text-gray-500">// Security Headers Middleware</span>
+                    'X-Frame-Options' => 'SAMEORIGIN',
+                    'X-Content-Type-Options' => 'nosniff',
+                    'Strict-Transport-Security' => 'max-age=31536000; includeSubDomains',
+                    'X-XSS-Protection' => '1; mode=block'
+                </div>
+
+                <div class="bg-green-500/5 border border-green-500/20 rounded p-3">
+                    <div class="flex gap-2">
+                        <svg class="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
+                            </path>
+                        </svg>
+                        <div>
+                            <p class="text-sm font-semibold text-green-400">Proteksi Terhadap</p>
+                            <p class="text-xs text-text-muted mt-1">MITM (Man-in-the-Middle), eavesdropping,
+                                clickjacking</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. Input Validation -->
+        <section class="card mb-8">
+            <div class="flex items-center gap-3 mb-6">
+                <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4">
+                    </path>
+                </svg>
+                <h2 class="text-2xl font-bold text-white">4. SQL Injection & XSS Protection</h2>
+            </div>
+
+            <div class="security-item">
+                <h3 class="text-lg font-semibold text-white mb-3">Eloquent ORM & Form Validation</h3>
+                <p class="text-text-muted text-sm mb-4">Prepared statements otomatis dan validasi input untuk mencegah
+                    injection attacks</p>
+
+                <div class="mb-4">
+                    <span class="tag tag-implementation">Implementasi</span>
+                    <div class="mt-2 space-y-2 text-sm">
+                        <div class="flex items-start gap-2">
+                            <svg class="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span class="text-text-muted">Seluruh query menggunakan <code
+                                    class="text-green-400">Eloquent ORM</code> (auto-parameterized)</span>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <svg class="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span class="text-text-muted"><code class="text-green-400">app/Http/Requests/*</code> - Form
+                                Request validation</span>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <svg class="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span class="text-text-muted">Blade templates auto-escape output (XSS protection)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="code-block mb-4">
+                    <span class="text-gray-500">// Contoh Form Request Validation</span>
+                    public function rules(): array {
+                    return [
+                    'email' => 'required|email|unique:users',
+                    'phone' => 'required|regex:/^[0-9]{10,15}$/',
+                    'amount' => 'required|numeric|min:0|max:999999999',
+                    ];
+                    }
+
+                    <span class="text-gray-500">// Eloquent ORM (auto-parameterized)</span>
+                    Service::where('workshop_uuid', $workshopId)->get(); // AMAN
+                    <span class="text-red-400">DB::select("SELECT * FROM services WHERE id = $id"); // BAHAYA (jangan
+                        gunakan!)</span>
+                </div>
+
+                <div class="bg-green-500/5 border border-green-500/20 rounded p-3">
+                    <div class="flex gap-2">
+                        <svg class="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
+                            </path>
+                        </svg>
+                        <div>
+                            <p class="text-sm font-semibold text-green-400">Proteksi Terhadap</p>
+                            <p class="text-xs text-text-muted mt-1">SQL Injection, XSS (Cross-Site Scripting), malformed
+                                data</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. CSRF Protection -->
+        <section class="card mb-8">
+            <div class="flex items-center gap-3 mb-6">
+                <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z">
+                    </path>
+                </svg>
+                <h2 class="text-2xl font-bold text-white">5. CSRF (Cross-Site Request Forgery) Protection</h2>
+            </div>
+
+            <div class="security-item">
+                <h3 class="text-lg font-semibold text-white mb-3">CSRF Tokens & SameSite Cookies</h3>
+                <p class="text-text-muted text-sm mb-4">Token validasi otomatis untuk semua form dan konfigurasi cookie
+                    yang aman</p>
+
+                <div class="mb-4">
+                    <span class="tag tag-config">Konfigurasi</span>
+                    <div class="code-block mt-2">
+                        <span class="text-gray-500">// config/session.php</span>
+                        'secure' => env('SESSION_SECURE_COOKIE', true),
+                        'http_only' => true,
+                        'same_site' => 'lax',
+
+                        <span class="text-gray-500">// config/sanctum.php (untuk API)</span>
+                        'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS'))
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <span class="tag tag-implementation">Implementasi</span>
+                    <div class="mt-2 space-y-2 text-sm">
+                        <div class="flex items-start gap-2">
+                            <svg class="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span class="text-text-muted"><code class="text-green-400">app/Http/Kernel.php</code> -
+                                VerifyCsrfToken middleware</span>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <svg class="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span class="text-text-muted">Blade forms: <code class="text-green-400">@csrf</code>
+                                directive auto-included</span>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <svg class="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span class="text-text-muted">API routes menggunakan Sanctum tokens (stateless,
+                                CSRF-safe)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-green-500/5 border border-green-500/20 rounded p-3">
+                    <div class="flex gap-2">
+                        <svg class="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
+                            </path>
+                        </svg>
+                        <div>
+                            <p class="text-sm font-semibold text-green-400">Proteksi Terhadap</p>
+                            <p class="text-xs text-text-muted mt-1">CSRF (Cross-Site Request Forgery), unauthorized form
+                                submissions</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 6. Rate Limiting -->
+        <section class="card mb-8">
+            <div class="flex items-center gap-3 mb-6">
+                <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <h2 class="text-2xl font-bold text-white">6. Rate Limiting & DDoS Protection</h2>
+            </div>
+
+            <div class="security-item">
+                <h3 class="text-lg font-semibold text-white mb-3">Throttle Middleware</h3>
+                <p class="text-text-muted text-sm mb-4">Pembatasan request untuk mencegah brute force dan DDoS attacks
+                </p>
+
+                <div class="mb-4">
+                    <span class="tag tag-config">Konfigurasi</span>
+                    <div class="code-block mt-2">
+                        <span class="text-gray-500">// routes/api.php</span>
+                        Route::middleware('throttle:60,1')->group(function () {
+                        // Max 60 requests per minute
+                        });
+
+                        Route::post('login', [LoginController::class, 'login'])
+                        ->middleware('throttle:5,1'); // Max 5 login attempts per minute
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <span class="tag tag-implementation">Implementasi</span>
+                    <div class="mt-2 space-y-2 text-sm">
+                        <div class="flex items-start gap-2">
+                            <svg class="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span class="text-text-muted"><code class="text-green-400">routes/api.php</code> - Throttle
+                                middleware pada routes</span>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <svg class="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span class="text-text-muted"><code class="text-green-400">app/Http/Kernel.php</code> - Rate
+                                limit configuration</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-green-500/5 border border-green-500/20 rounded p-3">
+                    <div class="flex gap-2">
+                        <svg class="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
+                            </path>
+                        </svg>
+                        <div>
+                            <p class="text-sm font-semibold text-green-400">Proteksi Terhadap</p>
+                            <p class="text-xs text-text-muted mt-1">Brute force attacks, DDoS, API abuse</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 7. Payment Security -->
+        <section class="card mb-8">
+            <div class="flex items-center gap-3 mb-6">
+                <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z">
+                    </path>
+                </svg>
+                <h2 class="text-2xl font-bold text-white">7. Payment Security (Midtrans)</h2>
+            </div>
+
+            <div class="security-item">
+                <h3 class="text-lg font-semibold text-white mb-3">Signature Verification & IP Whitelist</h3>
+                <p class="text-text-muted text-sm mb-4">Validasi webhook Midtrans dan pembatasan akses berdasarkan IP
+                </p>
+
+                <div class="mb-4">
+                    <span class="tag tag-config">Konfigurasi</span>
+                    <div class="code-block mt-2">
+                        <span class="text-gray-500">// .env</span>
+                        MIDTRANS_SERVER_KEY=your_server_key
+                        MIDTRANS_IS_PRODUCTION=false
+                        MIDTRANS_ALLOWED_IPS=34.101.66.130,34.101.92.69,34.101.68.213
+
+                        <span class="text-gray-500">// config/services.php</span>
+                        'midtrans' => [
+                        'server_key' => env('MIDTRANS_SERVER_KEY'),
+                        'is_production' => env('MIDTRANS_IS_PRODUCTION', false),
+                        ]
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <span class="tag tag-implementation">Implementasi</span>
+                    <div class="mt-2 space-y-2 text-sm">
+                        <div class="flex items-start gap-2">
+                            <svg class="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span class="text-text-muted"><code
+                                    class="text-green-400">app/Http/Controllers/Api/MidtransWebhookController.php</code>
+                                - Signature validation</span>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <svg class="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span class="text-text-muted"><code
+                                    class="text-green-400">app/Http/Middleware/MidtransIpWhitelist.php</code> - IP
+                                restriction</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="code block mb-4">
+                    <span class="text-gray-500">// Webhook Signature Verification</span>
+                    $signatureKey = hash('sha512',
+                    $orderId . $statusCode . $grossAmount . $serverKey
+                    );
+
+                    if ($signatureKey !== $request->signature_key) {
+                    abort(403, 'Invalid signature');
+                    }
+                </div>
+
+                <div class="bg-green-500/5 border border-green-500/20 rounded p-3">
+                    <div class="flex gap-2">
+                        <svg class="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
+                            </path>
+                        </svg>
+                        <div>
+                            <p class="text-sm font-semibold text-green-400">Proteksi Terhadap</p>
+                            <p class="text-xs text-text-muted mt-1">Payment fraud, webhook spoofing, unauthorized
+                                payment manipulation</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Documentation Link -->
+        <section class="card bg-primary/5 border-primary/20">
+            <div class="flex items-start gap-4">
+                <svg class="w-6 h-6 text-primary flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                    </path>
+                </svg>
+                <div>
+                    <h3 class="text-lg font-semibold text-white mb-2">Dokumentasi Lengkap</h3>
+                    <p class="text-text-muted text-sm mb-4">Untuk detail lebih lanjut tentang semua fitur keamanan,
+                        lihat dokumentasi komprehensif</p>
+                    <a href="SECURITY_FEATURES.md"
+                        class="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors text-sm font-medium">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                        </svg>
+                        Baca Dokumentasi Lengkap
+                    </a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="border-t border-white/10 mt-20 py-12 bg-[#0B0C0E]">
+        <div class="max-w-7xl mx-auto px-6 text-center text-sm text-text-muted">
+            BBI HUB Security Implementation Guide - 2025
+        </div>
+    </footer>
+</body>
+
+</html>

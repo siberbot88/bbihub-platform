@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_text_styles.dart';
-
 import 'package:provider/provider.dart';
+import 'dart:async';
 import 'package:intl/intl.dart';
-import 'package:bengkel_online_flutter/feature/admin/providers/admin_service_provider.dart';
-import 'package:bengkel_online_flutter/core/services/auth_provider.dart';
-import 'package:bengkel_online_flutter/core/models/service.dart';
-import '../widgets/service_logging/logging_summary_boxes.dart';
-import '../widgets/service_logging/logging_calendar.dart';
-import '../widgets/service_logging/logging_filter_tabs.dart';
-import '../widgets/service_logging/logging_task_card.dart';
+import '../../../../core/services/auth_provider.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/models/service.dart';
+import '../providers/admin_service_provider.dart';
+import 'service_detail_page.dart';
+import '../widgets/service_logging_v2/service_logging_search_bar.dart';
+import '../widgets/service_logging_v2/service_logging_summary_cards.dart';
+import '../widgets/service_logging_v2/service_logging_filter_chips.dart';
+import '../widgets/service_logging_v2/service_logging_card.dart';
+import '../widgets/service_logging_v2/date_range_picker_sheet.dart';
 
 class ServiceLoggingPage extends StatefulWidget {
   const ServiceLoggingPage({super.key});
@@ -19,200 +20,186 @@ class ServiceLoggingPage extends StatefulWidget {
   State<ServiceLoggingPage> createState() => _ServiceLoggingPageState();
 }
 
-class _ServiceLoggingPageState extends State<ServiceLoggingPage> {
-  int displayedMonth = DateTime.now().month;
-  int displayedYear = DateTime.now().year;
-  int selectedDay = DateTime.now().day;
-
-  String searchText = "";
-  String selectedLoggingFilter = "All";
-  String? selectedTimeSlot;
+class _ServiceLoggingPageState extends State<ServiceLoggingPage> with SingleTickerProviderStateMixin {
+  // State
+  List<ServiceModel> _services = [];
+  bool _isLoading = true;
+  
+  // Search
+  final TextEditingController _searchController = TextEditingController();
+  bool _isSearchActive = false;
+  Timer? _debounce;
+  
+  // Filters
+  String _selectedStatus = 'Semua';
+  final List<String> _statusFilters = ['Semua', 'Menunggu', 'Proses', 'Dibatalkan'];
+  
+  String? _selectedMake;
+  
+  // Date filter variables
+  DateTime? _dateFrom;
+  DateTime? _dateTo;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) => _fetchData());
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _debounce?.cancel();
+    // _tabController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetchData() async {
+    setState(() => _isLoading = true);
+    try {
+      final auth = context.read<AuthProvider>();
+      final workshopUuid = auth.user?.workshopUuid;
+      
+      String? statusParam;
+      if (_selectedStatus == 'Semua') statusParam = 'pending,in_progress,in progress,on_process,accepted,menunggu pembayaran,waiting_payment,cancelled,cancel,decline';
+      if (_selectedStatus == 'Menunggu') statusParam = 'pending';
+      if (_selectedStatus == 'Proses') statusParam = 'in_progress,in progress,on_process,accepted,menunggu pembayaran,waiting_payment'; 
+      if (_selectedStatus == 'Dibatalkan') statusParam = 'cancelled,cancel,decline';
+      
+      // Use fetchServices instead of fetchActiveServices to support all statuses
+      await context.read<AdminServiceProvider>().fetchServices(
+        workshopUuid: workshopUuid,
+        status: statusParam,
+        dateFrom: _dateFrom != null ? DateFormat('yyyy-MM-dd').format(_dateFrom!) : null,
+        dateTo: _dateTo != null ? DateFormat('yyyy-MM-dd').format(_dateTo!) : null,
+        search: _searchController.text,
+        useScheduleEndpoint: false, // Use flat list for logging
+      );
+
+      if (mounted) {
+        setState(() {
+          // Items are in provider
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _onSearchChanged(String value) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 300), () {
       _fetchData();
     });
   }
 
-  void _fetchData() {
-    final auth = context.read<AuthProvider>();
-    final workshopUuid = auth.user?.workshopUuid;
-    final dateStr = DateFormat('yyyy-MM-dd').format(selectedDate);
-
-    // Fetch ALL services for the date, then we filter client-side if needed for 'accepted' status
-    // Or if API supports filtering by acceptance_status, use that.
-    // Assuming API 'status' param maps to service status (pending, in_progress, etc), not acceptance.
-    // So we fetch by date and workshop, then filter for acceptanceStatus == 'accepted'.
-    
-    context.read<AdminServiceProvider>().fetchServices(
-      dateFrom: dateStr,
-      dateTo: dateStr,
-      workshopUuid: workshopUuid,
-      // We don't limit by status here because logging page shows Pending (Mechanic), In Progress, and Completed.
-      // But we MUST exclude those that are NOT accepted yet (handled in filtering later).
-    );
+  List<ServiceModel> get _filteredServices {
+    final provider = context.read<AdminServiceProvider>();
+    return provider.items; // Filtering is done API side or provider side
   }
 
-  DateTime get selectedDate =>
-      DateTime(displayedYear, displayedMonth, selectedDay);
-
-  bool _matchesFilterKey(ServiceModel t, String filterKey) {
-    if (filterKey == 'All') return true;
-    final status = (t.status ?? '').toLowerCase();
-    switch (filterKey) {
-      case 'Pending':
-        // Di logging page, 'Pending' berarti Accepted but waiting for Mechanic
-        return status == 'pending';
-      case 'In Progress':
-        return status == 'in_progress' || status == 'on_process';
-      case 'Completed':
-        return status == 'completed';
-      default:
-        return false;
-    }
-  }
-
-  List<ServiceModel> _getFilteredTasks(List<ServiceModel> allServices) {
-    return allServices.where((service) {
-      // 1. Must be Accepted by Admin
-      if (service.acceptanceStatus != 'accepted') return false;
-
-      // 2. Date match (API filters by date, but double check)
-       // bool dateMatch = LoggingHelpers.isSameDate(service.scheduledDate ?? DateTime.now(), selectedDate);
-       // if (!dateMatch) return false;
-
-      // 3. Status Filter (Tabs)
-      bool statusMatch = _matchesFilterKey(service, selectedLoggingFilter);
-      if (!statusMatch) return false;
-
-      // 4. Time Slot Filter
-      // Assuming time match logic based on hours
-      if (selectedTimeSlot != null) {
-        // Simple string match or parsing. Current implementation is string based.
-        // Let's rely on string match for now if service has time property, otherwise skip or implement better time logic later.
-        // For now, let's ignore time slot filter if model doesn't support it well, or try to match formatted time.
-        // if (task['time'] != selectedTimeSlot) return false;
-      }
-
-      // 5. Search Text
-      if (searchText.trim().isNotEmpty) {
-        final q = searchText.toLowerCase();
-        final title = (service.name).toLowerCase();
-        final plate = (service.displayVehiclePlate).toLowerCase();
-        final user = (service.displayCustomerName).toLowerCase();
-        
-        return title.contains(q) || plate.contains(q) || user.contains(q);
-      }
-
-      return true;
-    }).toList();
-  }
+  int get _activeCount => _filteredServices.where((s) => 
+    ['in_progress', 'in progress'].contains(s.status.toLowerCase())
+  ).length;
+  
+  int get _delayedCount => 0;
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<AdminServiceProvider>();
-    final allServices = provider.items;
-
-    // Filter for accepted services strictly
-    // API returns all services for the date. We filter client side.
-    final acceptedServicesForDate = allServices.where((s) {
-       final acc = (s.acceptanceStatus ?? '').toLowerCase();
-       return acc == 'accepted';
-    }).toList();
-
-    // Categorize based on Service Status
-    // Pending: Accepted by Admin, but "status" is still pending (Waiting for Mechanic)
-    final pending = acceptedServicesForDate
-        .where((t) => (t.status ?? '').toLowerCase() == 'pending')
-        .length;
-        
-    // In Progress: Mechanic Assigned
-    final inProgress = acceptedServicesForDate
-        .where((t) => (t.status ?? '').toLowerCase() == 'in_progress' || (t.status ?? '').toLowerCase() == 'on_process')
-        .length;
-        
-    // Completed
-    final completed = acceptedServicesForDate
-        .where((t) => (t.status ?? '').toLowerCase() == 'completed')
-        .length;
-
-    final loggingFiltered = _getFilteredTasks(allServices);
-    final title = selectedTimeSlot == null
-        ? "Semua Tugas"
-        : "Tugas untuk jam $selectedTimeSlot"; // Time slot logic is pending proper implementation
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.only(bottom: 90),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 8),
-          LoggingSummaryBoxes(
-            pending: pending,
-            inProgress: inProgress,
-            completed: completed,
-          ),
-          const SizedBox(height: 12),
-          LoggingCalendar(
-            displayedMonth: displayedMonth,
-            displayedYear: displayedYear,
-            selectedDay: selectedDay,
-            onPrevMonth: _prevMonth,
-            onNextMonth: _nextMonth,
-            onDaySelected: (day) {
-              setState(() => selectedDay = day);
-              _fetchData();
-            },
-          ),
-          const SizedBox(height: 12),
-          _buildSearchBar(),
-          const SizedBox(height: 12),
-          LoggingFilterTabs(
-            selectedFilter: selectedLoggingFilter,
-            onFilterChanged: (filter) =>
-                setState(() => selectedLoggingFilter = filter),
-          ),
-          const SizedBox(height: 12),
-          if (selectedLoggingFilter == "All") ...[
-            // Padding for timeslots if we implement logic later
-            // LoggingTimeSlots(...), 
-            // const SizedBox(height: 12),
-          ],
-          _buildLoggingContent(title, loggingFiltered),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSearchBar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Row(
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF211211) : const Color(0xFFF8F6F6),
+      body: SafeArea(
+        child: Column(
           children: [
-            const Icon(Icons.search, color: Colors.grey),
-            const SizedBox(width: 8),
-            Expanded(
-                child: TextField(
-                decoration: InputDecoration.collapsed(
-                  hintText: "Search logging...",
-                  hintStyle: AppTextStyles.caption(),
-                ),
-                style: AppTextStyles.bodyMedium(),
-                onChanged: (val) => setState(() => searchText = val),
-              ),
+            ServiceLoggingSearchBar(
+              controller: _searchController,
+              isActive: _isSearchActive,
+              onChanged: (value) {
+                setState(() => _isSearchActive = value.isNotEmpty);
+                _onSearchChanged(value);
+              },
+              onClear: () {
+                _searchController.clear();
+                setState(() => _isSearchActive = false);
+                _fetchData();
+              },
+              onCancel: () {
+                _searchController.clear();
+                setState(() => _isSearchActive = false);
+                FocusScope.of(context).unfocus();
+                _fetchData();
+              },
             ),
-            IconButton(
-              icon: const Icon(Icons.filter_list, color: Colors.grey),
-              onPressed: () {},
+            
+            _buildFilterTabs(),
+            
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _fetchData,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ServiceLoggingSummaryCards(
+                        activeCount: _activeCount,
+                        delayedCount: _delayedCount,
+                      ),
+                      
+                      const SizedBox(height: 16),
+                      
+                      ServiceLoggingFilterChips(
+                        selectedMake: _selectedMake,
+                        onDateTap: () => _showDateRangePicker(),
+                        onPriorityTap: () {},
+                        onMechanicTap: () {},
+                        onRemoveMake: () {
+                          setState(() => _selectedMake = null);
+                          _fetchData();
+                        },
+                      ),
+                      
+                      const SizedBox(height: 16),
+                      
+                      Text(
+                        'TOP MATCHES',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: isDark ? Colors.grey[600] : Colors.grey[500],
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 8),
+                      
+                      if (_isLoading)
+                        const Center(child: CircularProgressIndicator())
+                      else if (_filteredServices.isEmpty)
+                        const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(32),
+                            child: Text('No services found'),
+                          ),
+                        )
+                      else
+                        ..._filteredServices.map((service) => ServiceLoggingCard(
+                          service: service,
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => ServiceDetailPage(service: service),
+                              ),
+                            );
+                          },
+                        )),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ],
         ),
@@ -220,53 +207,69 @@ class _ServiceLoggingPageState extends State<ServiceLoggingPage> {
     );
   }
 
-  Widget _buildLoggingContent(
-      String title, List<ServiceModel> filtered) {
-    return Padding(
+  Widget _buildFilterTabs() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: AppTextStyles.heading4(),
-          ),
-          const SizedBox(height: 12),
-          if (filtered.isEmpty)
-            Center(
-              child: Padding(
-                padding: EdgeInsets.all(24.0),
+      child: Row(
+        children: _statusFilters.map((filter) {
+          final isSelected = _selectedStatus == filter;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: GestureDetector(
+              onTap: () {
+                if (_selectedStatus != filter) {
+                  setState(() => _selectedStatus = filter);
+                  _fetchData();
+                }
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isSelected ? AppColors.primaryRed : Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isSelected ? AppColors.primaryRed : Colors.grey.shade300,
+                  ),
+                   boxShadow: isSelected 
+                      ? [BoxShadow(color: AppColors.primaryRed.withOpacity(0.3), blurRadius: 4, offset: const Offset(0,2))]
+                      : null,
+                ),
                 child: Text(
-                  "Tidak ada tugas yang sesuai dengan filter.",
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.bodyMedium(color: AppColors.textSecondary),
+                  filter,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                    color: isSelected ? Colors.white : Colors.grey[700],
+                  ),
                 ),
               ),
-            )
-          else
-            ...filtered.map((t) => LoggingTaskCard(service: t)),
-        ],
+            ),
+          );
+        }).toList(),
       ),
     );
   }
 
-  void _prevMonth() => setState(() {
-        displayedMonth -= 1;
-        if (displayedMonth < 1) {
-          displayedMonth = 12;
-          displayedYear -= 1;
-        }
-        selectedDay = 1;
-        _fetchData();
-      });
+  void _showDateRangePicker() async {
+    final result = await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => DateRangePickerSheet(
+        initialStartDate: _dateFrom,
+        initialEndDate: _dateTo,
+      ),
+    );
 
-  void _nextMonth() => setState(() {
-        displayedMonth += 1;
-        if (displayedMonth > 12) {
-          displayedMonth = 1;
-          displayedYear += 1;
-        }
-        selectedDay = 1;
-        _fetchData();
+    if (result != null && mounted) {
+      setState(() {
+        _dateFrom = result['start'];
+        _dateTo = result['end'];
       });
+      _fetchData(); // Refresh with new date filter
+    }
+  }
 }

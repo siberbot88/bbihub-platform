@@ -16,6 +16,12 @@ class ExecutiveDashboard extends Component
     public array $marketGap = [];
     public array $customerSegmentation = [];
     public array $platformOutlook = [];
+    public array $topWorkshops = [];
+
+    // Drill Down State
+    public bool $showWorkshopModal = false;
+    public array $workshopDetail = [];
+    public string $selectedWorkshopId = '';
 
     // Filter State
     public int $selectedMonth;
@@ -39,11 +45,68 @@ class ExecutiveDashboard extends Component
         $this->customerSegmentation = $eisService->getCustomerSegmentation();
 
         // Platform Intelligence (SaaS)
-        $this->platformOutlook = [
-            'churn_candidates' => $platformService->getChurnRiskCandidates(),
-            'upsell_candidates' => $platformService->getUpsellCandidates(),
-            'mrr_forecast' => $platformService->forecastMRR()
-        ];
+        // Platform Business Outlook - Call ML API
+        $this->platformOutlook = $this->getPlatformOutlookFromML();
+
+        $this->topWorkshops = $eisService->getTopWorkshops();
+
+        // Set filters
+        $this->selectedYear = now()->year;
+        $this->selectedMonth = now()->month;
+    }
+
+    /**
+     * Get Platform Outlook from ML Service
+     * Falls back to basic calculation if ML service unavailable
+     */
+    private function getPlatformOutlookFromML(): array
+    {
+        try {
+            $response = \Illuminate\Support\Facades\Http::timeout(5)->get(
+                env('ML_API_URL', 'http://localhost:5000') . '/predict/platform-outlook'
+            );
+
+            if ($response->successful()) {
+                \Illuminate\Support\Facades\Log::info('ML API call successful');
+                return $response->json();
+            }
+
+            // Fallback if API call failed
+            \Illuminate\Support\Facades\Log::warning('ML API failed, using fallback');
+            return $this->getPlatformOutlookFallback();
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('ML API Error: ' . $e->getMessage());
+            return $this->getPlatformOutlookFallback();
+        }
+    }
+
+    /**
+     * Fallback Platform Outlook (basic calculation)
+     */
+    private function getPlatformOutlookFallback(): array
+    {
+        try {
+            // Use Laravel service container to get PlatformIntelligenceService
+            $platformService = app(\App\Services\PlatformIntelligenceService::class);
+
+            return [
+                'churn_candidates' => $platformService->getChurnRiskCandidates(),
+                'upsell_candidates' => $platformService->getUpsellCandidates(),
+                'mrr_forecast' => $platformService->forecastMRR()
+            ];
+        } catch (\Exception $e) {
+            // Return empty structure if fallback also fails
+            return [
+                'churn_candidates' => [],
+                'upsell_candidates' => [],
+                'mrr_forecast' => [
+                    'prediction' => 0,
+                    'growth_rate' => 0,
+                    'history' => []
+                ]
+            ];
+        }
     }
 
     public function refresh(EisService $eisService, \App\Services\PlatformIntelligenceService $platformService)
@@ -72,6 +135,23 @@ class ExecutiveDashboard extends Component
             'month' => $this->selectedMonth,
             'year' => $this->selectedYear
         ]);
+    }
+
+    public function openWorkshopDetail(EisService $eisService, string $id)
+    {
+        $this->selectedWorkshopId = $id;
+        $this->workshopDetail = $eisService->getWorkshopDetail($id);
+        $this->showWorkshopModal = true;
+
+        // Dispatch event safely for chart initialization in modal
+        $this->dispatch('init-workshop-chart');
+    }
+
+    public function closeWorkshopModal()
+    {
+        $this->showWorkshopModal = false;
+        $this->workshopDetail = [];
+        $this->selectedWorkshopId = '';
     }
 
     public function render()

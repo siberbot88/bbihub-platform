@@ -315,7 +315,7 @@ class EisService
      */
     public function getMarketGapAnalysis(): array
     {
-        return \Illuminate\Support\Facades\Cache::remember('eis_market_gap', 3600, function () { // 60 mins
+        return \Illuminate\Support\Facades\Cache::remember('eis_market_gap_v2', 3600, function () { // 60 mins
             // Get Cities with Workshop Count
             $workshopCounts = \App\Models\Workshop::select('city', DB::raw('count(*) as total_workshops'))
                 ->groupBy('city')
@@ -328,26 +328,121 @@ class EisService
                 ->groupBy('workshops.city')
                 ->pluck('total_requests', 'city');
 
-            $marketGaps = [];
-            foreach ($serviceDemand as $city => $demand) {
-                $supply = $workshopCounts[$city] ?? 0;
-                // Market Gap Formula: (Demand / Supply) * 100
-                // If supply is 0 but demand exists, gap is huge (max it out or handle div by zero)
-                $gapScore = $supply > 0 ? ($demand / $supply) * 100 : $demand * 100;
+            // Merge unique cities from both Supply and Demand
+            $allCities = $workshopCounts->keys()->merge($serviceDemand->keys())->unique();
 
-                $marketGaps[] = [
-                    'city' => $city,
-                    'demand' => $demand,
-                    'supply' => $supply,
-                    'gap_score' => $gapScore
-                ];
+            $marketGaps = [];
+            foreach ($allCities as $city) {
+                $demand = $serviceDemand[$city] ?? 0;
+                $supply = $workshopCounts[$city] ?? 0;
+
+                // Market Gap Formula: (Demand / Supply) * 100
+                if ($supply > 0) {
+                    $gapScore = ($demand / $supply) * 100;
+                } else {
+                    // High demand, zero supply => Infinite gap (cap at high value for viz)
+                    $gapScore = $demand > 0 ? 1000 : 0;
+                }
+
+                // Only include if there is ANY activity (Supply or Demand)
+                if ($demand > 0 || $supply > 0) {
+                    $marketGaps[] = [
+                        'city' => $city,
+                        'demand' => $demand,
+                        'supply' => $supply,
+                        'gap_score' => $gapScore
+                    ];
+                }
             }
 
             // Sort by Gap Score Descending (Highest Demand vs Low Supply) -> O(n log n)
             usort($marketGaps, fn($a, $b) => $b['gap_score'] <=> $a['gap_score']);
 
-            return array_slice($marketGaps, 0, 5); // Return Top 5 opportunities
+            return array_slice($marketGaps, 0, 10); // Return Top 10 opportunities
         });
+    }
+
+    /**
+     * Get Top Performing Workshops by Revenue
+     */
+    public function getTopWorkshops(int $limit = 10): array
+    {
+        return \Illuminate\Support\Facades\Cache::remember('eis_top_workshops', 1800, function () use ($limit) {
+            return Transaction::join('workshops', 'transactions.workshop_uuid', '=', 'workshops.id')
+                ->where('transactions.status', 'success')
+                ->select(
+                    'workshops.id',
+                    'workshops.name',
+                    DB::raw('SUM(transactions.amount) as total_revenue'),
+                    DB::raw('COUNT(transactions.id) as total_trx')
+                )
+                ->groupBy('workshops.id', 'workshops.name')
+                ->orderByDesc('total_revenue')
+                ->limit($limit)
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'id' => $item->id,
+                        'name' => $item->name,
+                        'revenue' => (float) $item->total_revenue,
+                        'trx_count' => (int) $item->total_trx
+                    ];
+                })
+                ->values()
+                ->toArray();
+        });
+    }
+
+    /**
+     * Get Detailed Stats for a Specific Workshop (Drill-down)
+     */
+    public function getWorkshopDetail(string $workshopId): array
+    {
+        // 1. Basic Info
+        $workshop = \App\Models\Workshop::find($workshopId);
+        if (!$workshop)
+            return [];
+
+        // 2. Revenue Trend (Last 6 Months)
+        $revenueTrend = Transaction::where('workshop_uuid', $workshopId)
+            ->where('status', 'success')
+            ->where('created_at', '>=', now()->subMonths(6))
+            ->select(
+                DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month'),
+                DB::raw('SUM(amount) as revenue')
+            )
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get()
+            ->pluck('revenue', 'month')
+            ->toArray();
+
+        // 3. Top Services
+        $topServices = \App\Models\Service::where('workshop_uuid', $workshopId)
+            ->join('transactions', 'services.id', '=', 'transactions.service_uuid')
+            ->where('transactions.status', 'success')
+            ->select('services.name', DB::raw('COUNT(transactions.id) as count'))
+            ->groupBy('services.name')
+            ->orderByDesc('count')
+            ->limit(5)
+            ->get()
+            ->toArray();
+
+        // 4. Rating
+        $rating = \App\Models\Feedback::join('transactions', 'feedbacks.transaction_uuid', '=', 'transactions.id')
+            ->where('transactions.workshop_uuid', $workshopId)
+            ->avg('rating') ?? 0;
+
+        return [
+            'name' => $workshop->name,
+            'address' => $workshop->address ?? 'Alamat tidak tersedia',
+            'owner_name' => $workshop->owner->name ?? 'N/A',
+            'total_revenue' => Transaction::where('workshop_uuid', $workshopId)->where('status', 'success')->sum('amount'),
+            'total_trx' => Transaction::where('workshop_uuid', $workshopId)->where('status', 'success')->count(),
+            'rating' => round($rating, 1),
+            'revenue_trend' => $revenueTrend,
+            'top_services' => $topServices
+        ];
     }
 
     private function calculateMRR(): float

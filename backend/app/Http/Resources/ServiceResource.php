@@ -37,6 +37,9 @@ class ServiceResource extends JsonResource
                 return [
                     'id' => $this->workshop->id,
                     'name' => $this->workshop->name,
+                    'address' => $this->workshop->address,
+                    'phone' => $this->workshop->phone,
+                    'logo_url' => $this->workshop->logo_url, // Added logo if available
                 ];
             }),
 
@@ -90,6 +93,20 @@ class ServiceResource extends JsonResource
                     });
                 }
             ),
+
+            // Invoice data for payment status checking
+            'invoice' => $this->whenLoaded('invoice', function () {
+                return [
+                    'id' => $this->invoice->id,
+                    'code' => $this->invoice->code,
+                    'invoice_code' => $this->invoice->code, // Alias for mobile compatibility
+                    'total' => $this->invoice->total,
+                    'amount' => $this->invoice->amount,
+                    'status' => $this->invoice->status,
+                    'paid_at' => optional($this->invoice->paid_at)->toIso8601String(),
+                    'due_date' => optional($this->invoice->due_date)->toIso8601String(),
+                ];
+            }),
 
             'created_at' => optional($this->created_at)->toIso8601String(),
             'updated_at' => optional($this->updated_at)->toIso8601String(),

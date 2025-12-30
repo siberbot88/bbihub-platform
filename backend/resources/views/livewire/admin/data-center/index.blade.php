@@ -21,22 +21,22 @@
   </select>
 
   @if($category === 'users')
-    <a href="{{ route('admin.data-center.create', ['category' => 'users']) }}"
+    <a href="{{ route('admin.data-center.create', ['category' => 'users']) }}" wire:navigate
        class="rounded-xl bg-red-600 px-4 py-2.5 text-white hover:bg-red-700">
       + Tambah Pengguna
     </a>
   @elseif($category === 'workshops')
-    <a href="{{ route('admin.data-center.create', ['category' => 'workshops']) }}"
+    <a href="{{ route('admin.data-center.create', ['category' => 'workshops']) }}" wire:navigate
        class="rounded-xl bg-red-600 px-4 py-2.5 text-white hover:bg-red-700">
       + Tambah Bengkel
     </a>
   @elseif($category === 'promotions')
-    <a href="{{ route('admin.data-center.create', ['category' => 'promotions']) }}"
+    <a href="{{ route('admin.data-center.create', ['category' => 'promotions']) }}" wire:navigate
        class="rounded-xl bg-red-600 px-4 py-2.5 text-white hover:bg-red-700">
       + Tambah Promosi
     </a>
   @else
-    <a href="{{ route('admin.data-center.create') }}"
+    <a href="{{ route('admin.data-center.create') }}" wire:navigate
        class="rounded-xl bg-red-600 px-4 py-2.5 text-white hover:bg-red-700">
       + Tambah Data
     </a>

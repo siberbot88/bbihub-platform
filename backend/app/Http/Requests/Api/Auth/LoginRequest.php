@@ -13,8 +13,8 @@ use Illuminate\Validation\ValidationException;
 class LoginRequest extends FormRequest
 {
     private const ALLOWED_LOGIN_ROLES = ['owner', 'admin'];
-    private const MAX_LOGIN_ATTEMPTS  = 5;
-    private const DECAY_SECONDS       = 60;
+    private const MAX_LOGIN_ATTEMPTS = 5;
+    private const DECAY_SECONDS = 60;
 
     /**
      * Determine if the user is authorized to make this request.
@@ -32,7 +32,7 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email'    => ['required', 'email'],
+            'login' => ['required', 'string'], // Can be either email or username
             'password' => ['required', 'string'],
             'remember' => ['sometimes', 'boolean'], // Optional remember me parameter
         ];
@@ -47,20 +47,25 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        /** @var User|null $user */
-        $user = User::where('email', $this->input('email'))->first();
+        $login = $this->input('login');
 
-        if (! $user || ! Hash::check($this->input('password'), $user->password)) {
+        // Determine if login input is email or username
+        $fieldType = filter_var($login, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
+
+        /** @var User|null $user */
+        $user = User::where($fieldType, $login)->first();
+
+        if (!$user || !Hash::check($this->input('password'), $user->password)) {
             RateLimiter::hit($this->throttleKey(), self::DECAY_SECONDS);
 
             throw ValidationException::withMessages([
-                'email' => 'Email atau password salah.',
+                'login' => 'Username/Email atau password salah.',
             ]);
         }
 
-        if (! $user->hasAnyRole(self::ALLOWED_LOGIN_ROLES, 'sanctum')) {
+        if (!$user->hasAnyRole(self::ALLOWED_LOGIN_ROLES, 'sanctum')) {
             throw ValidationException::withMessages([
-                'email' => 'Akun Anda tidak memiliki izin untuk mengakses aplikasi ini.',
+                'login' => 'Akun Anda tidak memiliki izin untuk mengakses aplikasi ini.',
             ]);
         }
 
@@ -78,7 +83,7 @@ class LoginRequest extends FormRequest
      */
     public function ensureIsNotRateLimited(): void
     {
-        if (! RateLimiter::tooManyAttempts($this->throttleKey(), self::MAX_LOGIN_ATTEMPTS)) {
+        if (!RateLimiter::tooManyAttempts($this->throttleKey(), self::MAX_LOGIN_ATTEMPTS)) {
             return;
         }
 
@@ -87,7 +92,7 @@ class LoginRequest extends FormRequest
         $seconds = RateLimiter::availableIn($this->throttleKey());
 
         throw ValidationException::withMessages([
-            'email' => 'Terlalu banyak percobaan login. Coba lagi dalam ' . $seconds . ' detik.',
+            'login' => 'Terlalu banyak percobaan login. Coba lagi dalam ' . $seconds . ' detik.',
         ]);
     }
 
@@ -96,7 +101,7 @@ class LoginRequest extends FormRequest
      */
     public function throttleKey(): string
     {
-        $email = Str::lower((string) $this->input('email'));
-        return 'login:' . sha1($email . '|' . $this->ip());
+        $login = Str::lower((string) $this->input('login'));
+        return 'login:' . sha1($login . '|' . $this->ip());
     }
 }

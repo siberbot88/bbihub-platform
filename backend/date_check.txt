@@ -1,0 +1,11 @@
+This Week Calculation:
+- Today: Sunday, 2025-12-29
+- Monday this week: 2025-12-23
+- Sunday this week: 2025-12-29
+
+Service completed: 2025-12-28 12:17:51 (Saturday)
+
+Is it in range [2025-12-23 to 2025-12-29]?
+✅ YES - 2025-12-28 falls between Monday-Sunday this week
+
+So the query SHOULD return data!
