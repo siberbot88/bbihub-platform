@@ -217,13 +217,20 @@ class OwnerAnalyticsSeeder extends Seeder
                 'created_at' => $createdAt
             ]);
 
-            // Invoice references transaction
+            // Invoice with updated schema
             $invoice = \App\Models\Invoice::factory()->create([
-                'transaction_uuid' => $transaction->id,
-                'code' => 'INV-' . Str::random(5),
-                'amount' => 150000,
-                'due_date' => $createdAt->copy()->addDays(1),
-                'paid_at' => $createdAt->copy()->addHours(3),
+                'invoice_code' => 'INV-' . Str::random(5),
+                'service_uuid' => $service->id,
+                'workshop_uuid' => $workshop->id,
+                'customer_uuid' => $customer->id,
+                'created_by' => $upsellUser->id,
+                'subtotal' => 150000,
+                'tax' => 0,
+                'discount' => 0,
+                'total' => 150000,
+                'status' => 'paid',
+                'created_at' => $createdAt,
+                'updated_at' => $createdAt,
             ]);
         }
     }

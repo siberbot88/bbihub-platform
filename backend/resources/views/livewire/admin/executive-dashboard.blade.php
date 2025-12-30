@@ -725,7 +725,14 @@
                 return;
             }
 
-            if (window.topWorkshopsChart) window.topWorkshopsChart.destroy();
+
+            // Safe destroy
+            if (window.topWorkshopsChart && typeof window.topWorkshopsChart.destroy === 'function') {
+                window.topWorkshopsChart.destroy();
+            } else if (window.topWorkshopsChart) {
+                window.topWorkshopsChart = null;
+            }
+
 
             const labels = rawData.map(d => d.name);
             const data = rawData.map(d => d.revenue);
