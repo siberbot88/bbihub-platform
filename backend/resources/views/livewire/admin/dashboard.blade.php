@@ -385,6 +385,89 @@
           }
         });
       }
+
+      // ---- Line Chart: Total Pendapatan Aplikasi ----
+      const appRevWrap = document.getElementById('appRevChart');
+      if (appRevWrap) {
+        const canvas3 = document.createElement('canvas');
+        appRevWrap.innerHTML = '';
+        appRevWrap.appendChild(canvas3);
+
+        const appRevenueData = @json($appRevenue);
+
+        window.appRevInstance = new Chart(canvas3, {
+          type: 'line',
+          data: {
+            labels: appRevenueData.labels,
+            datasets: [
+              {
+                label: 'Membership',
+                data: appRevenueData.breakdown.memberships,
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                borderWidth: 2,
+                tension: 0.4,
+                fill: true,
+              },
+              {
+                label: 'Langganan Bengkel',
+                data: appRevenueData.breakdown.subscriptions,
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                borderWidth: 2,
+                tension: 0.4,
+                fill: true,
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: true,
+                position: 'top',
+                labels: {
+                  usePointStyle: true,
+                  padding: 15
+                }
+              },
+              tooltip: {
+                mode: 'index',
+                intersect: false,
+                backgroundColor: 'rgba(17, 24, 39, 0.9)',
+                padding: 12,
+                cornerRadius: 8,
+                callbacks: {
+                  label: function (context) {
+                    let label = context.dataset.label || '';
+                    if (label) {
+                      label += ': ';
+                    }
+                    if (context.parsed.y !== null) {
+                      label += new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(context.parsed.y);
+                    }
+                    return label;
+                  }
+                }
+              }
+            },
+            scales: {
+              x: {
+                grid: { display: false }
+              },
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  callback: function (value) {
+                    return 'Rp ' + (value / 1000000).toFixed(1) + 'M';
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
     }
   </script>
 @endpush

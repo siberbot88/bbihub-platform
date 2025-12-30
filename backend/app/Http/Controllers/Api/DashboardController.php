@@ -110,11 +110,11 @@ class DashboardController extends Controller
             ->select([
                 'e.id',
                 'u.name',
-                DB::raw('COALESCE(e.role, "mechanic") as role'),
+                DB::raw('COALESCE(e.specialist, "mechanic") as role'),
                 DB::raw('COUNT(CASE WHEN s.status IN ("completed", "lunas") THEN 1 END) as completed_jobs'),
                 DB::raw('COUNT(CASE WHEN s.status = "in progress" THEN 1 END) as active_jobs'),
             ])
-            ->groupBy('e.id', 'u.name', 'e.role')
+            ->groupBy('e.id', 'u.name', 'e.specialist')
             ->orderByDesc('completed_jobs')
             ->limit(5)
             ->get()
@@ -249,6 +249,12 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
 
+        // Needs Assignment (same logic as quick stats)
+        $needsAssignment = (clone $servicesQuery)
+            ->where('acceptance_status', 'accepted')
+            ->where('status', 'pending')
+            ->whereNull('mechanic_uuid')
+            ->count();
 
         // 3. MECHANIC PERFORMANCE
         // ✅ OPTIMIZED: Single aggregated query to avoid N+1 problem
@@ -293,6 +299,7 @@ class DashboardController extends Controller
             ],
             'services' => [
                 'total' => $totalServices,
+                'needs_assignment' => $needsAssignment,
                 'status_breakdown' => $servicesByStatus,
                 'acceptance_breakdown' => $acceptanceStats,
                 'type_breakdown' => $typeBreakdown, // New for Type Pie Chart

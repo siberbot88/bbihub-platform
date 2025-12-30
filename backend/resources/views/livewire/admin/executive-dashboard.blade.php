@@ -550,13 +550,9 @@
 
                     <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
                         <button type="button" wire:click="closeWorkshopModal"
-                            class="w-full inline-flex justify-center rounded-lg border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                            class="w-full inline-flex justify-center rounded-lg border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:w-auto sm:text-sm">
                             Tutup
                         </button>
-                        <a href="{{ route('admin.workshops.show', $selectedWorkshopId) }}" wire:navigate
-                            class="w-full inline-flex justify-center rounded-lg shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
-                            Lihat Profil Lengkap
-                        </a>
                     </div>
                 @else
                     <div class="p-10 text-center">
@@ -1057,6 +1053,7 @@
         }
     </script>
 
+
     <script>
         function initMap() {
             const mapContainer = document.getElementById('marketMap');
@@ -1077,7 +1074,11 @@
                 'Makassar': [-5.1477, 119.4328],
                 'Denpasar': [-8.6705, 115.2126],
                 'Yogyakarta': [-7.7956, 110.3695],
-                'Malang': [-7.9666, 112.6326]
+                'Malang': [-7.9666, 112.6326],
+                'Palembang': [-2.9904, 104.7563],
+                'Bogor': [-6.5971, 106.8060],
+                'Batam': [1.1085, 104.0450],
+                'Balikpapan': [-1.2379, 116.8529]
             };
 
             // Initialize Map centered on Indonesia
@@ -1091,42 +1092,72 @@
                 maxZoom: 19
             }).addTo(map);
 
-            // Market Gap Data
-            const marketData = @json($marketGap);
+            // All Workshops Data
+            const allWorkshops = @json($allWorkshops);
 
-            marketData.forEach(city => {
-                const coords = cityCoords[city.city];
+            // Group workshops by city and sum revenue
+            const cityData = {};
+            allWorkshops.forEach(workshop => {
+                const city = workshop.city;
+                if (!cityData[city]) {
+                    cityData[city] = {
+                        city: city,
+                        totalRevenue: 0,
+                        workshopCount: 0,
+                        workshops: []
+                    };
+                }
+                cityData[city].totalRevenue += workshop.revenue;
+                cityData[city].workshopCount++;
+                cityData[city].workshops.push(workshop);
+            });
+
+            // Convert to array and sort by revenue
+            const citiesArray = Object.values(cityData).sort((a, b) => b.totalRevenue - a.totalRevenue);
+
+            // Identify top 5 cities
+            const top5Cities = citiesArray.slice(0, 5).map(c => c.city);
+
+            citiesArray.forEach(cityInfo => {
+                const coords = cityCoords[cityInfo.city];
                 if (coords) {
-                    // Circle size based on Gap Score (capped)
-                    const radius = Math.min(Math.max(city.gap_score * 10, 10000), 50000);
+                    const isTop5 = top5Cities.includes(cityInfo.city);
 
-                    // Color logic: Red for High Gap (>500%), Orange (>200%), Green (Low)
-                    let color = '#10b981'; // green
-                    if (city.gap_score > 500) color = '#ef4444'; // red
-                    else if (city.gap_score > 200) color = '#f59e0b'; // orange
+                    // Marker size based on whether it's top 5
+                    const radius = isTop5 ? 25000 : 10000;
+
+                    // Color based on ranking
+                    let color = '#94a3b8'; // gray for regular
+                    if (isTop5) {
+                        const index = top5Cities.indexOf(cityInfo.city);
+                        const colors = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6'];
+                        color = colors[index];
+                    }
 
                     const circle = L.circle(coords, {
                         color: color,
                         fillColor: color,
-                        fillOpacity: 0.5,
-                        radius: radius
+                        fillOpacity: isTop5 ? 0.6 : 0.4,
+                        radius: radius,
+                        weight: isTop5 ? 3 : 1
                     }).addTo(map);
 
                     // Tooltip Content
                     const tooltipContent = `
-                                                                <div class="p-1">
-                                                                    <h4 class="font-bold text-sm">${city.city}</h4>
-                                                                    <div class="text-xs text-gray-600">Gap Score: <span class="font-bold text-indigo-600">${parseInt(city.gap_score)}%</span></div>
-                                                                    <div class="text-[10px] text-gray-500 mt-1">
-                                                                        Demand: ${city.demand}<br>
-                                                                        Supply: ${city.supply}
-                                                                    </div>
-                                                                </div>
-                                                            `;
+                            <div class="p-2">
+                                <h4 class="font-bold text-sm">${cityInfo.city} ${isTop5 ? '⭐' : ''}</h4>
+                                <div class="text-xs text-gray-600 mt-1">
+                                    Total Revenue: <span class="font-bold text-indigo-600">Rp ${(cityInfo.totalRevenue / 1000000).toFixed(1)}M</span>
+                                </div>
+                                <div class="text-[10px] text-gray-500 mt-1">
+                                    ${cityInfo.workshopCount} bengkel
+                                </div>
+                            </div>
+                        `;
                     circle.bindPopup(tooltipContent);
 
-                    // If it's the top gap, open popup automatically
-                    if (city === marketData[0]) {
+                    // Auto-open popup for #1 city
+                    if (cityInfo === citiesArray[0]) {
                         circle.openPopup();
                     }
                 }

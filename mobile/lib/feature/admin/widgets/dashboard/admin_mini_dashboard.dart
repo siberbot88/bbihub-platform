@@ -1,20 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../providers/admin_analytics_provider.dart';
 
 /// Admin Mini Dashboard - Exactly matches OwnerMiniDashboard design
 /// No icons in summary cards, straight row layout, red gradient background.
 class AdminMiniDashboard extends StatefulWidget {
-  final String servisHariIni;
-  final String perluAssign;
-  final String feedback;
-  final String selesai;
-
-  const AdminMiniDashboard({
-    super.key,
-    required this.servisHariIni,
-    required this.perluAssign,
-    required this.feedback,
-    required this.selesai,
-  });
+  const AdminMiniDashboard({super.key});
 
   @override
   State<AdminMiniDashboard> createState() => _AdminMiniDashboardState();
@@ -22,6 +13,39 @@ class AdminMiniDashboard extends StatefulWidget {
 
 class _AdminMiniDashboardState extends State<AdminMiniDashboard> {
   int _selectedRange = 0; // 0=Hari ini, 1=Minggu ini, 2=Bulan ini
+
+  @override
+  void initState() {
+    super.initState();
+    // Initial fetch will be done by parent (HomePage)
+  }
+
+  void _onRangeChanged(int newRange) {
+    setState(() => _selectedRange = newRange);
+    
+    // Fetch data for the selected range
+    final provider = context.read<AdminAnalyticsProvider>();
+    
+    if (newRange == 0) {
+      // Today - use quick stats (already fetched)
+      provider.fetchQuickStats();
+    } else {
+      // Weekly or Monthly - fetch detailed stats
+      final now = DateTime.now();
+      String? dateFrom;
+      String? dateTo = now.toIso8601String().split('T')[0];
+      
+      if (newRange == 1) {
+        // Minggu ini (last 7 days)
+        dateFrom = now.subtract(const Duration(days: 7)).toIso8601String().split('T')[0];
+      } else if (newRange == 2) {
+        // Bulan ini (last 30 days)
+        dateFrom = now.subtract(const Duration(days: 30)).toIso8601String().split('T')[0];
+      }
+      
+      provider.fetchDetailedStats(dateFrom: dateFrom, dateTo: dateTo);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,57 +65,84 @@ class _AdminMiniDashboardState extends State<AdminMiniDashboard> {
         borderRadius: BorderRadius.circular(20),
       ),
       padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          Row(
+      child: Consumer<AdminAnalyticsProvider>(
+        builder: (context, provider, child) {
+          // Determine which data to show based on selected range
+          String servicesValue, assignValue, completedValue;
+          
+          if (_selectedRange == 0) {
+            // Today - use quickStats
+            servicesValue = '${provider.serviceToday}';
+            assignValue = '${provider.needsAssign}';
+            completedValue = '${provider.completedToday}';
+          } else {
+            // Weekly or Monthly - use detailedStats
+            final stats = provider.detailedStats;
+            if (stats != null && stats['services'] != null) {
+              final services = stats['services'];
+              final statusBreakdown = services['status_breakdown'] ?? {};
+              
+              servicesValue = '${services['total'] ?? 0}';
+              // Use the correct needs_assignment field from backend
+              assignValue = '${services['needs_assignment'] ?? 0}';
+              // completed = completed + lunas
+              final completed = (statusBreakdown['completed'] ?? 0) as int;
+              final lunas = (statusBreakdown['lunas'] ?? 0) as int;
+              completedValue = '${completed + lunas}';
+            } else {
+              servicesValue = '-';
+              assignValue = '-';
+              completedValue = '-';
+            }
+          }
+          
+          return Column(
             children: [
-              _RangeTab(
-                label: 'Hari ini',
-                selected: _selectedRange == 0,
-                onTap: () => setState(() => _selectedRange = 0),
+              Row(
+                children: [
+                  _RangeTab(
+                    label: 'Hari ini',
+                    selected: _selectedRange == 0,
+                    onTap: () => _onRangeChanged(0),
+                  ),
+                  _RangeTab(
+                    label: 'Minggu ini',
+                    selected: _selectedRange == 1,
+                    onTap: () => _onRangeChanged(1),
+                  ),
+                  _RangeTab(
+                    label: 'Bulan ini',
+                    selected: _selectedRange == 2,
+                    onTap: () => _onRangeChanged(2),
+                  ),
+                ],
               ),
-              _RangeTab(
-                label: 'Minggu ini',
-                selected: _selectedRange == 1,
-                onTap: () => setState(() => _selectedRange = 1),
-              ),
-              _RangeTab(
-                label: 'Bulan ini',
-                selected: _selectedRange == 2,
-                onTap: () => setState(() => _selectedRange = 2),
+              const SizedBox(height: 16),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _SummaryCard(
+                    value: provider.isLoading ? '...' : servicesValue,
+                    label: 'Servis',
+                    growth: '-',
+                  ),
+                  const SizedBox(width: 8),
+                  _SummaryCard(
+                    value: provider.isLoading ? '...' : assignValue,
+                    label: 'Perlu Assign',
+                    growth: '-',
+                  ),
+                  const SizedBox(width: 8),
+                  _SummaryCard(
+                    value: provider.isLoading ? '...' : completedValue,
+                    label: 'Total Selesai',
+                    growth: '-',
+                  ),
+                ],
               ),
             ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _SummaryCard(
-                value: widget.servisHariIni,
-                label: 'Servis Hari Ini',
-                growth: '-',
-              ),
-              const SizedBox(width: 8),
-              _SummaryCard(
-                value: widget.perluAssign,
-                label: 'Perlu Assign',
-                growth: '-', // Owner dashboard usually has '-' or growth here.
-              ),
-              const SizedBox(width: 8),
-              _SummaryCard(
-                value: widget.selesai,
-                label: 'Total Selesai',
-                growth: '-',
-              ),
-             // Note: Owner dashboard has 3 cards. Admin has 4 metrics (feedback was the 4th).
-             // But to match "Same Design", I should probably stick to 3 cards or fit 4?
-             // User Image 1 had 3 cards (Servis, Perlu Assign, Selesai). Feedback was separate row.
-             // User Image 2 (Owner) had 3 cards.
-             // I will stick to 3 cards in the row to match Owner design exactly.
-             // Feedback is omitted from the mini dashboard to maintain visual parity, or I can add it if needed, but "Same Design" implies 3 col.
-            ],
-          ),
-        ],
+          );
+        },
       ),
     );
   }
