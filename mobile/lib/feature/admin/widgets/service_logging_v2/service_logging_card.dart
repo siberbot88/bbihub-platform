@@ -20,15 +20,24 @@ class ServiceLoggingCard extends StatelessWidget {
     Color statusColor;
     String statusLabel;
     
-    if (status.contains('progress')) {
+    if (status.contains('progress') || status.contains('process')) {
       statusColor = Colors.orange;
-      statusLabel = 'In Progress';
-    } else if (status == 'completed') {
-      statusColor = Colors.grey;
-      statusLabel = 'Completed';
+      statusLabel = 'Proses';
+    } else if (status == 'menunggu pembayaran' || status == 'waiting_payment') {
+      statusColor = Colors.orange;
+      statusLabel = 'Menunggu Bayar';
+    } else if (status == 'completed' || status == 'selesai') {
+      statusColor = Colors.green; // Changed from grey to green for better visibility
+      statusLabel = 'Selesai';
+    } else if (status == 'lunas' || status == 'paid') {
+      statusColor = Colors.green[700]!;
+      statusLabel = 'Lunas';
     } else if (status == 'ready') {
       statusColor = Colors.green;
       statusLabel = 'Ready';
+    } else if (status == 'cancelled' || status == 'dibatalkan' || status == 'decline') {
+      statusColor = Colors.red;
+      statusLabel = 'Dibatalkan';
     } else {
       statusColor = Colors.blue;
       statusLabel = 'Pending';

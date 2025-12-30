@@ -145,6 +145,7 @@ class Index extends Component
         // Build select columns dynamically - only add columns that exist
         $columns = [
             'id',
+            'user_uuid', // Required for owner relationship
             'name',
             'code',
             'city',
@@ -159,7 +160,9 @@ class Index extends Component
             $columns[] = 'rating';
         }
 
-        $query = Workshop::query()->select($columns);
+        $query = Workshop::query()
+            ->select($columns)
+            ->with(['owner.ownerSubscription']);
 
         // Pencarian
         if ($this->q !== '') {

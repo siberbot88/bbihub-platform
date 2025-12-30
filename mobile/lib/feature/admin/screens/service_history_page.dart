@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'dart:async';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -18,9 +19,16 @@ class ServiceHistoryAdminPage extends StatefulWidget {
 class _ServiceHistoryAdminPageState extends State<ServiceHistoryAdminPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final List<String> _tabs = ["Harian", "Mingguan", "Bulanan"];
-  
-  // Date tracking
   DateTime _selectedDate = DateTime.now();
+
+  final TextEditingController _searchController = TextEditingController();
+  
+  // Pagination State
+  int _page = 1;
+  bool _isLoadingMore = false;
+  
+  // Debounce for search
+  Timer? _debounce;
 
   @override
   void initState() {
@@ -30,7 +38,7 @@ class _ServiceHistoryAdminPageState extends State<ServiceHistoryAdminPage> with 
     
     // Initial Fetch
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _fetchData();
+      _fetchData(page: 1);
     });
   }
 
@@ -38,34 +46,59 @@ class _ServiceHistoryAdminPageState extends State<ServiceHistoryAdminPage> with 
   void dispose() {
     _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
+    _searchController.dispose();
+    _debounce?.cancel();
     super.dispose();
   }
 
   void _onTabChanged() {
     if (_tabController.indexIsChanging) return;
-    _fetchData();
+    _page = 1; // Reset to page 1 on tab change
+    _fetchData(page: 1);
   }
 
-  void _fetchData() {
+  void _onSearchChanged(String query) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      _page = 1;
+      _fetchData(page: 1);
+    });
+  }
+
+  void _changeMonth(int offset) {
+    setState(() {
+      _selectedDate = DateTime(_selectedDate.year, _selectedDate.month + offset, _selectedDate.day);
+    });
+    _page = 1;
+    _fetchData(page: 1);
+  }
+
+  void _fetchData({required int page}) {
     final provider = context.read<AdminServiceProvider>();
-    final now = DateTime.now();
+    final now = _selectedDate; // Use selected date instead of DateTime.now()
     String? dateFrom;
     String? dateTo;
 
     // Filter logic based on Tabs
     switch (_tabController.index) {
-      case 0: // Harian (Today)
+      case 0: // Harian (Uses Selected Date)
+        /* 
+           Note: 'Harian' logic in original code used DateTime.now().
+           If we want 'Harian' to be navigable too,/ we should use _selectedDate.
+           Let's assume Harian is always TODAY for now unless user requested navigating days too.
+           User specifically asked for "Month navigation".
+           But let's make it consistent: _selectedDate drives the view.
+        */
         dateFrom = DateFormat('yyyy-MM-dd').format(now);
         dateTo = DateFormat('yyyy-MM-dd').format(now);
         break;
-      case 1: // Mingguan (This Week)
-        // Find start of week (Monday)
+      case 1: // Mingguan
         final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
         final endOfWeek = startOfWeek.add(const Duration(days: 6));
         dateFrom = DateFormat('yyyy-MM-dd').format(startOfWeek);
         dateTo = DateFormat('yyyy-MM-dd').format(endOfWeek);
         break;
-      case 2: // Bulanan (This Month)
+      case 2: // Bulanan
         final startOfMonth = DateTime(now.year, now.month, 1);
         final endOfMonth = DateTime(now.year, now.month + 1, 0);
         dateFrom = DateFormat('yyyy-MM-dd').format(startOfMonth);
@@ -74,18 +107,24 @@ class _ServiceHistoryAdminPageState extends State<ServiceHistoryAdminPage> with 
     }
 
     final auth = context.read<AuthProvider>();
-    final workshopUuid = auth.user?.workshopUuid; // Fixed: workshopId -> workshopUuid
+    final workshopUuid = auth.user?.workshopUuid;
     
-    print('🔍 Fetching history: dateFrom=$dateFrom, dateTo=$dateTo, workshopUuid=$workshopUuid');
+    print('🔍 Fetching history: page=$page, search=${_searchController.text}, dateFrom=$dateFrom, dateTo=$dateTo');
     
-    context.read<AdminServiceProvider>().fetchServices(
-      page: 1,
+    // Update local page state
+    setState(() {
+      _page = page;
+    });
+
+    provider.fetchServices(
+      page: page,
       dateFrom: dateFrom,
       dateTo: dateTo,
-      workshopUuid: workshopUuid, // CRITICAL: Filter by admin's workshop
-      status: null, // Show all statuses, filter by date only
-      dateColumn: 'completed_at', // Use completion date for history tracking
-      useScheduleEndpoint: false, // Use /admins/services (flat) instead of /schedule (grouped)
+      workshopUuid: workshopUuid,
+      status: null,
+      dateColumn: 'completed_at',
+      useScheduleEndpoint: false,
+      search: _searchController.text, // Pass search query
     );
   }
 
@@ -109,10 +148,37 @@ class _ServiceHistoryAdminPageState extends State<ServiceHistoryAdminPage> with 
       body: Column(
         children: [
           const SizedBox(height: 16),
+          
+          // Search Bar
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: TextField(
+              controller: _searchController,
+              onChanged: _onSearchChanged,
+              decoration: InputDecoration(
+                hintText: 'Cari nama, plat nomor, atau kode...',
+                prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: 16),
+
           // Tab Selector
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 16),
-            padding: const EdgeInsets.all(4), // Add padding for better spacing
+            padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
               color: Colors.grey.shade200,
               borderRadius: BorderRadius.circular(30), 
@@ -130,21 +196,52 @@ class _ServiceHistoryAdminPageState extends State<ServiceHistoryAdminPage> with 
                   )
                 ],
               ),
-              indicatorPadding: EdgeInsets.zero, // Remove default padding
-              labelPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), // Add padding for pill shape
-              dividerColor: Colors.transparent, // Remove divider
+              indicatorPadding: EdgeInsets.zero,
+              labelPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              dividerColor: Colors.transparent,
               labelColor: AppColors.primaryRed,
               unselectedLabelColor: Colors.grey,
               labelStyle: AppTextStyles.bodyMedium().copyWith(fontWeight: FontWeight.bold),
               unselectedLabelStyle: AppTextStyles.bodyMedium(),
               tabs: _tabs.map((t) => SizedBox(
-                height: 40, // Fixed height for pill shape
+                height: 40,
                 child: Center(child: Text(t)),
               )).toList(),
             ),
           ),
           
           const SizedBox(height: 16),
+
+          // Month Navigator (Only for Bulanan tab)
+          AnimatedBuilder(
+            animation: _tabController,
+            builder: (context, child) {
+              if (_tabController.index == 2) { // Bulanan
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.chevron_left),
+                        onPressed: () => _changeMonth(-1),
+                      ),
+                      Text(
+                        DateFormat('MMMM yyyy', 'id_ID').format(_selectedDate),
+                        style: AppTextStyles.heading5(),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.chevron_right),
+                        onPressed: () => _changeMonth(1),
+                      ),
+                    ],
+                  ),
+                ); 
+              }
+              // Optional: Date picker for Harian/Mingguan could be added here
+              return const SizedBox.shrink();
+            },
+          ),
           
           // List Content
           Expanded(
@@ -158,29 +255,61 @@ class _ServiceHistoryAdminPageState extends State<ServiceHistoryAdminPage> with 
                   return _buildEmptyState();
                 }
 
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  physics: const BouncingScrollPhysics(),
-                  itemCount: provider.items.length + 1, // +1 for loader if pagination
-                  itemBuilder: (context, index) {
-                    if (index == provider.items.length) {
-                       return provider.loading ? const Center(child: Padding(padding: EdgeInsets.all(8), child: CircularProgressIndicator())) : const SizedBox();
-                    }
-
-                    final service = provider.items[index];
-                    return _buildAnimatedItem(
-                      GestureDetector(
-                        onTap: () {
-                           Navigator.push(
-                            context, 
-                            MaterialPageRoute(builder: (context) => ServiceDetailPage(service: service)),
-                           );
+                return Column(
+                  children: [
+                    Expanded(
+                      child: ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        physics: const BouncingScrollPhysics(),
+                        itemCount: provider.items.length,
+                        itemBuilder: (context, index) {
+                          final service = provider.items[index];
+                          return _buildAnimatedItem(
+                            GestureDetector(
+                              onTap: () {
+                                 Navigator.push(
+                                  context, 
+                                  MaterialPageRoute(builder: (context) => ServiceDetailPage(service: service)),
+                                 );
+                              },
+                              child: _buildHistoryCard(service),
+                            ),
+                            index,
+                          );
                         },
-                        child: _buildHistoryCard(service),
                       ),
-                      index,
-                    );
-                  },
+                    ),
+                    
+                    // Pagination Controls
+                    if (provider.totalPages > 1)
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        color: Colors.white,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            IconButton(
+                              onPressed: provider.hasPrevPage 
+                                ? () => _fetchData(page: provider.currentPage - 1) 
+                                : null,
+                              icon: Icon(Icons.chevron_left, color: provider.hasPrevPage ? Colors.black : Colors.grey),
+                            ),
+                            const SizedBox(width: 16),
+                            Text(
+                              "Halaman ${provider.currentPage} dari ${provider.totalPages}",
+                              style: AppTextStyles.bodyMedium(),
+                            ),
+                            const SizedBox(width: 16),
+                            IconButton(
+                              onPressed: provider.hasNextPage 
+                                ? () => _fetchData(page: provider.currentPage + 1) 
+                                : null,
+                              icon: Icon(Icons.chevron_right, color: provider.hasNextPage ? Colors.black : Colors.grey),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
                 );
               },
             ),
@@ -201,6 +330,11 @@ class _ServiceHistoryAdminPageState extends State<ServiceHistoryAdminPage> with 
             "Belum ada riwayat servis",
             style: AppTextStyles.heading5(color: Colors.grey),
           ),
+          if (_searchController.text.isNotEmpty)
+             Text(
+              "Coba kata kunci lain",
+              style: AppTextStyles.bodyMedium(color: Colors.grey),
+             ),
         ],
       ),
     );

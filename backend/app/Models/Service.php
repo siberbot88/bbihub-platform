@@ -149,4 +149,21 @@ class Service extends Model implements HasMedia
         $this->addMediaCollection('service_image')
             ->singleFile();
     }
+
+    public function scopeSearch($query, $search)
+    {
+        return $query->where(function ($q) use ($search) {
+            $q->where('code', 'like', "%{$search}%")
+                ->orWhere('name', 'like', "%{$search}%") // Service Name
+                ->orWhereHas('customer', function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%");
+                })
+                ->orWhereHas('vehicle', function ($q) use ($search) {
+                    $q->where('plate_number', 'like', "%{$search}%")
+                        ->orWhere('brand', 'like', "%{$search}%")
+                        ->orWhere('model', 'like', "%{$search}%");
+                });
+        });
+    }
 }

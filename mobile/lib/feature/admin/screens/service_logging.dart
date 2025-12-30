@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:async';
+import 'package:intl/intl.dart';
+import '../../../../core/services/auth_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/models/service.dart';
 import '../providers/admin_service_provider.dart';
@@ -29,28 +31,18 @@ class _ServiceLoggingPageState extends State<ServiceLoggingPage> with SingleTick
   Timer? _debounce;
   
   // Filters
-  String _selectedTab = 'accepted';
+  String _selectedStatus = 'Semua';
+  final List<String> _statusFilters = ['Semua', 'Menunggu', 'Proses', 'Dibatalkan'];
+  
   String? _selectedMake;
   
   // Date filter variables
   DateTime? _dateFrom;
   DateTime? _dateTo;
-  
-  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-    _tabController.addListener(() {
-      if (_tabController.indexIsChanging) {
-        setState(() {
-          _selectedTab = _tabController.index == 0 ? 'accepted' : 'drafts';
-        });
-        _fetchData();
-      }
-    });
-    
     WidgetsBinding.instance.addPostFrameCallback((_) => _fetchData());
   }
 
@@ -58,17 +50,35 @@ class _ServiceLoggingPageState extends State<ServiceLoggingPage> with SingleTick
   void dispose() {
     _searchController.dispose();
     _debounce?.cancel();
-    _tabController.dispose();
+    // _tabController.dispose();
     super.dispose();
   }
 
   Future<void> _fetchData() async {
     setState(() => _isLoading = true);
     try {
-      final services = await context.read<AdminServiceProvider>().fetchActiveServices();
+      final auth = context.read<AuthProvider>();
+      final workshopUuid = auth.user?.workshopUuid;
+      
+      String? statusParam;
+      if (_selectedStatus == 'Semua') statusParam = 'pending,in_progress,in progress,on_process,accepted,menunggu pembayaran,waiting_payment,cancelled,cancel,decline';
+      if (_selectedStatus == 'Menunggu') statusParam = 'pending';
+      if (_selectedStatus == 'Proses') statusParam = 'in_progress,in progress,on_process,accepted,menunggu pembayaran,waiting_payment'; 
+      if (_selectedStatus == 'Dibatalkan') statusParam = 'cancelled,cancel,decline';
+      
+      // Use fetchServices instead of fetchActiveServices to support all statuses
+      await context.read<AdminServiceProvider>().fetchServices(
+        workshopUuid: workshopUuid,
+        status: statusParam,
+        dateFrom: _dateFrom != null ? DateFormat('yyyy-MM-dd').format(_dateFrom!) : null,
+        dateTo: _dateTo != null ? DateFormat('yyyy-MM-dd').format(_dateTo!) : null,
+        search: _searchController.text,
+        useScheduleEndpoint: false, // Use flat list for logging
+      );
+
       if (mounted) {
         setState(() {
-          _services = services;
+          // Items are in provider
           _isLoading = false;
         });
       }
@@ -85,36 +95,8 @@ class _ServiceLoggingPageState extends State<ServiceLoggingPage> with SingleTick
   }
 
   List<ServiceModel> get _filteredServices {
-    return _services.where((service) {
-      final status = (service.acceptanceStatus ?? '').toLowerCase();
-      final coreStatus = (service.status ?? '').toLowerCase();
-      
-      if (_selectedTab == 'accepted') {
-        if (status != 'accepted') return false;
-        // User Request: Completed items should NOT be in "Pencatatan" even if unpaid/processing.
-        // They are technically "Selesai" in terms of mechanics work.
-        if (coreStatus == 'completed' || coreStatus == 'lunas') return false; 
-      }
-      if (_selectedTab == 'drafts' && status != 'pending') return false;
-      
-      if (_searchController.text.isNotEmpty) {
-        final query = _searchController.text.toLowerCase();
-        final title = service.name.toLowerCase();
-        final plate = (service.displayVehiclePlate).toLowerCase();
-        final customer = (service.displayCustomerName).toLowerCase();
-        if (!title.contains(query) && !plate.contains(query) && !customer.contains(query)) {
-          return false;
-        }
-      }
-      
-      if (_selectedMake != null) {
-        if (!service.name.toLowerCase().contains(_selectedMake!.toLowerCase())) {
-          return false;
-        }
-      }
-      
-      return true;
-    }).toList();
+    final provider = context.read<AdminServiceProvider>();
+    return provider.items; // Filtering is done API side or provider side
   }
 
   int get _activeCount => _filteredServices.where((s) => 
@@ -152,7 +134,7 @@ class _ServiceLoggingPageState extends State<ServiceLoggingPage> with SingleTick
               },
             ),
             
-            _buildTabs(isDark),
+            _buildFilterTabs(),
             
             Expanded(
               child: RefreshIndicator(
@@ -225,24 +207,48 @@ class _ServiceLoggingPageState extends State<ServiceLoggingPage> with SingleTick
     );
   }
 
-  Widget _buildTabs(bool isDark) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: isDark ? Colors.grey[800]! : Colors.grey[200]!),
-        ),
-      ),
-      child: TabBar(
-        controller: _tabController,
-        indicatorColor: AppColors.primaryRed,
-        indicatorWeight: 3,
-        labelColor: isDark ? Colors.white : Colors.black,
-        unselectedLabelColor: Colors.grey[500],
-        labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, letterSpacing: 0.5),
-        tabs: const [
-          Tab(text: 'Accepted'),
-          Tab(text: 'Drafts'),
-        ],
+  Widget _buildFilterTabs() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: _statusFilters.map((filter) {
+          final isSelected = _selectedStatus == filter;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: GestureDetector(
+              onTap: () {
+                if (_selectedStatus != filter) {
+                  setState(() => _selectedStatus = filter);
+                  _fetchData();
+                }
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isSelected ? AppColors.primaryRed : Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isSelected ? AppColors.primaryRed : Colors.grey.shade300,
+                  ),
+                   boxShadow: isSelected 
+                      ? [BoxShadow(color: AppColors.primaryRed.withOpacity(0.3), blurRadius: 4, offset: const Offset(0,2))]
+                      : null,
+                ),
+                child: Text(
+                  filter,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                    color: isSelected ? Colors.white : Colors.grey[700],
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }

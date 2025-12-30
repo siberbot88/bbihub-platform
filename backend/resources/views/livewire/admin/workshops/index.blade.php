@@ -123,10 +123,10 @@
         <thead class="bg-gray-50">
           <tr class="text-gray-600">
             <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Bengkel</th>
-            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Status</th>
             <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Lokasi</th>
+            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Status</th>
+            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Member</th>
             <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Rating</th>
-            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Bergabung</th>
             <th class="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">Aksi</th>
           </tr>
         </thead>
@@ -148,35 +148,19 @@
                 </div>
               </td>
 
-              {{-- Phone --}}
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {{ $w->phone ?? '—' }}
-              </td>
 
-              {{-- Membership --}}
-              @php
-                $subscription = $w->owner?->ownerSubscription;
-                $subStatus = $subscription?->status;
-              @endphp
 
-              <td class="px-6 py-4 whitespace-nowrap">
-                @if($subStatus === 'active')
-                  <span
-                    class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                    {{ ucfirst($subscription->plan_type ?? 'Plus') }}
-                  </span>
-                @elseif($subStatus === 'cancelled')
-                  <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-700">
-                    Dibatalkan
-                  </span>
-                @elseif($subStatus === 'expired')
-                  <span
-                    class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-700">
-                    Kadaluarsa
-                  </span>
-                @else
-                  <span class="text-sm text-gray-400">—</span>
-                @endif
+              {{-- Lokasi --}}
+              <td class="px-6 py-4">
+                <div class="flex items-center gap-2 text-gray-700">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
+                    class="w-4 h-4 text-gray-400">
+                    <path fill-rule="evenodd"
+                      d="M9.69 18.933l.003.001C9.89 19.02 10 19 10 19s.11.02.308-.066l.002-.001.006-.003.018-.008a5.741 5.741 0 00.281-.14c.186-.096.446-.24.757-.433.62-.384 1.445-.966 2.274-1.765C15.302 14.988 17 12.493 17 9A7 7 0 103 9c0 3.492 1.698 5.988 3.355 7.584a13.731 13.731 0 002.273 1.765 11.842 11.842 0 00.976.544l.062.029.018.008.006.003zM10 11.25a2.25 2.25 0 100-4.5 2.25 2.25 0 000 4.5z"
+                      clip-rule="evenodd" />
+                  </svg>
+                  {{ $w->city ?? '-' }}
+                </div>
               </td>
 
               {{-- Status --}}
@@ -201,17 +185,30 @@
                 </span>
               </td>
 
-              {{-- Lokasi --}}
-              <td class="px-6 py-4">
-                <div class="flex items-center gap-2 text-gray-700">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
-                    class="w-4 h-4 text-gray-400">
-                    <path fill-rule="evenodd"
-                      d="M9.69 18.933l.003.001C9.89 19.02 10 19 10 19s.11.02.308-.066l.002-.001.006-.003.018-.008a5.741 5.741 0 00.281-.14c.186-.096.446-.24.757-.433.62-.384 1.445-.966 2.274-1.765C15.302 14.988 17 12.493 17 9A7 7 0 103 9c0 3.492 1.698 5.988 3.355 7.584a13.731 13.731 0 002.273 1.765 11.842 11.842 0 00.976.544l.062.029.018.008.006.003zM10 11.25a2.25 2.25 0 100-4.5 2.25 2.25 0 000 4.5z"
-                      clip-rule="evenodd" />
-                  </svg>
-                  {{ $w->city ?? '-' }}
-                </div>
+              {{-- Member Plan --}}
+              @php
+                $subscription = $w->owner?->ownerSubscription;
+                $subStatus = $subscription?->status;
+              @endphp
+
+              <td class="px-6 py-4 whitespace-nowrap">
+                @if($subStatus === 'active')
+                  <span
+                    class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                    {{ ucfirst($subscription->plan_type ?? 'Plus') }}
+                  </span>
+                @elseif($subStatus === 'cancelled')
+                  <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-700">
+                    Dibatalkan
+                  </span>
+                @elseif($subStatus === 'expired')
+                  <span
+                    class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-700">
+                    Kadaluarsa
+                  </span>
+                @else
+                  <span class="text-sm text-gray-400">Free</span>
+                @endif
               </td>
 
               {{-- Rating --}}
@@ -225,11 +222,6 @@
                   </svg>
                   <span class="font-medium text-gray-900">{{ $w->rating ? number_format($w->rating, 1) : '-' }}</span>
                 </div>
-              </td>
-
-              {{-- Bergabung --}}
-              <td class="px-6 py-4 text-gray-600">
-                {{ $w->created_at ? $w->created_at->diffForHumans() : '-' }}
               </td>
 
               {{-- Actions --}}

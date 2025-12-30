@@ -1,12 +1,17 @@
-// 📄 lib/feature/admin/screens/dashboard.dart
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
-// tab lain
+// Reuse widgets from Owner feature to ensure exact design match
+import '../../owner/widgets/report/report_kpi_card.dart';
 import 'tabs/technician_tab.dart';
 import 'tabs/customer_tab.dart';
+
+// --- Colors ---
+const Color kPrimaryRed = Color(0xFFB70F0F);
+const Color kPrimaryRedDark = Color(0xFF9B0D0D);
+const Color kBackground = Color(0xFFF5F5F5);
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -16,10 +21,11 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  String selectedTab = "Servis";
-  String selectedRange = "Hari ini";
-  String chartFilter = "Week";
+  String _selectedTab = "Servis"; // Acts as the "Segmented Control" selection
+  String _selectedRange = "Hari ini"; // Dropdown/Filter inside tabs if needed
+  String _chartFilter = "Week";
 
+  // Dummy Data for Admin
   final List<Map<String, dynamic>> mostFrequent = const [
     {'name': 'Ganti Oli', 'count': 18},
     {'name': 'Servis Rem', 'count': 12},
@@ -36,492 +42,385 @@ class _DashboardPageState extends State<DashboardPage> {
   ];
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(),
-            Expanded(child: _buildTabContent()),
-          ],
-        ),
-      ),
-    );
+  void initState() {
+    super.initState();
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light);
   }
 
-  // ---------- HEADER ----------
-  Widget _buildHeader() {
-    final tabs = ["Servis", "Mekanik", "Pelanggan"];
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF9B0D0D), Color(0xFFDC2626)],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(28),
-          bottomRight: Radius.circular(28),
-        ),
+  @override
+  Widget build(BuildContext context) {
+    // Structure strictly follows ReportPage: Red Background behind header, White rounded body
+    final topPadding = MediaQuery.of(context).padding.top;
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark, // iOS
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Text(
-            "Dashboard",
-            textAlign: TextAlign.center,
-            style: GoogleFonts.poppins(
-              fontSize: 22,
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
+      child: Scaffold(
+        backgroundColor: kPrimaryRed,
+        body: Stack(
+          children: [
+            // 0. Background Extension (Ensures red behind status bar)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 200, // Sufficient coverage
+              child: Container(color: kPrimaryRed),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            "Memantau layanan, teknisi, pendapatan, dan pelanggan",
-            style: GoogleFonts.poppins(
-              color: Colors.white.withAlpha(230),
-              fontSize: 12,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: tabs.map((tab) {
-              final selected = selectedTab == tab;
-              return GestureDetector(
-                onTap: () => setState(() => selectedTab = tab),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: selected ? Colors.white : Colors.transparent,
-                    borderRadius: BorderRadius.circular(20),
+            
+            // 1. Main Content
+            Column(
+              children: [
+                // Header (Gradient + Title + Segmented Control)
+                Container(
+                  padding: EdgeInsets.fromLTRB(20, topPadding + 10, 20, 24),
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [kPrimaryRed, kPrimaryRedDark],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
                   ),
-                  child: Text(
-                    tab,
-                    style: GoogleFonts.poppins(
-                      color: selected ? const Color(0xFF9B0D0D) : Colors.white,
-                      fontSize: 13,
-                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                  child: Column(
+                    children: [
+                      // Nav Bar Placeholder / Title
+                      const SizedBox(height: 10),
+                      Center(
+                        child: Column(
+                          children: [
+                            Text(
+                              'Dashboard Admin',
+                              style: GoogleFonts.poppins(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Monitor Layanan & Kinerja',
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.white.withOpacity(0.9),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Segmented Control (Servis | Mekanik | Pelanggan)
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        child: Row(
+                          children: [
+                            _buildSegmentTab('Servis'),
+                            _buildSegmentTab('Mekanik'),
+                            _buildSegmentTab('Pelanggan'),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // 2. Scrollable Body
+                Expanded(
+                  child: Container(
+                    width: double.infinity,
+                    decoration: const BoxDecoration(
+                      color: kBackground,
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(30),
+                        topRight: Radius.circular(30),
+                      ),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(30),
+                        topRight: Radius.circular(30),
+                      ),
+                      child: _buildBodyContent(),
                     ),
                   ),
                 ),
-              );
-            }).toList(),
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  // ---------- TAB SWITCHER ----------
-  Widget _buildTabContent() {
-    switch (selectedTab) {
-      case "Servis":
-        return SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildServisSection(),
-              const SizedBox(height: 24),
-              _buildMostFrequentServices(),
-              const SizedBox(height: 24),
-              _buildAnalysisChart(),
-            ],
+  Widget _buildSegmentTab(String label) {
+    final bool isSelected = _selectedTab == label;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedTab = label),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: isSelected ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    )
+                  ]
+                : [],
           ),
-        );
+          child: Text(
+            label,
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+              color: isSelected ? kPrimaryRed : Colors.white.withOpacity(0.9),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBodyContent() {
+    switch (_selectedTab) {
+      case "Servis":
+        return _buildServisTab();
       case "Mekanik":
         return TechnicianTab(
-          selectedRange: selectedRange,
-          onRangeChange: (v) => setState(() => selectedRange = v),
+          selectedRange: _selectedRange,
+          onRangeChange: (v) => setState(() => _selectedRange = v),
         );
       case "Pelanggan":
         return CustomerTab(
-          selectedRange: selectedRange,
-          chartFilter: chartFilter,
-          onRangeChange: (v) => setState(() => selectedRange = v),
-          onChartFilterChange: (f) => setState(() => chartFilter = f),
+          selectedRange: _selectedRange,
+          chartFilter: _chartFilter,
+          onRangeChange: (v) => setState(() => _selectedRange = v),
+          onChartFilterChange: (f) => setState(() => _chartFilter = f),
         );
       default:
-        return const SizedBox.shrink();
+        return const Center(child: Text("Tab not found"));
     }
   }
 
-  // ---------- SERVIS SECTION ----------
-  Widget _buildServisSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildServisTab() {
+    // 2x2 Grid of KPIs + Charts
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+      physics: const BouncingScrollPhysics(),
       children: [
-        // title + dropdown
+        // KPI Grid using ReportKpiCard (2 Rows of 2)
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              "Servis",
-              style: GoogleFonts.poppins(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
+            ReportKpiCard(
+              icon: Icons.car_repair_rounded, // Better icon for Service
+              title: '12',
+              subtitle: 'Servis Hari Ini',
+              growthText: '+2.0%',
+              iconSize: 26,
+              onTap: () {},
             ),
-            _buildDropdown(),
+            const SizedBox(width: 14),
+            ReportKpiCard(
+              icon: Icons.person_search_rounded, // Better icon for Assign
+              title: '8',
+              subtitle: 'Perlu di Assign',
+              growthText: '!', 
+              iconBgColor: const Color(0xFFFFF8E1), 
+              iconColor: const Color(0xFFFFA000),
+              iconSize: 26,
+              onTap: () {},
+            ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
+        Row(
+          children: [
+            ReportKpiCard(
+              icon: Icons.star_rounded, // Better icon for Feedback
+              title: '4',
+              subtitle: 'Feedback',
+              growthText: '+1',
+              iconBgColor: const Color(0xFFE3F2FD), 
+              iconColor: const Color(0xFF1976D2),
+              iconSize: 26,
+              onTap: () {},
+            ),
+            const SizedBox(width: 14),
+            ReportKpiCard(
+              icon: Icons.task_alt_rounded, // Better icon for Completed
+              title: '2',
+              subtitle: 'Selesai',
+              growthText: '+5',
+              iconBgColor: const Color(0xFFE8F5E9), 
+              iconColor: const Color(0xFF2E7D32),
+              iconSize: 26,
+              onTap: () {},
+            ),
+          ],
+        ),
 
-        // grid 2x2
-        GridView.count(
-          crossAxisCount: 2,
-          childAspectRatio: 1.9,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          children: [
-            _summaryCardPrimary(
-              title: "Servis Hari Ini",
-              value: "12",
-              icon: 'assets/icons/servis.svg',
-            ),
-            _summaryCardWhite(
-              title: "Perlu di Assign",
-              value: "8",
-              icon: 'assets/icons/assign.svg',
-            ),
-            _summaryCardWhite(
-              title: "Feedback",
-              value: "4",
-              icon: 'assets/icons/pelanggan.svg',
-            ),
-            _summaryCardWhite(
-              title: "Selesai",
-              value: "2",
-              icon: 'assets/icons/completed.svg',
-            ),
-          ],
+        const SizedBox(height: 24),
+
+        // Most Frequent Services (Card Style)
+        _buildSectionCard(
+          title: "Most Frequent Services",
+          actionText: "View Details",
+          child: Column(
+            children: mostFrequent
+                .map(
+                  (item) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(item['name'] as String,
+                            style: GoogleFonts.poppins(fontSize: 14)),
+                        Text("${item['count']}",
+                            style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.w600, fontSize: 14)),
+                      ],
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
         ),
+
+        const SizedBox(height: 24),
+
+        // Analysis Chart (Card Style)
+        _buildSectionCard(
+          title: "Services Trend",
+          child: Column(
+            children: [
+              // Chart Filter
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: ["Week", "Month"].map((f) {
+                  final isSelected = _chartFilter == f;
+                  return GestureDetector(
+                    onTap: () => setState(() => _chartFilter = f),
+                    child: Container(
+                      margin: const EdgeInsets.only(left: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? kPrimaryRed
+                            : Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        f,
+                        style: GoogleFonts.poppins(
+                          color: isSelected ? Colors.white : Colors.black87,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 16),
+              SfCartesianChart(
+                plotAreaBorderWidth: 0,
+                primaryXAxis: CategoryAxis(
+                  majorGridLines: const MajorGridLines(width: 0.3),
+                  labelStyle: GoogleFonts.poppins(fontSize: 11),
+                ),
+                primaryYAxis: NumericAxis(
+                  majorGridLines: const MajorGridLines(width: 0.25),
+                  axisLine: const AxisLine(width: 0),
+                  labelStyle: GoogleFonts.poppins(fontSize: 10),
+                ),
+                series: <CartesianSeries<_ChartData, String>>[
+                  LineSeries<_ChartData, String>(
+                    dataSource: chartData,
+                    xValueMapper: (d, _) => d.month,
+                    yValueMapper: (d, _) => d.value,
+                    color: const Color(0xFFB388FF),
+                    width: 2,
+                    markerSettings: const MarkerSettings(
+                      isVisible: true,
+                      shape: DataMarkerType.circle,
+                      borderColor: Colors.black,
+                      borderWidth: 1,
+                      width: 7,
+                      height: 7,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        
+        const SizedBox(height: 32),
       ],
     );
   }
 
-  // ---------- KARTU MERAH ----------
-  Widget _summaryCardPrimary({
+  Widget _buildSectionCard({
     required String title,
-    required String value,
-    required String icon,
+    String? actionText,
+    required Widget child,
   }) {
     return Container(
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF9B0D0D), Color(0xFFDC2626)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(20),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          _buildIcon(icon, color: Colors.white, size: 28),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  title,
-                  style: GoogleFonts.poppins(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  value,
-                  style: GoogleFonts.poppins(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ---------- KARTU PUTIH ----------
-  Widget _summaryCardWhite({
-    required String title,
-    required String value,
-    required String icon,
-  }) {
-    const red = Color(0xFFDC2626);
-    return Container(
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(20),
-            blurRadius: 8,
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 15,
             offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          _buildIcon(icon, color: red, size: 28),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  title,
-                  style: GoogleFonts.poppins(
-                    color: Colors.black87,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  value,
-                  style: GoogleFonts.poppins(
-                    color: red,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ---------- HELPER ICON ----------
-  Widget _buildIcon(String path, {Color? color, double size = 24}) {
-    final colorFilter = color != null 
-        ? ColorFilter.mode(color, BlendMode.srcIn) 
-        : null;
-    
-    if (path.endsWith('.svg')) {
-      return SvgPicture.asset(path, width: size, height: size, colorFilter: colorFilter);
-    } else {
-      return Image.asset(path, width: size, height: size, color: color);
-    }
-  }
-
-  // ---------- DROPDOWN ----------
-  Widget _buildDropdown() {
-    return Container(
-      padding: const EdgeInsets.only(left: 14, right: 6),
-      height: 36,
-      decoration: BoxDecoration(
-        color: const Color(0xFFDC2626), // Merah sesuai desain
-        borderRadius: BorderRadius.circular(24), // Bentuk pill
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(26),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: 'Hari ini', // Pilihan default
-          icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white),
-          dropdownColor: Colors.white, // Warna merah untuk dropdown
-          style: GoogleFonts.poppins(
-              color: Colors.white, fontSize: 13), // Teks putih di tombol
-          items: const ['Hari ini', 'Minggu ini', 'Bulan ini']
-              .map((e) => DropdownMenuItem(
-                    value: e,
-                    child: Text(
-                      e,
-                      style: GoogleFonts.poppins(
-                          color: Colors.black), // Teks item dropdown putih
-                    ),
-                  ))
-              .toList(),
-          onChanged: (v) {
-            if (v != null) {
-              // Update the selected value
-              setState(() {
-                selectedRange = v;
-              });
-            }
-          },
-        ),
-      ),
-    );
-  }
-
-  // ---------- MOST FREQUENT ----------
-  Widget _buildMostFrequentServices() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(13),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            Text(
-              "Most Frequent Services",
-              style: GoogleFonts.poppins(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            Text(
-              "View Details",
-              style: GoogleFonts.poppins(
-                color: const Color(0xFF9B0D0D),
-                fontWeight: FontWeight.w500,
-                fontSize: 13,
-              ),
-            ),
-          ]),
-          const SizedBox(height: 10),
-          ...mostFrequent.map(
-            (item) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(item['name'] as String,
-                      style: GoogleFonts.poppins(fontSize: 14)),
-                  Text("${item['count']}",
-                      style: GoogleFonts.poppins(
-                          fontWeight: FontWeight.w600, fontSize: 14)),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ---------- CHART ----------
-  Widget _buildAnalysisChart() {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(13),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            Text(
-              "Services",
-              style: GoogleFonts.poppins(
-                color: const Color(0xFF9B0D0D),
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            Row(
-              children: ["Week", "Month"].map((f) {
-                final isSelected = chartFilter == f;
-                return GestureDetector(
-                  onTap: () => setState(() => chartFilter = f),
-                  child: Container(
-                    margin: const EdgeInsets.only(left: 8),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? const Color(0xFF9B0D0D)
-                          : Colors.grey.shade200,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      f,
-                      style: GoogleFonts.poppins(
-                        color: isSelected ? Colors.white : Colors.black87,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ]),
-          const SizedBox(height: 16),
-          SfCartesianChart(
-            plotAreaBorderWidth: 0,
-            primaryXAxis: CategoryAxis(
-              majorGridLines: const MajorGridLines(width: 0.3),
-              labelStyle: GoogleFonts.poppins(fontSize: 11),
-            ),
-            primaryYAxis: NumericAxis(
-              majorGridLines: const MajorGridLines(width: 0.25),
-              axisLine: const AxisLine(width: 0),
-              labelStyle: GoogleFonts.poppins(fontSize: 10),
-            ),
-            series: <CartesianSeries<_ChartData, String>>[
-              LineSeries<_ChartData, String>(
-                dataSource: chartData,
-                xValueMapper: (d, _) => d.month,
-                yValueMapper: (d, _) => d.value,
-                color: const Color(0xFFB388FF),
-                width: 2,
-                markerSettings: const MarkerSettings(
-                  isVisible: true,
-                  shape: DataMarkerType.circle,
-                  borderColor: Colors.black,
-                  borderWidth: 1,
-                  width: 7,
-                  height: 7,
-                  color: Colors.white,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF212121),
                 ),
               ),
+              if (actionText != null)
+                Text(
+                  actionText,
+                  style: GoogleFonts.poppins(
+                    color: kPrimaryRed,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 12,
+                  ),
+                ),
             ],
           ),
+          const SizedBox(height: 16),
+          child,
         ],
       ),
     );

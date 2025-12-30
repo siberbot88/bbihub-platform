@@ -42,8 +42,14 @@ class ServiceApiController extends Controller
                 'extras', // Dummy relation for mobile backward compatibility
             ])
             ->allowedFilters([
-                AllowedFilter::exact('status'),
+                AllowedFilter::callback('status', function ($query, $value) {
+                    if (is_string($value) && str_contains($value, ',')) {
+                        $value = explode(',', $value);
+                    }
+                    $query->whereIn('status', (array) $value);
+                }),
                 AllowedFilter::exact('type'),
+                AllowedFilter::scope('search'), // Enable search scope
                 AllowedFilter::partial('code'),
                 AllowedFilter::exact('workshop_uuid'),
                 // Keep these for standard compliant clients

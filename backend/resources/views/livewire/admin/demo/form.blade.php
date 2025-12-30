@@ -64,8 +64,8 @@
             @foreach($steps as $s => $info)
                 <div class="flex flex-col items-center bg-white px-4">
                     <div class="flex h-10 w-10 items-center justify-center rounded-full border-2 
-                                            {{ $step >= $s ? 'border-red-600 bg-red-600' : 'border-gray-300 bg-white' }} 
-                                            transition-colors">
+                                                    {{ $step >= $s ? 'border-red-600 bg-red-600' : 'border-gray-300 bg-white' }} 
+                                                    transition-colors">
                         {{-- Raw SVG to ensure color control --}}
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
                             stroke="currentColor" class="h-5 w-5 {{ $step >= $s ? 'text-white' : 'text-gray-400' }}">
@@ -209,6 +209,21 @@
                                 @error('workshopId') <span class="text-xs text-red-600">{{ $message }}</span> @enderror
                             </div>
                             <div>
+                                <label class="block text-sm font-medium text-gray-700">Tipe Layanan</label>
+                                <div class="mt-2 flex gap-4">
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" wire:model="serviceType" value="booking"
+                                            class="text-red-600 focus:ring-red-500">
+                                        <span class="ml-2 text-sm text-gray-700">Booking (Online)</span>
+                                    </label>
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" wire:model="serviceType" value="on_site"
+                                            class="text-red-600 focus:ring-red-500">
+                                        <span class="ml-2 text-sm text-gray-700">Datang Langsung (On-site)</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div>
                                 <label class="block text-sm font-medium text-gray-700">Keluhan / Judul Servis</label>
                                 <input type="text" wire:model="serviceName"
                                     class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm"
@@ -222,11 +237,15 @@
                                     placeholder="Detail pekerjaan..."></textarea>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Estimasi Biaya (Rp)</label>
-                                <input type="number" wire:model="servicePrice"
-                                    class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm"
-                                    placeholder="0">
-                                @error('servicePrice') <span class="text-xs text-red-600">{{ $message }}</span> @enderror
+                                <label class="block text-sm font-medium text-gray-700">Kategori Servis</label>
+                                <select wire:model="serviceCategory"
+                                    class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm">
+                                    <option value="ringan">Service Ringan</option>
+                                    <option value="sedang">Service Sedang</option>
+                                    <option value="berat">Service Berat</option>
+                                    <option value="maintenance">Maintenance</option>
+                                </select>
+                                @error('serviceCategory') <span class="text-xs text-red-600">{{ $message }}</span> @enderror
                             </div>
                         </div>
                     </div>
@@ -435,35 +454,54 @@
                 </thead>
                 <tbody class="divide-y divide-gray-100 border-t border-gray-100 bg-white">
                     @forelse($recentServices as $srv)
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4">{{ $srv->created_at->format('d M H:i') }}</td>
-                            <td class="px-6 py-4 font-medium text-gray-900">{{ $srv->customer->name ?? '-' }}</td>
-                            <td class="px-6 py-4">{{ $srv->vehicle->plate_number ?? '-' }}</td>
-                            <td class="px-6 py-4">
-                                <div class="font-medium text-gray-900">{{ $srv->name }}</div>
-                                <div class="text-xs text-gray-500">{{ $srv->workshop->name ?? '-' }}</div>
-                            </td>
-                            <td class="px-6 py-4">
-                                @if($srv->transaction?->status === 'paid')
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-6 py-4">{{ $srv->created_at->format('d M H:i') }}</td>
+                                        <td class="px-6 py-4 font-medium text-gray-900">{{ $srv->customer->name ?? '-' }}</td>
+                                        <td class="px-6 py-4">{{ $srv->vehicle->plate_number ?? '-' }}</td>
+                                        <td class="px-6 py-4">
+                                            <div class="font-medium text-gray-900">{{ $srv->name }}</div>
+                                            <div class="text-xs text-gray-500">{{ $srv->workshop->name ?? '-' }}</div>
+                                            <div class="mt-1">
+                                                <span
+                                                    class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium {{ $srv->type === 'on_site' ? 'bg-gray-100 text-gray-600' : 'bg-purple-50 text-purple-700' }}">
+                                                    {{ $srv->type === 'on_site' ? 'Walk-in' : 'Booking' }}
+                                                </span>
+                                            </div>
+                        </div>
+                        <td class="px-6 py-4">
+                            @if($srv->transaction?->status === 'paid')
+                                <span
+                                    class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
+                                    Lunas
+                                </span>
+                            @else
+                                <div class="flex flex-col gap-1">
                                     <span
-                                        class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
-                                        Lunas
+                                        class="inline-flex w-fit items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+                                        Servis: {{ ucfirst($srv->status) }}
                                     </span>
+                                    <span
+                                        class="inline-flex w-fit items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800">
+                                        Bayar: {{ ucfirst($srv->transaction?->status ?? 'pending') }}
+                                    </span>
+                                </div>
+                            @endif
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            @if($srv->status === 'pending')
+                                @if($srv->type === 'booking' && $srv->acceptance_status !== 'approved')
+                                    {{-- Manual Admin Verification for Booking --}}
+                                    <button wire:click="verifyByAI('{{ $srv->id }}')"
+                                        class="inline-flex items-center gap-1 rounded bg-purple-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-purple-700">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                                            stroke="currentColor" class="h-3 w-3">
+                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        Terima Booking
+                                    </button>
                                 @else
-                                    <div class="flex flex-col gap-1">
-                                        <span
-                                            class="inline-flex w-fit items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
-                                            Servis: {{ ucfirst($srv->status) }}
-                                        </span>
-                                        <span
-                                            class="inline-flex w-fit items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800">
-                                            Bayar: {{ ucfirst($srv->transaction?->status ?? 'pending') }}
-                                        </span>
-                                    </div>
-                                @endif
-                            </td>
-                            <td class="px-6 py-4 text-right">
-                                @if($srv->status === 'pending')
+                                    {{-- Complete Service (for on-site or approved booking) --}}
                                     <button wire:click="markAsComplete('{{ $srv->id }}')"
                                         class="inline-flex items-center gap-1 rounded bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700">
                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
@@ -472,73 +510,73 @@
                                         </svg>
                                         Selesaikan
                                     </button>
-                                @elseif($srv->status === 'completed' && $srv->transaction?->status !== 'paid')
-                                    <button wire:click="openPayment('{{ $srv->transaction?->id }}')"
-                                        class="inline-flex items-center gap-1 rounded bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700">
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
-                                            stroke="currentColor" class="h-3 w-3">
-                                            <path stroke-linecap="round" stroke-linejoin="round"
-                                                d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
-                                        </svg>
-                                        Bayar
-                                    </button>
-                                @elseif($srv->transaction?->status === 'paid' && !$srv->transaction->feedback)
-                                    <button wire:click="openFeedback('{{ $srv->transaction?->id }}')"
-                                        class="inline-flex items-center gap-1 rounded bg-yellow-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-yellow-600">
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
-                                            class="h-3 w-3">
-                                            <path fill-rule="evenodd"
-                                                d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z"
-                                                clip-rule="evenodd" />
-                                        </svg>
-                                        Beri Ulasan
-                                    </button>
                                 @endif
-                            </td>
+                            @elseif($srv->status === 'completed' && $srv->transaction?->status !== 'paid' && $srv->type === 'booking')
+                                <button wire:click="openPayment('{{ $srv->transaction?->id }}')"
+                                    class="inline-flex items-center gap-1 rounded bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                                        stroke="currentColor" class="h-3 w-3">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
+                                    </svg>
+                                    Bayar
+                                </button>
+                            @elseif($srv->transaction?->status === 'paid' && !$srv->transaction->feedback)
+                                <button wire:click="openFeedback('{{ $srv->transaction?->id }}')"
+                                    class="inline-flex items-center gap-1 rounded bg-yellow-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-yellow-600">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-3 w-3">
+                                        <path fill-rule="evenodd"
+                                            d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z"
+                                            clip-rule="evenodd" />
+                                    </svg>
+                                    Beri Ulasan
+                                </button>
+                            @endif
+                        </td>
                         </tr>
                     @empty
-                        <tr>
-                            <td colspan="6" class="px-6 py-8 text-center text-gray-400">Belum ada data visualisasi demo.
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+            <tr>
+                <td colspan="6" class="px-6 py-8 text-center text-gray-400">Belum ada data visualisasi demo.
+                </td>
+            </tr>
+        @endforelse
+        </tbody>
+        </table>
     </div>
+</div>
 
-    {{-- MIDTRANS SCRIPT --}}
-    @section('scripts')
-        <script src="https://app.sandbox.midtrans.com/snap/snap.js"
-            data-client-key="{{ config('services.midtrans.client_key') ?? env('MIDTRANS_CLIENT_KEY') }}"></script>
-    @endsection
+{{-- MIDTRANS SCRIPT --}}
+@section('scripts')
+    <script src="https://app.sandbox.midtrans.com/snap/snap.js"
+        data-client-key="{{ config('services.midtrans.client_key') ?? env('MIDTRANS_CLIENT_KEY') }}"></script>
+@endsection
 
-    {{-- LIVEWIRE SCRIPT FOR SNAP --}}
-    <script>
-        document.addEventListener('livewire:initialized', () => {
-            @this.on('snap-token-generated', (event) => {
-                const token = event[0]['token']; // Livewire dispatch sends array
-                console.log("Snap Token:", token);
+{{-- LIVEWIRE SCRIPT FOR SNAP --}}
+<script>
+    document.addEventListener('livewire:initialized', () => {
+        @this.on('snap-token-generated', (event) => {
+            const token = event[0]['token']; // Livewire dispatch sends array
+            console.log("Snap Token:", token);
 
-                window.snap.pay(token, {
-                    onSuccess: function (result) {
-                        console.log('success', result);
-                        @this.call('finishDemo');
-                        alert("Pembayaran Berhasil!");
-                    },
-                    onPending: function (result) {
-                        console.log('pending', result);
-                        alert("Pembayaran Pending");
-                    },
-                    onError: function (result) {
-                        console.log('error', result);
-                        alert("Pembayaran Gagal");
-                    },
-                    onClose: function () {
-                        console.log('customer closed the popup without finishing the payment');
-                    }
-                });
+            window.snap.pay(token, {
+                onSuccess: function (result) {
+                    console.log('success', result);
+                    @this.call('finishDemo');
+                    alert("Pembayaran Berhasil!");
+                },
+                onPending: function (result) {
+                    console.log('pending', result);
+                    alert("Pembayaran Pending");
+                },
+                onError: function (result) {
+                    console.log('error', result);
+                    alert("Pembayaran Gagal");
+                },
+                onClose: function () {
+                    console.log('customer closed the popup without finishing the payment');
+                }
             });
         });
-    </script>
+    });
+</script>
 </div>

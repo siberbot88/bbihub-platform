@@ -720,7 +720,8 @@ class ApiService {
     int perPage = 10,
     String? type,
     String? dateColumn,
-    bool useScheduleEndpoint = true, // Added for API consistency (not used for owner)
+    String? search, // Added search param
+    bool useScheduleEndpoint = true, 
   }) async {
     try {
       final params = <String, String>{};
@@ -734,6 +735,7 @@ class ApiService {
       if (dateTo != null && dateTo.isNotEmpty) params['date_to'] = dateTo;
       if (type != null && type.isNotEmpty) params['type'] = type;
       if (dateColumn != null && dateColumn.isNotEmpty) params['date_column'] = dateColumn;
+      if (search != null && search.isNotEmpty) params['search'] = search; // Handle search
 
       params['page'] = page.toString();
       params['per_page'] = perPage.toString();
@@ -1173,6 +1175,7 @@ class ApiService {
     int perPage = 10,
     String? type,
     String? dateColumn,
+    String? search, // Added search param
     bool useScheduleEndpoint = true, // New param to control endpoint
   }) async {
     try {
@@ -1193,6 +1196,7 @@ class ApiService {
           if (dateTo != null) 'date_to': dateTo,
           if (type != null) 'filter[type]': type,
           if (dateColumn != null) 'date_column': dateColumn,
+          if (search != null && search.isNotEmpty) 'filter[search]': search, // Send filter[search]
         },
       );
 

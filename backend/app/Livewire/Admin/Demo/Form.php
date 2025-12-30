@@ -40,7 +40,8 @@ class Form extends Component
     public $workshopId;
     public $serviceName; // Masalah/Keluhan utama
     public $serviceDesc;
-    public $servicePrice = 0;
+    public $serviceType = 'booking';
+    public $serviceCategory = 'ringan';
     public ?Service $service = null;
 
     // --- STEP 4: PAYMENT ---
@@ -75,7 +76,7 @@ class Form extends Component
         3 => [
             'workshopId' => 'required|exists:workshops,id',
             'serviceName' => 'required|string', // Keluhan
-            'servicePrice' => 'required|numeric|min:0',
+            'serviceCategory' => 'required|in:ringan,sedang,berat,maintenance',
         ],
         5 => [
             'rating' => 'required|integer|min:1|max:5',
@@ -153,7 +154,8 @@ class Form extends Component
             'vehicleOdometer',
             'serviceName',
             'serviceDesc',
-            'servicePrice',
+            'serviceType',
+            'serviceCategory',
             'voucherCode',
             'discountAmount',
             'finalAmount',
@@ -175,6 +177,19 @@ class Form extends Component
         if ($srv && $srv->status === 'pending') {
             $srv->update(['status' => 'completed']); // Ready for payment
             session()->flash('message', 'Status servis diperbarui: Selesai Dikerjakan.');
+        }
+    }
+
+    public function verifyByAI($serviceId)
+    {
+        $srv = Service::find($serviceId);
+        // Only for booking that is pending
+        if ($srv && $srv->status === 'pending' && $srv->type === 'booking') {
+            $srv->update([
+                'acceptance_status' => 'approved',
+                // 'status' => 'pending' // Still pending execution, but AI accepted
+            ]);
+            session()->flash('message', 'Booking berhasil diterima oleh Admin.');
         }
     }
 
@@ -282,7 +297,8 @@ class Form extends Component
                 'name' => $this->serviceName, // Title/Complaint
                 'description' => $this->serviceDesc ?? 'Demo Service Entry',
                 'status' => 'pending', // Initial status
-                'price' => $this->servicePrice,
+                'type' => $this->serviceType,
+                'category_service' => $this->serviceCategory,
                 'scheduled_date' => now(),
                 'code' => 'SRV-' . time(),
             ]);

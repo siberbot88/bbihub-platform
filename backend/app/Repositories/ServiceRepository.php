@@ -48,6 +48,11 @@ class ServiceRepository
                 $type = 'on-site';
             }
             $query->where('type', $type);
+
+            // Refinement: Booking must have acceptance_status IS NULL
+            if ($type === 'booking') {
+                $query->whereNull('acceptance_status');
+            }
         }
 
         return $query->paginate($perPage);

@@ -27,6 +27,7 @@ class AdminServiceProvider extends ServiceProvider {
     int perPage = 10,
     String? type,
     String? dateColumn, // Added dateColumn param
+    String? search, // Added search param
     bool useScheduleEndpoint = true, // Control endpoint: true for scheduling (grouped), false for history (flat)
   }) async {
     // 1. Ambil raw response asli
@@ -40,6 +41,7 @@ class AdminServiceProvider extends ServiceProvider {
       dateTo: dateTo,
       type: type,
       dateColumn: dateColumn, // Pass to API
+      search: search, // Pass search param
       useScheduleEndpoint: useScheduleEndpoint, // Control which endpoint to use
     );
 

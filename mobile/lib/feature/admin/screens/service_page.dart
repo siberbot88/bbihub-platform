@@ -29,8 +29,9 @@ class _ServicePageAdminState extends State<ServicePageAdmin> with SingleTickerPr
   int _mainMode = 0; // 0 = Penjadwalan, 1 = Pencatatan
 
   // Penjadwalan State
-  String _selectedStatusFilter = 'Semua';
-  final List<String> _statusFilters = ['Semua', 'Menunggu', 'Proses', 'Selesai'];
+  // Penjadwalan State
+  // Status filtering removed as per request
+
 
   String _selectedTypeFilter = 'Semua Tipe';
   final List<String> _typeFilters = ['Semua Tipe', 'Booking', 'Ditempat']; // 'Ditempat' = Onsite
@@ -118,7 +119,16 @@ class _ServicePageAdminState extends State<ServicePageAdmin> with SingleTickerPr
     return Container(
       padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 16, 20, 24), // Added dynamic top padding
       decoration: const BoxDecoration(
-        color: AppColors.primaryRed,
+        gradient: LinearGradient(
+          colors: [
+            Color(0xFF4A0909), // Dark maroon
+            Color(0xFF8B1A1A), // Maroon
+            Color(0xFF9B0D0D), // Red-maroon
+            Color(0xFFB70F0F), // Red
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.only(
           bottomLeft: Radius.circular(24),
           bottomRight: Radius.circular(24),
@@ -246,43 +256,7 @@ class _ServicePageAdminState extends State<ServicePageAdmin> with SingleTickerPr
     return Column(
       children: [
         const SizedBox(height: 16),
-        // Filter Tabs (Status)
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Row(
-            children: _statusFilters.map((filter) {
-              bool isSelected = _selectedStatusFilter == filter;
-              return Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: GestureDetector(
-                  onTap: () => setState(() => _selectedStatusFilter = filter),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: isSelected ? AppColors.primaryRed : Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: isSelected ? AppColors.primaryRed : Colors.grey.shade300,
-                      ),
-                      boxShadow: isSelected 
-                          ? [BoxShadow(color: AppColors.primaryRed.withOpacity(0.3), blurRadius: 4, offset: const Offset(0,2))]
-                          : null,
-                    ),
-                    child: Text(
-                      filter,
-                      style: AppTextStyles.bodyMedium(
-                        color: isSelected ? Colors.white : Colors.grey.shade700,
-                      ).copyWith(fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal),
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ),
+        const SizedBox(height: 16),
 
         const SizedBox(height: 12),
 
@@ -446,15 +420,12 @@ class _ServicePageAdminState extends State<ServicePageAdmin> with SingleTickerPr
     var filtered = List<ServiceModel>.from(allServices); // Show ALL loaded services (Filtered by API)
 
     // 2. Filter by Status Tab
-    if (_selectedStatusFilter != 'Semua') {
-      filtered = filtered.where((s) {
-        final st = (s.status ?? '').toLowerCase();
-        if (_selectedStatusFilter == 'Menunggu') return st == 'pending';
-        if (_selectedStatusFilter == 'Proses') return st == 'in_progress' || st == 'on_process';
-        if (_selectedStatusFilter == 'Selesai') return st == 'completed';
-        return false;
-      }).toList();
-    }
+    // 2. Filter by Status Tab (REMOVED)
+    // if (_selectedStatusFilter != 'Semua') {
+    //   filtered = filtered.where((s) {
+    //     ...
+    //   }).toList();
+    // }
 
     // 3. Filter by Type (REMOVED: Handled by API)
     // if (_selectedTypeFilter != 'Semua Tipe') {
