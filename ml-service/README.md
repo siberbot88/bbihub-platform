@@ -96,10 +96,11 @@ Main endpoint consumed by the Admin Dashboard.
 ```json
 {
     "mrr_forecast": {
-        "current_mrr": 12500000,
-        "forecast_next_month": 13100000,
-        "growth": 4.8,
-        "status": "up"
+        "prediction": 15000000,
+        "growth_rate": 5.2,
+        "history": [
+            {"month": "Jan 2026", "value": 15000000}
+        ]
     },
     "churn_candidates": [
         {

@@ -83,43 +83,44 @@ class MRRForecastModel(MLModel):
 
     def predict(self, months_ahead=3):
         """
-        Predict MRR for next N months
+        Predict MRR for next N months.
+        Returns Dict matching legacy API structure.
         """
-        if self.slope == 0 and self.intercept == 0:
-             # Try simple fallback if not trained but we have data?
-             # No, just return zero if untested
-             return []
+        # Auto-train for real-time
+        self.train()
 
-        future_mrr = []
-        current_date = datetime.now()
-        
-        for i in range(1, months_ahead + 1):
-            future_date = datetime(current_date.year, current_date.month, 1) # Simplification
-            # Move month ahead? Logic is simple timestamp
-            # Better: get timestamps for future dates
-            # This manual linear regression is naive but works for demo
-            
-            # TODO: Improve date handling
-            pass 
-        
-        # Simpler approach: return linear projection for simple chart
-        # We return [ {month: '...', value: 123}, ...]
-        
+        if self.slope == 0 and self.intercept == 0:
+             return {
+                 "prediction": 0,
+                 "growth_rate": 0,
+                 "history": []
+             }
+
         predictions = []
         import calendar
         
-        # Get last month from DB to continue? Or just use current time?
-        # Let's use current time as X start
-        
         start_ts = datetime.now().timestamp()
         
+        # Calculate Next Month Prediction
+        future_ts = start_ts + (30 * 24 * 3600)
+        next_month_val = self.slope * future_ts + self.intercept
+        next_month_val = max(0, next_month_val)
+
+        # Calculate Growth Rate (vs Intercept/Current?)
+        # Base it on slope? Slope is change per second.
+        # Monthly change = slope * 30days
+        monthly_growth = self.slope * (30 * 24 * 3600)
+        current_val = self.slope * start_ts + self.intercept
+        growth_rate = 0
+        if current_val > 0:
+            growth_rate = (monthly_growth / current_val) * 100
+        
+        # Generare Forecast List
         for i in range(1, months_ahead + 1):
-            # Add i months roughly
-            future_ts = start_ts + (i * 30 * 24 * 3600) 
-            pred_value = self.slope * future_ts + self.intercept
+            future_ts_i = start_ts + (i * 30 * 24 * 3600) 
+            pred_value = self.slope * future_ts_i + self.intercept
             
-            # Format month
-            future_dt = datetime.fromtimestamp(future_ts)
+            future_dt = datetime.fromtimestamp(future_ts_i)
             month_str = future_dt.strftime('%b %Y')
             
             predictions.append({
@@ -127,7 +128,11 @@ class MRRForecastModel(MLModel):
                 "value": round(max(0, pred_value), 2)
             })
             
-        return predictions
+        return {
+            "prediction": round(next_month_val, 2),
+            "growth_rate": round(growth_rate, 2),
+            "history": predictions
+        }
 
     def save(self):
         pass # Not persisting to file yet
