@@ -1077,8 +1077,19 @@
                 'Malang': [-7.9666, 112.6326],
                 'Palembang': [-2.9904, 104.7563],
                 'Bogor': [-6.5971, 106.8060],
-                'Batam': [1.1085, 104.0450],
-                'Balikpapan': [-1.2379, 116.8529]
+                'Batam': [1.1198, 104.0474],
+                'Balikpapan': [-1.2379, 116.8529],
+                'Pekanbaru': [0.5071, 101.4478],
+                'Bandar Lampung': [-5.3971, 105.2668],
+                'Padang': [-0.9471, 100.4172],
+                'Pontianak': [-0.0263, 109.3425],
+                'Samarinda': [-0.5022, 117.1536],
+                'Banjarmasin': [-3.3194, 114.5908],
+                'Manado': [1.4748, 124.8428],
+                'Jayapura': [-2.5916, 140.6690],
+                'Ambon': [-3.6554, 128.1908],
+                'Kupang': [-10.1772, 123.6070],
+                'Mataram': [-8.5833, 116.1167]
             };
 
             // Initialize Map centered on Indonesia
@@ -1092,46 +1103,30 @@
                 maxZoom: 19
             }).addTo(map);
 
-            // All Workshops Data
-            const allWorkshops = @json($allWorkshops);
+            // City Stats from Backend (Supply/Demand)
+            // Format: [{city: 'Surabaya', supply: 22, demand: 50, activity: 72}, ...]
+            // Already sorted by Activity (Supply + Demand) from backend
+            const cityStats = @json($cityStats);
 
-            // Group workshops by city and sum revenue
-            const cityData = {};
-            allWorkshops.forEach(workshop => {
-                const city = workshop.city;
-                if (!cityData[city]) {
-                    cityData[city] = {
-                        city: city,
-                        totalRevenue: 0,
-                        workshopCount: 0,
-                        workshops: []
-                    };
-                }
-                cityData[city].totalRevenue += workshop.revenue;
-                cityData[city].workshopCount++;
-                cityData[city].workshops.push(workshop);
-            });
+            // Top 5 CitiesLogic
+            // Since backend returns sorted data, first 5 are top 5
+            const top5Cities = cityStats.slice(0, 5).map(c => c.city);
 
-            // Convert to array and sort by revenue
-            const citiesArray = Object.values(cityData).sort((a, b) => b.totalRevenue - a.totalRevenue);
+            cityStats.forEach((stat, index) => {
+                const coords = cityCoords[stat.city];
 
-            // Identify top 5 cities
-            const top5Cities = citiesArray.slice(0, 5).map(c => c.city);
-
-            citiesArray.forEach(cityInfo => {
-                const coords = cityCoords[cityInfo.city];
                 if (coords) {
-                    const isTop5 = top5Cities.includes(cityInfo.city);
+                    const isTop5 = index < 5;
 
-                    // Marker size based on whether it's top 5
-                    const radius = isTop5 ? 25000 : 10000;
+                    // Marker styling
+                    // Top 5: Big & Colored
+                    // Others: Small & Gray
+                    const radius = isTop5 ? 30000 : 10000;
 
-                    // Color based on ranking
-                    let color = '#94a3b8'; // gray for regular
+                    let color = '#94a3b8'; // gray
                     if (isTop5) {
-                        const index = top5Cities.indexOf(cityInfo.city);
                         const colors = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6'];
-                        color = colors[index];
+                        color = colors[index] || '#6366f1';
                     }
 
                     const circle = L.circle(coords, {
@@ -1142,28 +1137,35 @@
                         weight: isTop5 ? 3 : 1
                     }).addTo(map);
 
-                    // Tooltip Content
+                    // Tooltip: Demamd & Supply Only
                     const tooltipContent = `
-                            <div class="p-2">
-                                <h4 class="font-bold text-sm">${cityInfo.city} ${isTop5 ? '⭐' : ''}</h4>
-                                <div class="text-xs text-gray-600 mt-1">
-                                    Total Revenue: <span class="font-bold text-indigo-600">Rp ${(cityInfo.totalRevenue / 1000000).toFixed(1)}M</span>
+                                <div class="p-2">
+                                    <h4 class="font-bold text-sm">${stat.city} ${isTop5 ? '⭐' : ''}</h4>
+                                    <div class="mt-2 space-y-1">
+                                        <div class="flex justify-between text-xs">
+                                            <span class="text-gray-500">Supply (Bengkel):</span>
+                                            <span class="font-medium text-gray-900">${stat.supply}</span>
+                                        </div>
+                                        <div class="flex justify-between text-xs">
+                                            <span class="text-gray-500">Demand (Request):</span>
+                                            <span class="font-medium text-gray-900">${stat.demand}</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="text-[10px] text-gray-500 mt-1">
-                                    ${cityInfo.workshopCount} bengkel
-                                </div>
-                            </div>
-                        `;
-                    circle.bindPopup(tooltipContent);
+                            `;
 
-                    // Auto-open popup for #1 city
-                    if (cityInfo === citiesArray[0]) {
-                        circle.openPopup();
-                    }
+                    circle.bindTooltip(tooltipContent, {
+                        permanent: false,
+                        direction: 'top',
+                        className: 'bg-white shadow-lg border border-gray-100 rounded-lg'
+                    });
+                } else {
+                    console.warn(`Missing coordinates for city: ${stat.city}`);
                 }
             });
         }
     </script>
+
 
     <script>
         // Separate script block to handle the dynamic data part for modal

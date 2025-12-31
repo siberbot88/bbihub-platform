@@ -265,10 +265,15 @@
 
               {{-- NEW: Membership --}}
               <td class="px-6 py-4">
-                @if($membershipName !== '-')
+                @if($u->hasRole('superadmin'))
+                  <span
+                    class="inline-flex items-center rounded-full bg-purple-50 px-2.5 py-1 text-xs font-bold text-purple-700 border border-purple-100 shadow-sm">
+                    Unlimited
+                  </span>
+                @elseif($u->hasRole('owner') && $membershipName !== '-')
                   <span
                     class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium
-                                    {{ $isActiveMembership ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700' }}">
+                                                      {{ $isActiveMembership ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700' }}">
                     {{ $membershipName }}
                   </span>
                 @else
@@ -278,7 +283,12 @@
 
               {{-- NEW: Masa Berlaku Berakhir --}}
               <td class="px-6 py-4">
-                @if($expiresAt)
+                @if($u->hasRole('superadmin'))
+                  <div class="flex flex-col">
+                    <span class="text-sm font-medium text-gray-700">Lifetime</span>
+                    <span class="text-[10px] text-gray-400">Full Access</span>
+                  </div>
+                @elseif($u->hasRole('owner') && $expiresAt)
                   @if($expiresAt->isPast())
                     <div class="text-sm text-red-600 font-medium">Expired</div>
                     <div class="text-xs text-red-400">{{ $expiresAt->diffForHumans() }}</div>

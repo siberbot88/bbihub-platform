@@ -404,33 +404,46 @@ class EisService
     }
 
     /**
-     * Get ALL Workshops for Map Display
-     * Returns all workshops with their city and revenue for geospatial visualization
+     * Get City Market Stats for Map (Supply vs Demand)
+     * Returns all cities with workshop count (supply) and service count (demand)
      */
-    public function getAllWorkshopsForMap(): array
+    public function getCityMarketStats(): array
     {
-        return \Illuminate\Support\Facades\Cache::remember('eis_all_workshops_map', 1800, function () {
-            return Transaction::join('workshops', 'transactions.workshop_uuid', '=', 'workshops.id')
-                ->where('transactions.status', 'success')
-                ->select(
-                    'workshops.id',
-                    'workshops.name',
-                    'workshops.city',
-                    DB::raw('SUM(transactions.amount) as total_revenue')
-                )
-                ->groupBy('workshops.id', 'workshops.name', 'workshops.city')
-                ->orderByDesc('total_revenue')
-                ->get()
-                ->map(function ($item) {
-                    return [
-                        'id' => $item->id,
-                        'name' => $item->name,
-                        'city' => $item->city,
-                        'revenue' => (float) $item->total_revenue
-                    ];
-                })
-                ->values()
-                ->toArray();
+        return \Illuminate\Support\Facades\Cache::remember('eis_city_stats_map', 3600, function () { // 1 hr
+            // 1. Supply: Count Workshops per City
+            $supply = \App\Models\Workshop::select('city', DB::raw('count(*) as total_supply'))
+                ->groupBy('city')
+                ->pluck('total_supply', 'city');
+
+            // 2. Demand: Count Services per City (via Workshop)
+            $demand = \App\Models\Service::join('workshops', 'services.workshop_uuid', '=', 'workshops.id')
+                ->select('workshops.city', DB::raw('count(*) as total_demand'))
+                ->groupBy('workshops.city')
+                ->pluck('total_demand', 'city');
+
+            // 3. Merge All Cities
+            $allCities = $supply->keys()->merge($demand->keys())->unique()->values();
+
+            $stats = [];
+            foreach ($allCities as $city) {
+                $s = $supply[$city] ?? 0;
+                $d = $demand[$city] ?? 0;
+
+                // Activity Score for sorting (Supply + Demand)
+                $activity = $s + $d;
+
+                $stats[] = [
+                    'city' => $city,
+                    'supply' => $s,
+                    'demand' => $d,
+                    'activity' => $activity
+                ];
+            }
+
+            // Sort by Activity (Biggest markets first)
+            usort($stats, fn($a, $b) => $b['activity'] <=> $a['activity']);
+
+            return $stats;
         });
     }
 
