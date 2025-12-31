@@ -48,6 +48,7 @@ class ServiceApiController extends Controller
                     }
                     $query->whereIn('status', (array) $value);
                 }),
+                AllowedFilter::exact('acceptance_status'),
                 AllowedFilter::exact('type'),
                 AllowedFilter::scope('search'), // Enable search scope
                 AllowedFilter::partial('code'),

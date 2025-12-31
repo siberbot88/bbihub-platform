@@ -34,7 +34,7 @@ class ChurnPredictionModel(MLModel):
                 COALESCE(AVG(t.amount), 0) as avg_transaction,
                 COALESCE(sub.status, 'none') as membership_status
             FROM workshops w
-            LEFT JOIN users u ON u.id = w.user_id
+            LEFT JOIN users u ON u.id = w.user_uuid
             LEFT JOIN transactions t ON t.workshop_uuid = w.id
             LEFT JOIN (
                 SELECT user_id, status FROM owner_subscriptions 

@@ -14,10 +14,18 @@ use App\Models\Voucher;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
+use Livewire\WithPagination;
+
 class Form extends Component
 {
+    use WithPagination;
+
     // Wizard Step
     public int $step = 1;
+
+    // Table Filters
+    public $search = '';
+    public $filterType = '';
 
     // --- STEP 1: CUSTOMER ---
     public $customerName;
@@ -42,6 +50,8 @@ class Form extends Component
     public $serviceDesc;
     public $serviceType = 'booking';
     public $serviceCategory = 'ringan';
+    // Default price to 0 (to be updated by workshop later), but property must exist
+    public $servicePrice = 0;
     public ?Service $service = null;
 
     // --- STEP 4: PAYMENT ---
@@ -117,10 +127,11 @@ class Form extends Component
             $this->saveVehicle();
             $this->step++;
         } elseif ($this->step === 3) {
-            $this->saveServiceAndTransaction();
-            // Finish flow here
-            session()->flash('message', 'Servis berhasil dibuat! Menunggu pengerjaan bengkel.');
-            $this->resetForm();
+            if ($this->saveServiceAndTransaction()) {
+                // Finish flow here
+                session()->flash('message', 'Servis berhasil dibuat! Menunggu pengerjaan bengkel.');
+                $this->resetForm();
+            }
         }
     }
 
@@ -195,7 +206,10 @@ class Form extends Component
 
     public function openPayment($transactionId)
     {
-        $trx = Transaction::with(['customer', 'vehicle', 'service'])->find($transactionId);
+        // Added 'service.invoice.items' to eager load actual invoice details
+        // Added 'service.invoice' to access invoice totals
+        // Fixed: 'vehicle' relationship does not exist on Transaction, getting it via service.vehicle
+        $trx = Transaction::with(['customer', 'service.vehicle', 'service.invoice.items'])->find($transactionId);
 
         if (!$trx)
             return;
@@ -203,11 +217,18 @@ class Form extends Component
         // Load data into component
         $this->transaction = $trx;
         $this->customer = $trx->customer;
-        $this->vehicle = $trx->vehicle ?? $trx->service->vehicle; // Fallback
+        $this->vehicle = $trx->service->vehicle; // Vehicle comes from service
         $this->service = $trx->service;
         $this->workshopId = $trx->workshop_uuid;
 
-        $this->finalAmount = $trx->amount;
+        // PRIORITIZE INVOICE TOTAL
+        // If invoice exists, leverage its total. Otherwise fall back to transaction amount.
+        if ($this->service->invoice) {
+            $this->finalAmount = $this->service->invoice->total;
+        } else {
+            $this->finalAmount = $trx->amount;
+        }
+
         $this->discountAmount = 0;
         $this->voucherCode = '';
         $this->voucherMessage = '';
@@ -219,7 +240,8 @@ class Form extends Component
 
     public function openFeedback($transactionId)
     {
-        $trx = Transaction::with(['customer', 'vehicle', 'service'])->find($transactionId);
+        // Fixed: 'vehicle' relationship does not exist on Transaction
+        $trx = Transaction::with(['customer', 'service.vehicle', 'service'])->find($transactionId);
 
         if (!$trx)
             return;
@@ -227,7 +249,7 @@ class Form extends Component
         // Load data into component
         $this->transaction = $trx;
         $this->customer = $trx->customer;
-        $this->vehicle = $trx->vehicle;
+        $this->vehicle = $trx->service->vehicle;
         $this->service = $trx->service;
         $this->workshopId = $trx->workshop_uuid;
 
@@ -283,8 +305,17 @@ class Form extends Component
 
     protected function saveServiceAndTransaction()
     {
+        // Ensure customer/vehicle are saved if not already
+        if (!$this->customer) {
+            $this->saveCustomer();
+        }
+        if (!$this->vehicle) {
+            $this->saveVehicle();
+        }
+
         if (!$this->customer || !$this->vehicle) {
-            return;
+            $this->addError('system', 'Data Customer atau Kendaraan tidak valid. Silakan ulangi pengisian.');
+            return false;
         }
 
         DB::beginTransaction();
@@ -300,6 +331,12 @@ class Form extends Component
                 'type' => $this->serviceType,
                 'category_service' => $this->serviceCategory,
                 'scheduled_date' => now(),
+                'estimated_time' => match ($this->serviceCategory) {
+                    'sedang' => now()->addHours(2),
+                    'berat' => now()->addHours(5),
+                    'maintenance' => now()->addMinutes(30),
+                    default => now()->addHour(), // ringan
+                },
                 'code' => 'SRV-' . time(),
             ]);
 
@@ -308,15 +345,18 @@ class Form extends Component
                 'service_uuid' => $this->service->id,
                 'customer_uuid' => $this->customer->id,
                 'workshop_uuid' => $this->workshopId,
+                // 'admin_uuid' => auth()->id(), // Removed: simulating customer action
                 'amount' => $this->servicePrice,
                 'status' => 'pending', // unpaid
                 // 'payment_method' => null, (set later)
             ]);
 
             DB::commit();
+            return true;
         } catch (\Exception $e) {
             DB::rollBack();
             $this->addError('system', 'Failed to save service: ' . $e->getMessage());
+            return false;
         }
     }
 
@@ -325,7 +365,10 @@ class Form extends Component
     public function checkVoucher()
     {
         $this->reset('discountAmount', 'finalAmount', 'voucherMessage');
-        $this->finalAmount = $this->transaction->amount; // Reset base
+
+        // Use Invoice Total if available as base, just like openPayment
+        $baseAmount = $this->service->invoice ? $this->service->invoice->total : $this->transaction->amount;
+        $this->finalAmount = $baseAmount;
 
         if (empty($this->voucherCode))
             return;
@@ -345,7 +388,12 @@ class Form extends Component
             return;
         }
 
-        if ($this->transaction->amount < $voucher->min_transaction) {
+        if ($voucher->quota <= 0) {
+            $this->addError('voucherCode', 'Kuota voucher sudah habis.');
+            return;
+        }
+
+        if ($baseAmount < $voucher->min_transaction) {
             $this->addError('voucherCode', "Minimal transaksi Rp " . number_format($voucher->min_transaction));
             return;
         }
@@ -354,7 +402,7 @@ class Form extends Component
         $val = $voucher->discount_value;
         if ($val <= 100) {
             // Percentage
-            $this->discountAmount = $this->transaction->amount * ($val / 100);
+            $this->discountAmount = $baseAmount * ($val / 100);
             $msgType = "{$val}%";
         } else {
             // Fixed Amount
@@ -362,7 +410,7 @@ class Form extends Component
             $msgType = "Rp " . number_format($val);
         }
 
-        $this->finalAmount = max(0, $this->transaction->amount - $this->discountAmount);
+        $this->finalAmount = max(0, $baseAmount - $this->discountAmount);
         $this->voucherMessage = "Voucher applied: -{$msgType} (Hemat Rp " . number_format($this->discountAmount) . ")";
     }
 
@@ -379,38 +427,82 @@ class Form extends Component
         try {
             $midtransService = new \App\Services\MidtransService();
 
+            // Check if we have real invoice items (e.g. from Mohammad Bayu Rizki)
+            $itemDetails = [];
+            $invoice = $this->service->invoice; // loaded via eager load in openPayment
+
+            if ($invoice && $invoice->items && $invoice->items->count() > 0) {
+                // Use actual invoice items
+                foreach ($invoice->items as $item) {
+                    $itemDetails[] = [
+                        'id' => $item->id,
+                        'price' => (int) $item->unit_price,
+                        'quantity' => $item->quantity,
+                        // Truncate name to 50 chars as per Midtrans spec recommendation
+                        'name' => substr($item->name, 0, 50),
+                    ];
+                }
+
+                // Add Invoice Tax if any
+                if ($invoice->tax > 0) {
+                    $itemDetails[] = [
+                        'id' => 'TAX',
+                        'price' => (int) $invoice->tax,
+                        'quantity' => 1,
+                        'name' => 'Tax'
+                    ];
+                }
+
+                // Add Invoice Discount if any
+                if ($invoice->discount > 0) {
+                    $itemDetails[] = [
+                        'id' => 'INV-DISCOUNT',
+                        'price' => -((int) $invoice->discount),
+                        'quantity' => 1,
+                        'name' => 'Invoice Discount'
+                    ];
+                }
+
+            } else {
+                // Fallback for Manual Demo Entry (no invoice record yet)
+                $itemDetails[] = [
+                    'id' => $this->service->id,
+                    'price' => (int) $this->transaction->amount, // Original Price base
+                    'quantity' => 1,
+                    'name' => "Service: " . substr($this->service->name, 0, 40)
+                ];
+            }
+
+            // Apply Form Voucher Discount (Additional)
+            if ($this->discountAmount > 0) {
+                $itemDetails[] = [
+                    'id' => 'VOUCHER-FORM',
+                    'price' => -((int) $this->discountAmount),
+                    'quantity' => 1,
+                    'name' => 'Form Voucher'
+                ];
+            }
+
+            // Calculate Gross Amount strictly from items sum to avoid Midtrans error
+            $grossAmount = 0;
+            foreach ($itemDetails as $item) {
+                $grossAmount += ($item['price'] * $item['quantity']);
+            }
+            // Ensure grossAmount matches finalAmount roughly (integrity check)
+            // But strict sum is required by Midtrans.
+
             $params = [
                 'transaction_details' => [
                     'order_id' => $this->transaction->id . '-' . time(), // Unique ID for Midtrans
-                    'gross_amount' => (int) $this->finalAmount,
+                    'gross_amount' => (int) $grossAmount,
                 ],
                 'customer_details' => [
                     'first_name' => $this->customer->name,
                     'email' => $this->customer->email ?? 'cust@example.com',
                     'phone' => $this->customer->phone,
                 ],
-                'item_details' => [
-                    [
-                        'id' => $this->service->id,
-                        'price' => (int) $this->transaction->amount, // Original Price
-                        'quantity' => 1,
-                        'name' => "Service: " . $this->service->name
-                    ]
-                ]
+                'item_details' => $itemDetails
             ];
-
-            // If discount exists, add it as a negative item (standard practice for itemized consistency)
-            if ($this->discountAmount > 0) {
-                $params['item_details'][] = [
-                    'id' => 'DISCOUNT',
-                    'price' => -((int) $this->discountAmount),
-                    'quantity' => 1,
-                    'name' => 'Voucher Discount'
-                ];
-            } else {
-                // Adjust item price if no discount item (simple fallback)
-                $params['item_details'][0]['price'] = (int) $this->finalAmount;
-            }
 
             $this->snapToken = $midtransService->createSnapToken($params);
 
@@ -429,10 +521,17 @@ class Form extends Component
         $this->transaction->update(['status' => 'paid']);
         $this->service->update(['status' => 'completed']);
 
-        session()->flash('message', 'Pembayaran Berhasil! Silakan beri penilaian Anda.');
+        // Decrement Voucher Quota if used
+        if (!empty($this->voucherCode) && $this->discountAmount > 0) {
+            Voucher::where('code_voucher', $this->voucherCode)
+                ->where('workshop_uuid', $this->workshopId)
+                ->decrement('quota');
+        }
 
-        // Go to feedback step
-        $this->step = 5;
+        session()->flash('message', 'Pembayaran Berhasil! Transaksi telah selesai.');
+
+        // Redirect to Demo Form Dashboard as requested so user can see the Feedback button
+        return redirect()->route('demo-form');
     }
 
     public function submitFeedback()
@@ -454,11 +553,26 @@ class Form extends Component
     public function render()
     {
         // Fetch recent services/transactions for the list
-        // Limit to 10 latest
-        $recentServices = Service::with(['customer', 'vehicle', 'workshop', 'transaction.feedback']) // Eager load feedback
-            ->latest()
-            ->take(10)
-            ->get();
+        $query = Service::with(['customer', 'vehicle', 'workshop', 'transaction.feedback']) // Eager load feedback
+            ->latest();
+
+        if ($this->search) {
+            $query->where(function ($q) {
+                $q->where('name', 'like', '%' . $this->search . '%')
+                    ->orWhereHas('customer', function ($c) {
+                        $c->where('name', 'like', '%' . $this->search . '%');
+                    })
+                    ->orWhereHas('vehicle', function ($v) {
+                        $v->where('plate_number', 'like', '%' . $this->search . '%');
+                    });
+            });
+        }
+
+        if ($this->filterType) {
+            $query->where('type', $this->filterType);
+        }
+
+        $recentServices = $query->paginate(5);
 
         return view('livewire.admin.demo.form', [
             'recentServices' => $recentServices

@@ -11,6 +11,7 @@ use App\Services\AdminServiceManager;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -53,8 +54,26 @@ class ServiceSchedulingController extends Controller
 
             $perPage = $request->input('per_page', 15);
             $type = $request->input('type') ?? $request->input('filter.type');
+            $dateFrom = $request->input('date_from');
+            $dateTo = $request->input('date_to');
 
-            $result = $this->serviceManager->getScheduledServices($workshopId, $date, $perPage, $type);
+            DB::enableQueryLog();
+            $result = $this->serviceManager->getScheduledServices($workshopId, $date, $perPage, $type, $dateFrom, $dateTo);
+            $queries = DB::getQueryLog();
+
+            // Flatten grouped services to count total
+            $totalItems = 0;
+            foreach ($result['grouped_services'] as $group) {
+                $totalItems += count($group);
+            }
+
+            Log::info('Service Scheduling Debug:', [
+                'queries' => $queries,
+                'total_items_found' => $totalItems,
+                'grouped_keys' => $result['grouped_services']->keys(),
+                'date_range' => ['from' => $dateFrom, 'to' => $dateTo],
+                'filter_type' => $type
+            ]);
 
             return $this->successResponse(
                 'Data berhasil diambil',

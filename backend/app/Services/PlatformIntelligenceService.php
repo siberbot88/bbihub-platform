@@ -46,14 +46,22 @@ class PlatformIntelligenceService
                             'owner' => $workshop->owner->name ?? 'Unknown',
                             'prev_vol' => $stat->prev_vol,
                             'current_vol' => $stat->current_vol,
-                            'drop_rate' => round($dropRate * 100, 1) . '%'
+                            'drop_rate' => round($dropRate * 100, 1) . '%',
+                            'raw_drop_rate' => $dropRate
                         ];
                     }
                 }
             }
         }
 
-        return $risky;
+        // Sort by Drop Rate Descending
+        usort($risky, fn($a, $b) => $b['raw_drop_rate'] <=> $a['raw_drop_rate']);
+
+        // Clean up raw data before returning
+        return array_map(function ($item) {
+            unset($item['raw_drop_rate']);
+            return $item;
+        }, $risky);
     }
 
     /**
@@ -73,7 +81,7 @@ class PlatformIntelligenceService
         $candidates = Transaction::select('workshop_uuid', DB::raw('count(*) as total'))
             ->where('created_at', '>=', Carbon::now()->subDays(30))
             ->groupBy('workshop_uuid')
-            ->having('total', '>', 50) // Threshold for "Heavy User"
+            ->having('total', '>', 5) // Threshold for "Heavy User" (Adjusted for Demo Data)
             ->with('workshop.owner')
             ->get();
 
@@ -91,7 +99,9 @@ class PlatformIntelligenceService
             if (!$hasActiveSub) {
                 $upsells[] = [
                     'workshop' => $c->workshop->name,
+                    'workshop_id' => $c->workshop->id,
                     'owner' => $owner->name,
+                    'owner_id' => $owner->id,
                     'volume' => $c->total,
                     'reason' => 'High Volume Free User'
                 ];

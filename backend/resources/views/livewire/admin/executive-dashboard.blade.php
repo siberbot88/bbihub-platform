@@ -653,8 +653,12 @@
                             <div class="text-right">
                                 <div class="text-xs font-bold text-indigo-600">{{ $lead['volume'] }} Trx/mo</div>
                                 <button
-                                    class="mt-1 text-[10px] bg-emerald-600 text-white px-2 py-0.5 rounded hover:bg-emerald-700">Tawarkan
-                                    Premium</button>
+                                    wire:click="sendUpsellOffer('{{ $lead['workshop_id'] }}')"
+                                    wire:loading.attr="disabled"
+                                    class="mt-1 text-[10px] bg-emerald-600 text-white px-2 py-0.5 rounded hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                                    <span wire:loading.remove wire:target="sendUpsellOffer('{{ $lead['workshop_id'] }}')">Tawarkan Premium</span>
+                                    <span wire:loading wire:target="sendUpsellOffer('{{ $lead['workshop_id'] }}')">Mengirim...</span>
+                                </button>
                             </div>
                         </div>
                     @empty

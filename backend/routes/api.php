@@ -187,6 +187,8 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         // ⚠️ IMPORTANT: Specific routes MUST come BEFORE {service} parameter routes
         // Mechanics
         Route::get('mechanics', [\App\Http\Controllers\Api\Admin\AdminEmployeeController::class, 'getMechanics']);
+        Route::get('mechanics/performance', [\App\Http\Controllers\Api\Admin\AdminEmployeeController::class, 'getMechanicPerformance']);
+
 
         Route::get('services/schedule', [\App\Http\Controllers\Api\Admin\ServiceSchedulingController::class, 'index'])->name('api.admin.services.schedule');
 

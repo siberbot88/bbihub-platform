@@ -383,6 +383,9 @@ class _ServiceDetailPageState extends State<ServiceDetailPage> {
                       builder: (context) {
                         final invoice = _service?.invoice;
                         final isPaid = (invoice != null && invoice['status'] == 'paid') || (_service?.status ?? '').toLowerCase() == 'lunas';
+                        
+                        // Check if booking (online) vs on-site (walk-in)
+                        final isBooking = (_service?.type != 'on-site' && _service?.type != 'ditempat');
 
                         if (isPaid) {
                            return ElevatedButton.icon(
@@ -399,7 +402,7 @@ class _ServiceDetailPageState extends State<ServiceDetailPage> {
                              icon: const Icon(Icons.receipt_long, size: 16),
                              label: const Text("Lihat Nota"),
                              style: ElevatedButton.styleFrom(
-                               backgroundColor: AppColors.primaryRed,
+                               backgroundColor: Colors.green, // Changed to Green for Paid/Done
                                foregroundColor: Colors.white,
                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                minimumSize: const Size(0, 36),
@@ -408,33 +411,58 @@ class _ServiceDetailPageState extends State<ServiceDetailPage> {
                              ),
                            );
                         }
-
-                        return ElevatedButton(
-                          onPressed: () {
-                             if (invoice != null) {
-                                Navigator.push(context, MaterialPageRoute(builder: (_) => CashPaymentScreen(
-                                  invoiceId: invoice['id'],
-                                  total: double.tryParse(invoice['total'].toString()) ?? 0.0,
-                                  invoiceCode: invoice['invoice_code'] ?? '',
-                                  service: _service,
-                                )));
-                             } else {
-                                // Re-use _completeService to go to Invoice Form
-                                _completeService();
-                             }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: invoice != null ? Colors.blue : AppColors.primaryRed,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), // Compact
-                            minimumSize: const Size(0, 36),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                          child: Text(
-                            invoice != null ? 'Bayar' : 'Buat Tagihan',
-                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                          ),
-                        );
+                        
+                        // Behavior for Unpaid Invoices
+                        if (isBooking) {
+                            // Online Booking: Admin CANNOT collect payment. Customer pays via app.
+                            return Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                    color: Colors.orange.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                                ),
+                                child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                        const Icon(Icons.access_time_rounded, size: 16, color: Colors.orange),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                            "Menunggu Pembayaran",
+                                            style: AppTextStyles.caption(color: Colors.orange).copyWith(fontWeight: FontWeight.bold),
+                                        ),
+                                    ],
+                                ),
+                            );
+                        } else {
+                            // Walk-in / On-site: Admin collects payment (Cash/QRIS)
+                            return ElevatedButton(
+                              onPressed: () {
+                                 if (invoice != null) {
+                                    Navigator.push(context, MaterialPageRoute(builder: (_) => CashPaymentScreen(
+                                      invoiceId: invoice['id'],
+                                      total: double.tryParse(invoice['total'].toString()) ?? 0.0,
+                                      invoiceCode: invoice['invoice_code'] ?? '',
+                                      service: _service,
+                                    )));
+                                 } else {
+                                    // Re-use _completeService to go to Invoice Form
+                                    _completeService();
+                                 }
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: invoice != null ? Colors.blue : AppColors.primaryRed,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), // Compact
+                                minimumSize: const Size(0, 36),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              child: Text(
+                                invoice != null ? 'Bayar' : 'Buat Tagihan',
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                              ),
+                            );
+                        }
                       }
                     )
                   else
@@ -545,6 +573,16 @@ class _ServiceDetailPageState extends State<ServiceDetailPage> {
     );
   }
 
+  Future<void> _navigateToLogging() async {
+      // Pop until we are back at the main admin dashboard/service list
+      // This assumes ServiceDetailPage was pushed from ServicePage
+      Navigator.of(context).popUntil((route) => route.isFirst); 
+      
+      // Ideally we should use a global key or provider to switch the tab in ServicePage
+      // but for now, popping back is the safest "Back to List" action
+      // If we want to force "Pencatatan" tab, we might need to pass a result back
+  }
+
   Future<void> _acceptService() async {
      if (_service == null) return;
      setState(() => _isLoadingAction = true);
@@ -554,7 +592,9 @@ class _ServiceDetailPageState extends State<ServiceDetailPage> {
          ScaffoldMessenger.of(context).showSnackBar(
            const SnackBar(content: Text('Servis diterima!'), backgroundColor: Colors.green),
          );
-         await _refreshService();
+         // Navigate back to list (which leads to Pencatatan/Logging if flow dictates)
+         // Per request: "untuk menerima atau menolak setelah dipencet akan berpindah ke pencatatan dan load data"
+         Navigator.pop(context, true); // Return true to signal refresh
        }
      } catch (e) {
        if (mounted) {
@@ -568,13 +608,13 @@ class _ServiceDetailPageState extends State<ServiceDetailPage> {
   }
 
   void _showDeclineDialog() {
-    String selectedReason = 'antrian sedang full'; // Default valid reason
+    String selectedReason = 'antrian sedang full';
     final reasonController = TextEditingController();
     final formKey = GlobalKey<FormState>();
 
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder( // Need state for dropdown
+      builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) {
           return AlertDialog(
             title: const Text('Tolak Servis'),
@@ -644,7 +684,7 @@ class _ServiceDetailPageState extends State<ServiceDetailPage> {
          ScaffoldMessenger.of(context).showSnackBar(
            const SnackBar(content: Text('Servis ditolak.'), backgroundColor: Colors.grey),
          );
-         Navigator.pop(context); // Close detail page on decline
+         Navigator.pop(context, true); // Return true to signal refresh/navigation
        }
      } catch (e) {
        if (mounted) {
@@ -656,6 +696,7 @@ class _ServiceDetailPageState extends State<ServiceDetailPage> {
      }
   }
 
+  // Helper widget builder
   Widget _buildInfoItem(IconData icon, String label, String value) {
     return Container(
       padding: const EdgeInsets.only(left: 12),
@@ -740,10 +781,7 @@ class _ServiceDetailPageState extends State<ServiceDetailPage> {
       final mechanicId = result['id']; 
       
       try {
-        // Unified Logic:
-        // If service is pending (e.g. Walk-In that glitched or wasn't auto-accepted),
-        // use 'acceptService' which internally ACcEPTS and ASSIGNS mechanic.
-        // If service is already accepted, use 'assignMechanic'.
+        // Unified Logic: Accept & Assign or just Assign
         if ((_service!.acceptanceStatus ?? 'pending') == 'pending') {
              await context.read<AdminServiceProvider>().acceptServiceAsAdmin(
               _service!.id, 
@@ -761,22 +799,17 @@ class _ServiceDetailPageState extends State<ServiceDetailPage> {
              const SnackBar(content: Text('Mekanik berhasil ditetapkan!'), backgroundColor: Colors.green),
            );
            
-           // Ensure state is updated first
-           await _refreshService(); 
-           
-           // Force delay slightly to ensure Snackbar is seen and state is settled
-           await Future.delayed(const Duration(milliseconds: 500)); 
-
+           // Directly navigate to InvoiceFormScreen (Selesaikan Service) as requested
+           // "untuk assign mekanik itu akan langsung ke halaman selesaikan service"
            if (mounted && _service != null) {
-              debugPrint("Redirecting to InvoiceFormScreen for Service: ${_service!.id}");
-              await Navigator.push(context, MaterialPageRoute(builder: (_) => InvoiceFormScreen(
-                serviceId: _service!.id, 
-                serviceType: _service!.type ?? 'on-site',
-                service: _service,
+               // Update local state first to ensure data consistency passed to next screen
+               final updatedService = await context.read<AdminServiceProvider>().performFetchServiceDetail(_service!.id);
+               
+              Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => InvoiceFormScreen(
+                serviceId: updatedService.id, 
+                serviceType: updatedService.type ?? 'on-site',
+                service: updatedService,
               )));
-              
-              // Refresh again when returning
-              if (mounted) await _refreshService();
            }
         }
       } catch (e) {

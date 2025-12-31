@@ -26,12 +26,13 @@ class UpsellScoringModel(MLModel):
             SELECT 
                 w.id,
                 w.name,
+                u.id as owner_id,
                 u.name as owner,
                 COUNT(t.id) as monthly_transactions,
                 COALESCE(SUM(t.amount), 0) as total_revenue,
                 COALESCE(sub.status, 'free') as membership_status
             FROM workshops w
-            LEFT JOIN users u ON u.id = w.user_id
+            LEFT JOIN users u ON u.id = w.user_uuid
             LEFT JOIN transactions t ON t.workshop_uuid = w.id 
                                  AND t.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
                                  AND t.status = 'success'
@@ -41,7 +42,7 @@ class UpsellScoringModel(MLModel):
                     SELECT MAX(created_at) FROM owner_subscriptions AS sub2 WHERE sub2.user_id = owner_subscriptions.user_id
                 )
             ) sub ON sub.user_id = u.id
-            GROUP BY w.id, w.name, u.name, sub.status
+            GROUP BY w.id, w.name, u.id, u.name, sub.status
             HAVING total_revenue > 0
                AND (membership_status = 'free' OR membership_status = 'expired' OR membership_status = 'none' OR membership_status IS NULL)
             ORDER BY total_revenue DESC
@@ -64,7 +65,9 @@ class UpsellScoringModel(MLModel):
             results = []
             for row in processed_data[:5]:
                 results.append({
+                    'workshop_id': row['id'],
                     'workshop': row['name'],
+                    'owner_id': row['owner_id'],
                     'owner': row['owner'],
                     'volume': int(row['monthly_transactions']),
                     'score': round(row['upsell_score'], 2)

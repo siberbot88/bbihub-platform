@@ -28,6 +28,7 @@ class AdminServiceProvider extends ServiceProvider {
     String? type,
     String? dateColumn, // Added dateColumn param
     String? search, // Added search param
+    String? acceptanceStatus,
     bool useScheduleEndpoint = true, // Control endpoint: true for scheduling (grouped), false for history (flat)
   }) async {
     // 1. Ambil raw response asli
@@ -42,6 +43,7 @@ class AdminServiceProvider extends ServiceProvider {
       type: type,
       dateColumn: dateColumn, // Pass to API
       search: search, // Pass search param
+      acceptanceStatus: acceptanceStatus,
       useScheduleEndpoint: useScheduleEndpoint, // Control which endpoint to use
     );
 
@@ -290,6 +292,16 @@ class AdminServiceProvider extends ServiceProvider {
     } catch (e) {
       if (kDebugMode) print('processCashPayment error: $e');
       rethrow;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> fetchMechanicPerformance({String range = 'today'}) async {
+    try {
+      final res = await _adminApi.adminFetchMechanicPerformance(range: range);
+      return List<Map<String, dynamic>>.from(res['data'] ?? []);
+    } catch (e) {
+      if (kDebugMode) print('fetchMechanicPerformance error: $e');
+      return [];
     }
   }
 

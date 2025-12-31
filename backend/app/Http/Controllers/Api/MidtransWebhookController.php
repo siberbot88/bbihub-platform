@@ -39,57 +39,106 @@ class MidtransWebhookController extends Controller
         // We should query by order_id column.
         $subscription = OwnerSubscription::where('order_id', $orderId)->first();
 
-        if (!$subscription) {
-            Log::error("Subscription not found for Order ID: $orderId");
-            return response()->json(['message' => 'Subscription not found'], 404);
-        }
+        if ($subscription) {
+            // ==========================================
+            // LOGIC 1: OWNER SUBSCRIPTION
+            // ==========================================
 
-        // 🎁 TRIAL ACTIVATION LOGIC
-        // Detect trial orders (starts with 'TRIAL-' or has gross_amount = 0)
-        $isTrial = str_starts_with($orderId, 'TRIAL-') || (int)$grossAmount === 0;
-        
-        if ($isTrial && ($transactionStatus === 'settlement' || $transactionStatus === 'capture')) {
-            // Activate trial for user
-            $user = $subscription->user;
-            if ($user) {
-                $user->update([
-                    'trial_used' => true,
-                    'trial_ends_at' => now()->addDays(7),
-                ]);
-                Log::info("Trial activated for user {$user->id}, order: $orderId");
+            // 🎁 TRIAL ACTIVATION LOGIC
+            // Detect trial orders (starts with 'TRIAL-' or has gross_amount = 0)
+            $isTrial = str_starts_with($orderId, 'TRIAL-') || (int) $grossAmount === 0;
+
+            if ($isTrial && ($transactionStatus === 'settlement' || $transactionStatus === 'capture')) {
+                // Activate trial for user
+                $user = $subscription->user;
+                if ($user) {
+                    $user->update([
+                        'trial_used' => true,
+                        'trial_ends_at' => now()->addDays(7),
+                    ]);
+                    Log::info("Trial activated for user {$user->id}, order: $orderId");
+                }
             }
-        }
 
-        // Current status logic
-        $newStatus = null;
+            // Current status logic
+            $newStatus = null;
 
-        if ($transactionStatus == 'capture') {
-            if ($fraudStatus == 'challenge') {
-                $newStatus = 'pending'; // Challenge by FDS
-            } else {
+            if ($transactionStatus == 'capture') {
+                if ($fraudStatus == 'challenge') {
+                    $newStatus = 'pending'; // Challenge by FDS
+                } else {
+                    $newStatus = 'active'; // Success
+                }
+            } else if ($transactionStatus == 'settlement') {
                 $newStatus = 'active'; // Success
+            } else if ($transactionStatus == 'pending') {
+                $newStatus = 'pending';
+            } else if ($transactionStatus == 'deny') {
+                $newStatus = 'cancelled';
+            } else if ($transactionStatus == 'expire') {
+                $newStatus = 'expired';
+            } else if ($transactionStatus == 'cancel') {
+                $newStatus = 'cancelled';
             }
-        } else if ($transactionStatus == 'settlement') {
-            $newStatus = 'active'; // Success
-        } else if ($transactionStatus == 'pending') {
-            $newStatus = 'pending';
-        } else if ($transactionStatus == 'deny') {
-            $newStatus = 'cancelled';
-        } else if ($transactionStatus == 'expire') {
-            $newStatus = 'expired';
-        } else if ($transactionStatus == 'cancel') {
-            $newStatus = 'cancelled';
-        }
 
-        if ($newStatus) {
-            $subscription->status = $newStatus;
-            $subscription->transaction_id = $transactionId;
-            $subscription->payment_type = $paymentType;
-            $subscription->gross_amount = $grossAmount;
-            // $subscription->pdf_url = ... (Midtrans doesn't send PDF URL in webhook directly usually, but maybe we can construct it or ignore)
-            
-            $subscription->save();
-            Log::info("Subscription $orderId updated to $newStatus");
+            if ($newStatus) {
+                $subscription->status = $newStatus;
+                $subscription->transaction_id = $transactionId;
+                $subscription->payment_type = $paymentType;
+                $subscription->gross_amount = $grossAmount;
+                // $subscription->pdf_url = ... (Midtrans doesn't send PDF URL in webhook directly usually, but maybe we can construct it or ignore)
+
+                $subscription->save();
+                Log::info("Subscription $orderId updated to $newStatus");
+            }
+
+        } else {
+            // ==========================================
+            // LOGIC 2: SERVICE TRANSACTION (Demo Form / Mobile App)
+            // ==========================================
+
+            // Format: {UUID}-{TIMESTAMP} 
+            // We strip the last part to get the UUID
+            $trxUuid = \Illuminate\Support\Str::beforeLast($orderId, '-');
+            $transaction = \App\Models\Transaction::find($trxUuid);
+
+            if (!$transaction) {
+                Log::error("Transaction/Subscription not found for Order ID: $orderId");
+                return response()->json(['message' => 'Transaction not found'], 404);
+            }
+
+            $newStatus = null;
+            if ($transactionStatus == 'capture') {
+                if ($fraudStatus == 'challenge') {
+                    $newStatus = 'pending';
+                } else {
+                    $newStatus = 'paid';
+                }
+            } else if ($transactionStatus == 'settlement') {
+                $newStatus = 'paid';
+            } else if ($transactionStatus == 'pending') {
+                $newStatus = 'pending';
+            } else if ($transactionStatus == 'deny') {
+                $newStatus = 'cancelled';
+            } else if ($transactionStatus == 'expire') {
+                $newStatus = 'cancelled';
+            } else if ($transactionStatus == 'cancel') {
+                $newStatus = 'cancelled';
+            }
+
+            if ($newStatus) {
+                $transaction->update([
+                    'status' => $newStatus,
+                    'payment_method' => $paymentType // Store payment method (e.g. gopay, bank_transfer)
+                ]);
+
+                // If paid, ensure service is completed
+                if ($newStatus === 'paid' && $transaction->service) {
+                    $transaction->service->update(['status' => 'completed']);
+                }
+
+                Log::info("Transaction $trxUuid updated to $newStatus via Webhook");
+            }
         }
 
         return response()->json(['message' => 'Webhook processed']);

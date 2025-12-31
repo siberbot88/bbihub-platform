@@ -54,12 +54,12 @@ class EisService
             $usersTarget = $this->getTarget('active_users', $monthKey, 100);
 
             // 3. Avg CLV (Simple calc for scorecard)
-            $avgClv = $this->calculateAvgClv();
+            $avgClv = $this->calculateAvgClv($year);
             $clvTarget = $this->getTarget('avg_clv', $monthKey, 5000000);
 
             // 4. MRR (Monthly Recurring Revenue)
             // MRR is hard to calculate historically without snapshots. Using Current for now.
-            $mrr = $this->calculateMRR();
+            $mrr = $this->calculateMRR($year);
             $mrrTarget = $this->getTarget('mrr', $monthKey, 120000000);
 
             // 5. Active Subscriptions
@@ -72,11 +72,11 @@ class EisService
             $subsTarget = $this->getTarget('active_subs', $monthKey, 50);
 
             // 6. CSAT (Customer Satisfaction)
-            $csat = $this->calculateCSAT();
+            $csat = $this->calculateCSAT($year);
             $csatTarget = $this->getTarget('csat', $monthKey, 90);
 
             // 7. NPS (Net Promoter Score)
-            $nps = $this->calculateNPS();
+            $nps = $this->calculateNPS($year);
             $npsTarget = $this->getTarget('nps', $monthKey, 50);
 
             return [
@@ -282,9 +282,10 @@ class EisService
      * Logic: Avg Order Value * Purchase Frequency * Lifespan
      * Grouped by Tiers/Segments if possible, here global for Phase 1.
      */
-    public function getClvAnalysis(): array
+    public function getClvAnalysis(?int $year = null): array
     {
-        return \Illuminate\Support\Facades\Cache::remember('eis_clv', 3600, function () { // 60 mins
+        $year = $year ?? now()->year;
+        return \Illuminate\Support\Facades\Cache::remember("eis_clv_{$year}", 3600, function () use ($year) { // 60 mins
             // Get customer metrics: Frequency (x) & Monetary (y) & Recency (size)
             // Only for users who have at least 1 successful transaction
             $customers = Transaction::select(
@@ -295,6 +296,7 @@ class EisService
                 DB::raw('max(created_at) as last_transaction')
             )
                 ->where('status', 'success')
+                ->whereYear('created_at', $year)
                 ->groupBy('customer_uuid')
                 ->get();
 
@@ -323,17 +325,24 @@ class EisService
      * Get Market Gap Analysis (Geospatial)
      * Limit to O(n) or O(n log n) by using DB grouping
      */
-    public function getMarketGapAnalysis(): array
+    /**
+     * Get Market Gap Analysis (Geospatial)
+     * Limit to O(n) or O(n log n) by using DB grouping
+     */
+    public function getMarketGapAnalysis(?int $year = null): array
     {
-        return \Illuminate\Support\Facades\Cache::remember('eis_market_gap_v2', 3600, function () { // 60 mins
-            // Get Cities with Workshop Count
+        $year = $year ?? now()->year;
+        return \Illuminate\Support\Facades\Cache::remember("eis_market_gap_v2_{$year}", 3600, function () use ($year) { // 60 mins
+            // Get Cities with Workshop Count (Supply - All Time as infrastructure exists)
+            // Or should supply also be "Active Workshops this year"? Let's keep Supply as All Time
             $workshopCounts = \App\Models\Workshop::select('city', DB::raw('count(*) as total_workshops'))
                 ->groupBy('city')
                 ->pluck('total_workshops', 'city');
 
-            // Get Service Demand by City (via Workshop relation)
+            // Get Service Demand by City (via Workshop relation) - Filter by Year
             // Ensure efficient join
             $serviceDemand = \App\Models\Service::join('workshops', 'services.workshop_uuid', '=', 'workshops.id')
+                ->whereYear('services.created_at', $year)
                 ->select('workshops.city', DB::raw('count(*) as total_requests'))
                 ->groupBy('workshops.city')
                 ->pluck('total_requests', 'city');
@@ -375,11 +384,13 @@ class EisService
     /**
      * Get Top Performing Workshops by Revenue
      */
-    public function getTopWorkshops(int $limit = 10): array
+    public function getTopWorkshops(int $limit = 10, ?int $year = null): array
     {
-        return \Illuminate\Support\Facades\Cache::remember('eis_top_workshops', 1800, function () use ($limit) {
+        $year = $year ?? now()->year;
+        return \Illuminate\Support\Facades\Cache::remember("eis_top_workshops_{$year}", 1800, function () use ($limit, $year) {
             return Transaction::join('workshops', 'transactions.workshop_uuid', '=', 'workshops.id')
                 ->where('transactions.status', 'success')
+                ->whereYear('transactions.created_at', $year)
                 ->select(
                     'workshops.id',
                     'workshops.name',
@@ -407,9 +418,10 @@ class EisService
      * Get City Market Stats for Map (Supply vs Demand)
      * Returns all cities with workshop count (supply) and service count (demand)
      */
-    public function getCityMarketStats(): array
+    public function getCityMarketStats(?int $year = null): array
     {
-        return \Illuminate\Support\Facades\Cache::remember('eis_city_stats_map', 3600, function () { // 1 hr
+        $year = $year ?? now()->year;
+        return \Illuminate\Support\Facades\Cache::remember("eis_city_stats_map_{$year}", 3600, function () use ($year) { // 1 hr
             // 1. Supply: Count Workshops per City
             $supply = \App\Models\Workshop::select('city', DB::raw('count(*) as total_supply'))
                 ->groupBy('city')
@@ -417,6 +429,7 @@ class EisService
 
             // 2. Demand: Count Services per City (via Workshop)
             $demand = \App\Models\Service::join('workshops', 'services.workshop_uuid', '=', 'workshops.id')
+                ->whereYear('services.created_at', $year)
                 ->select('workshops.city', DB::raw('count(*) as total_demand'))
                 ->groupBy('workshops.city')
                 ->pluck('total_demand', 'city');
@@ -499,47 +512,52 @@ class EisService
         ];
     }
 
-    private function calculateMRR(): float
+    private function calculateMRR(?int $year = null): float
     {
-        // Sum of all active subscription plans' prices
-        // Assuming OwnerSubscription has 'status' = 'active' and related Plan has 'price'
-        // If price is in OwnerSubscription itself (gross_amount), use that.
-        /* 
-           Using OwnerSubscription directly. 
-           In a real SaaS, MRR = Monthly Price normalized. 
-           If subscription is yearly, divide by 12. 
-           For this MVP, we sum gross_amount of active subs assuming they are monthly or treating them as recognized revenue.
-           Refining for Phase 1: Sum of gross_amount of ACTIVE subscriptions.
-        */
-        return OwnerSubscription::where('status', 'active')->sum('gross_amount');
+        // For MRR, technically it's a "Current State" metric.
+        // However, if we filter by Year 2024, maybe we want "MRR at end of 2024"?
+        // Or "Total Subs Revenue in 2024 / 12"?
+        // Detailed approach: Snapshot at end of selected year.
+
+        $date = $year ? Carbon::create($year)->endOfYear() : now();
+
+        return OwnerSubscription::where('status', 'active')
+            ->where('created_at', '<=', $date)
+            ->sum('gross_amount');
     }
 
-    private function calculateCSAT(): float
+    private function calculateCSAT(?int $year = null): float
     {
+        $year = $year ?? now()->year;
         // (4-5 Star Ratings / Total) * 100
-        $totalFeedback = DB::table('feedback')->count();
+        $query = DB::table('feedback')->whereYear('created_at', $year);
+
+        $totalFeedback = $query->count();
         if ($totalFeedback == 0)
             return 0;
 
         $positiveFeedback = DB::table('feedback')
+            ->whereYear('created_at', $year)
             ->where('rating', '>=', 4)
             ->count();
 
         return ($positiveFeedback / $totalFeedback) * 100;
     }
 
-    private function calculateNPS(): float
+    private function calculateNPS(?int $year = null): float
     {
         // NPS = %Promoters (5) - %Detractors (1-3)
         // Note: Standard NPS is 0-10 scale. 9-10 Promoter, 7-8 Passive, 0-6 Detractor.
         // Mapping 1-5 scale to NPS: 5=Promoter, 4=Passive, 1-3=Detractor.
 
-        $total = DB::table('feedback')->count();
+        $year = $year ?? now()->year;
+
+        $total = DB::table('feedback')->whereYear('created_at', $year)->count();
         if ($total == 0)
             return 0;
 
-        $promoters = DB::table('feedback')->where('rating', 5)->count();
-        $detractors = DB::table('feedback')->where('rating', '<=', 3)->count();
+        $promoters = DB::table('feedback')->whereYear('created_at', $year)->where('rating', 5)->count();
+        $detractors = DB::table('feedback')->whereYear('created_at', $year)->where('rating', '<=', 3)->count();
 
         $promoterScore = ($promoters / $total) * 100;
         $detractorScore = ($detractors / $total) * 100;
@@ -564,11 +582,12 @@ class EisService
         return (float) ($subs + $mems);
     }
 
-    private function calculateAvgClv(): float
+    private function calculateAvgClv(?int $year = null): float
     {
+        $year = $year ?? now()->year;
         // Simple Historic CLV: Total Revenue / Total Paying Customers
-        $totalRevenue = Transaction::where('status', 'success')->sum('amount');
-        $payingCustomers = Transaction::where('status', 'success')->distinct('customer_uuid')->count();
+        $totalRevenue = Transaction::where('status', 'success')->whereYear('created_at', $year)->sum('amount');
+        $payingCustomers = Transaction::where('status', 'success')->whereYear('created_at', $year)->distinct('customer_uuid')->count();
 
         if ($payingCustomers == 0)
             return 0;

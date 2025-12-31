@@ -43,7 +43,10 @@ class ServiceLoggingController extends Controller
             }
 
             $perPage = $request->input('per_page', 15);
-            $services = $this->serviceManager->getActiveServices($workshopId, $perPage);
+            $dateFrom = $request->input('date_from');
+            $dateTo = $request->input('date_to');
+
+            $services = $this->serviceManager->getActiveServices($workshopId, $perPage, $dateFrom, $dateTo);
 
             return $this->successResponse(
                 'Data berhasil diambil',

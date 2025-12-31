@@ -40,21 +40,21 @@ class ExecutiveDashboard extends Component
     public function loadData(EisService $eisService, \App\Services\PlatformIntelligenceService $platformService)
     {
         $this->scorecard = $eisService->getKpiScorecard($this->selectedMonth, $this->selectedYear);
-        // These metrics are currently global snapshots, but cached
-        $this->clvAnalysis = $eisService->getClvAnalysis();
-        $this->marketGap = $eisService->getMarketGapAnalysis();
+        // These metrics are currently global snapshots, but cached, now updated to support Year Filter
+        $this->clvAnalysis = $eisService->getClvAnalysis($this->selectedYear);
+        $this->marketGap = $eisService->getMarketGapAnalysis($this->selectedYear);
+        // Customer Segmentation is confusing if Year-bound (RFM usually all-time), keeping global for now or pass year if implemented in future.
+        // Assuming user wants "Reset to 0" for dashboard, so Segmentation arguably should reset too?
+        // Let's keep segmentation global for now as RFM works better with more data, unless specified.
         $this->customerSegmentation = $eisService->getCustomerSegmentation();
 
         // Platform Intelligence (SaaS)
         // Platform Business Outlook - Call ML API
         $this->platformOutlook = $this->getPlatformOutlookFromML();
 
-        $this->topWorkshops = $eisService->getTopWorkshops();
-        $this->cityStats = $eisService->getCityMarketStats();
+        $this->topWorkshops = $eisService->getTopWorkshops(10, $this->selectedYear);
+        $this->cityStats = $eisService->getCityMarketStats($this->selectedYear);
 
-        // Set filters
-        $this->selectedYear = now()->year;
-        $this->selectedMonth = now()->month;
     }
 
     /**
@@ -156,6 +156,29 @@ class ExecutiveDashboard extends Component
         $this->showWorkshopModal = false;
         $this->workshopDetail = [];
         $this->selectedWorkshopId = '';
+    }
+
+    public function sendUpsellOffer(string $workshopId)
+    {
+        $workshop = \App\Models\Workshop::find($workshopId);
+
+        if ($workshop && $workshop->owner) {
+            $workshop->owner->notify(new \App\Notifications\UpsellPremiumNotification());
+
+            // Show feedback (using session flash or browser event)
+            // Assuming we use a standard toast event if available, or just log for MVP
+            $this->dispatch(
+                'notify',
+                type: 'success',
+                message: "Penawaran Premium berhasil dikirim ke {$workshop->owner->name} ({$workshop->name})"
+            );
+        } else {
+            $this->dispatch(
+                'notify',
+                type: 'error',
+                message: "Gagal mengirim penawaran. Data owner tidak valid."
+            );
+        }
     }
 
     public function render()

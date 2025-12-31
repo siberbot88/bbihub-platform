@@ -71,6 +71,7 @@ class _ServicePageAdminState extends State<ServicePageAdmin> with SingleTickerPr
       dateFrom: DateFormat('yyyy-MM-dd').format(_selectedDateRange.start),
       dateTo: DateFormat('yyyy-MM-dd').format(_selectedDateRange.end),
       type: typeFilter,
+      perPage: 100, // Fetch more items to avoid pagination issues
       // We don't filter status at API level here because tabs do client-side filtering for smooth UX (logic preserved for status)
     );
   }

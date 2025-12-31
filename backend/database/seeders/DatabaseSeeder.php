@@ -17,7 +17,7 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-//        User::factory()->create([
+        //        User::factory()->create([
 //            'name' => 'Mohammad Bayu Rizki',
 //            'username' => 'Owner bengkel',
 //            'role' => 'owner',
@@ -26,8 +26,8 @@ class DatabaseSeeder extends Seeder
 //        ]);
 
         $this->call([
-            CustomerSeeder::class,
-            ServiceTypeSeeder::class,
+                // CustomerSeeder::class, // Now handled by MassiveDataSeeder
+                // ServiceTypeSeeder::class, // Table dropped in migration 2025_12_28_120000
             RoleSeeder::class,
             UserSeeder::class,
             DevelopmentSeeder::class,

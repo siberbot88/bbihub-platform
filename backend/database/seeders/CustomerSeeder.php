@@ -2,73 +2,60 @@
 
 namespace Database\Seeders;
 
+use App\Models\Workshop;
+use Database\Seeders\Helpers\IndonesianDataHelper;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class CustomerSeeder extends Seeder
 {
+    private const CUSTOMERS_PER_WORKSHOP_MIN = 40;
+    private const CUSTOMERS_PER_WORKSHOP_MAX = 80;
+
     /**
-     * Run the database seeds.
+     * Create customers distributed across all workshops
+     * Average 60 customers per workshop = ~30,000 total
      */
     public function run(): void
     {
+        $workshops = Workshop::all();
+        $customerCode = 1;
+        $totalCustomers = 0;
 
-        $firstNames = [
-            'Budi', 'Agus', 'Eko', 'Dewi', 'Siti', 'Rini', 'Andi', 'Dodi', 'Fajar', 'Gita',
-            'Hendra', 'Indah', 'Joko', 'Kiki', 'Lintang', 'Mega', 'Nina', 'Oscar', 'Putri', 'Rizky',
-            'Sari', 'Teguh', 'Utami', 'Vino', 'Wati', 'Yoga', 'Zulham', 'Asep', 'Cecep', 'Deden'
-        ];
+        foreach ($workshops as $workshop) {
+            $numCustomers = rand(self::CUSTOMERS_PER_WORKSHOP_MIN, self::CUSTOMERS_PER_WORKSHOP_MAX);
+            $customersToInsert = [];
 
-        $lastNames = [
-            'Santoso', 'Wijaya', 'Hartono', 'Lestari', 'Gunawan', 'Setiawan', 'Purnomo', 'Wati', 'Yulianto',
-            'Nugroho', 'Susanto', 'Salim', 'Kusuma', 'Pratama', 'Hidayat', 'Maulana', 'Saputra', 'Wahyudi'
-        ];
+            for ($i = 0; $i < $numCustomers; $i++) {
+                $customerId = Str::uuid()->toString();
+                $customerName = IndonesianDataHelper::randomName();
+                $code = 'CUST-' . str_pad($customerCode++, 6, '0', STR_PAD_LEFT);
 
-        $streetNames = [
-            'Jl. Melati', 'Jl. Mawar', 'Jl. Kenanga', 'Jl. Anggrek', 'Jl. Sudirman', 'Jl. Thamrin',
-            'Jl. Diponegoro', 'Jl. Gajah Mada', 'Jl. Hayam Wuruk', 'Jl. Pahlawan', 'Jl. Merdeka', 'Jl. Pemuda'
-        ];
+                // Generate email (required field)
+                $emailName = strtolower(str_replace(' ', '.', $customerName));
+                $email = $emailName . rand(100, 999) . '@gmail.com';
 
-        $cities = [
-            'Jakarta', 'Surabaya', 'Bandung', 'Medan', 'Semarang', 'Yogyakarta',
-            'Denpasar', 'Makassar', 'Palembang', 'Bogor', 'Tangerang', 'Bekasi'
-        ];
+                $customersToInsert[] = [
+                    'id' => $customerId,
+                    'code' => $code,
+                    'name' => $customerName,
+                    'phone' => IndonesianDataHelper::randomPhone(),
+                    'address' => IndonesianDataHelper::generateCustomerAddress($workshop->city),
+                    'email' => $email, // Required field
+                    'created_at' => now()->subDays(rand(1, 365)),
+                    'updated_at' => now(),
+                ];
 
-        $dataToInsert = [];
-        $now = now();
-        $datePart = $now->format('Ymd');
+                $totalCustomers++;
+            }
 
-        // Generate 100 customer
-        for ($i = 1; $i <= 100; $i++) {
-
-            $code = 'CUS' . $datePart . str_pad($i, 3, '0', STR_PAD_LEFT);
-
-            $name = $firstNames[array_rand($firstNames)] . ' ' . $lastNames[array_rand($lastNames)];
-
-            $phone = '08' . rand(10, 99) . rand(1000, 9999) . rand(1000, 9999);
-
-            $address = $streetNames[array_rand($streetNames)] . ' No. ' . rand(1, 100) . ', ' . $cities[array_rand($cities)];
-
-            $email = $name . '@gmail.com';
-
-            $dataToInsert[] = [
-                'id' => Str::uuid()->toString(),
-                'code' => $code,
-                'name' => $name,
-                'phone' => $phone,
-                'address' => $address,
-                'email' => $email,
-                'created_at' => $now,
-                'updated_at' => $now
-            ];
+            // Batch insert per workshop
+            DB::table('customers')->insert($customersToInsert);
         }
 
-
-        DB::table('customers')->upsert(
-            $dataToInsert,
-            ['code'],
-            ['name', 'phone', 'address', 'email', 'updated_at']
-        );
+        $this->command->info("✓ Created {$totalCustomers} customers");
+        $this->command->info("  → Distributed across 500 workshops");
+        $this->command->info("  → Average " . round($totalCustomers / 500) . " customers per workshop");
     }
 }

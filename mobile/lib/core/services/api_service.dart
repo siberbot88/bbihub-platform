@@ -721,6 +721,7 @@ class ApiService {
     String? type,
     String? dateColumn,
     String? search, // Added search param
+    String? acceptanceStatus,
     bool useScheduleEndpoint = true, 
   }) async {
     try {
@@ -735,7 +736,9 @@ class ApiService {
       if (dateTo != null && dateTo.isNotEmpty) params['date_to'] = dateTo;
       if (type != null && type.isNotEmpty) params['type'] = type;
       if (dateColumn != null && dateColumn.isNotEmpty) params['date_column'] = dateColumn;
+      if (dateColumn != null && dateColumn.isNotEmpty) params['date_column'] = dateColumn;
       if (search != null && search.isNotEmpty) params['search'] = search; // Handle search
+      if (acceptanceStatus != null) params['filter[acceptance_status]'] = acceptanceStatus;
 
       params['page'] = page.toString();
       params['per_page'] = perPage.toString();
@@ -1176,6 +1179,7 @@ class ApiService {
     String? type,
     String? dateColumn,
     String? search, // Added search param
+    String? acceptanceStatus,
     bool useScheduleEndpoint = true, // New param to control endpoint
   }) async {
     try {
@@ -1196,7 +1200,9 @@ class ApiService {
           if (dateTo != null) 'date_to': dateTo,
           if (type != null) 'filter[type]': type,
           if (dateColumn != null) 'date_column': dateColumn,
+          if (dateColumn != null) 'date_column': dateColumn,
           if (search != null && search.isNotEmpty) 'filter[search]': search, // Send filter[search]
+          if (acceptanceStatus != null) 'filter[acceptance_status]': acceptanceStatus,
         },
       );
 
@@ -1530,9 +1536,33 @@ class ApiService {
       if (j is Map<String, dynamic>) {
           throw Exception(_getErrorMessage(j));
       }
-      throw Exception('Gagal mengambil data mekanik (HTTP ${res.statusCode})');
+    throw Exception('Gagal mengambil data mekanik (HTTP ${res.statusCode})');
     } catch (e) {
       throw Exception('Gagal mengambil data mekanik: $e');
+    }
+  }
+
+  /// ADMIN: Fetch mechanic performance
+  /// GET /admins/mechanics/performance?range=today
+  Future<Map<String, dynamic>> adminFetchMechanicPerformance({String range = 'today'}) async {
+    try {
+      final uri = Uri.parse('${_baseUrl}admins/mechanics/performance').replace(queryParameters: {'range': range});
+      final headers = await _getAuthHeaders();
+
+      _debugRequest('ADMIN_FETCH_MECH_PERF', uri, headers, null);
+      final res = await http.get(uri, headers: headers);
+      _debugResponse('ADMIN_FETCH_MECH_PERF', res);
+
+      if (res.statusCode == 200) {
+        final j = _tryDecodeJson(res.body);
+        if (j is Map<String, dynamic>) {
+          return j;
+        }
+      }
+
+      throw Exception('Gagal mengambil performa mekanik (HTTP ${res.statusCode})');
+    } catch (e) {
+      throw Exception('Gagal mengambil performa mekanik: $e');
     }
   }
 
