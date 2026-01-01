@@ -7,7 +7,8 @@ import '../../feature/owner/widgets/report/report_data.dart';
 class ReportPdfService {
   static Future<void> generate({
     required ReportData data,
-    required TimeRange range,
+    required String periodType, // 'monthly', 'yearly'
+    required String dateLabel, // e.g. "Januari 2025"
   }) async {
     final pdf = pw.Document();
 
@@ -37,7 +38,7 @@ class ReportPdfService {
         theme: theme,
         build: (context) => [
           // Header
-          _buildHeader(logo, range),
+          _buildHeader(logo, dateLabel),
           pw.SizedBox(height: 24),
 
           // KPI Summary
@@ -45,11 +46,11 @@ class ReportPdfService {
           pw.SizedBox(height: 24),
 
           // Financial Summary (NEW)
-          _buildFinancialSummary(data, range),
+          _buildFinancialSummary(data, periodType),
           pw.SizedBox(height: 24),
 
           // Trend Analysis
-          _buildTrendSection(data, range),
+          _buildTrendSection(data, dateLabel),
           pw.SizedBox(height: 24),
 
           // Service Breakdown
@@ -70,14 +71,13 @@ class ReportPdfService {
       ),
     );
 
-    // Show PDF preview with print/share options
     await Printing.layoutPdf(
       onLayout: (format) async => pdf.save(),
-      name: 'laporan-bengkel-${_getRangeName(range)}.pdf',
+      name: 'laporan-bengkel-$dateLabel.pdf',
     );
   }
 
-  static pw.Widget _buildHeader(pw.ImageProvider? logo, TimeRange range) {
+  static pw.Widget _buildHeader(pw.ImageProvider? logo, String dateLabel) {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
@@ -96,8 +96,8 @@ class ReportPdfService {
                   ),
                 ),
                 pw.SizedBox(height: 4),
-                pw.Text(
-                  'Periode: ${_getRangeName(range)}',
+                pw.Text( // Updated to new dateLabel
+                  'Periode: $dateLabel',
                   style: const pw.TextStyle(
                     fontSize: 12,
                     color: PdfColors.grey700,
@@ -167,9 +167,9 @@ class ReportPdfService {
     );
   }
 
-  static pw.Widget _buildFinancialSummary(ReportData data, TimeRange range) {
+  static pw.Widget _buildFinancialSummary(ReportData data, String periodType) {
     // Generate weekly breakdown data (simulated for monthly view)
-    final weeklyData = _generateWeeklyFinancialData(data, range);
+    final weeklyData = _generateWeeklyFinancialData(data, periodType);
     
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -194,7 +194,7 @@ class ReportPdfService {
           ),
         ),
         
-        if (range == TimeRange.monthly) ...[
+        if (periodType == 'monthly') ...[
           pw.SizedBox(height: 16),
           pw.Text('Breakdown Mingguan:', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
           pw.SizedBox(height: 8),
@@ -270,8 +270,8 @@ class ReportPdfService {
     );
   }
 
-  static List<({String label, int revenue, int jobs})> _generateWeeklyFinancialData(ReportData data, TimeRange range) {
-    if (range != TimeRange.monthly) {
+  static List<({String label, int revenue, int jobs})> _generateWeeklyFinancialData(ReportData data, String periodType) {
+    if (periodType != 'monthly') {
       return [];
     }
     
@@ -288,7 +288,7 @@ class ReportPdfService {
     ];
   }
 
-  static pw.Widget _buildTrendSection(ReportData data, TimeRange range) {
+  static pw.Widget _buildTrendSection(ReportData data, String dateLabel) {
     // Generate insight based on trend
     final revenueGrowth = _parseGrowth(data.revenueGrowthText);
     final jobsGrowth = _parseGrowth(data.jobsGrowthText);
@@ -317,7 +317,7 @@ class ReportPdfService {
         _insightBox(insight),
         pw.SizedBox(height: 12),
         pw.Text(
-          'Grafik menunjukkan perbandingan tren ${_getRangeName(range).toLowerCase()} untuk:',
+          'Grafik menunjukkan perbandingan tren $dateLabel untuk:',
           style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
         ),
         pw.SizedBox(height: 8),
@@ -617,17 +617,7 @@ class ReportPdfService {
     );
   }
 
-  // Helper Functions
-  static String _getRangeName(TimeRange range) {
-    switch (range) {
-      case TimeRange.daily:
-        return 'Harian';
-      case TimeRange.weekly:
-        return 'Mingguan';
-      case TimeRange.monthly:
-        return 'Bulanan';
-    }
-  }
+
 
   static String _formatDate(DateTime date) {
     const months = [

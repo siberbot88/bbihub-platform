@@ -71,7 +71,6 @@ class AdminController extends Controller
                     'customer',
                     'vehicle',
                     'mechanic.user',
-                    'transaction.items',
                     'log',
                     'task',
                 ])
@@ -117,7 +116,6 @@ class AdminController extends Controller
                     'customer',
                     'vehicle',
                     'mechanic.user',
-                    'transaction.items',
                     'log',
                     'task',
                 ])
@@ -153,7 +151,6 @@ class AdminController extends Controller
                     'customer',
                     'vehicle',
                     'mechanic.user',
-                    'transaction.items',
                     'log',
                     'task',
                 ])

@@ -26,7 +26,8 @@ class ReportPage extends StatefulWidget {
 }
 
 class _ReportPageState extends State<ReportPage> {
-  TimeRange _range = TimeRange.monthly;
+  String _periodType = 'monthly'; // 'monthly' or 'yearly'
+  DateTime _selectedDate = DateTime.now();
   ReportData? _data;
   bool _isLoading = true;
   final _analyticsRepo = AnalyticsRepository();
@@ -66,10 +67,9 @@ class _ReportPageState extends State<ReportPage> {
     });
 
     try {
-      final rangeString = _range == TimeRange.monthly ? 'monthly' 
-          : _range == TimeRange.weekly ? 'weekly' : 'daily';
+      final dateString = "${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}";
       
-      final data = await _analyticsRepo.getAnalyticsWithAuth(range: rangeString);
+      final data = await _analyticsRepo.getAnalyticsWithAuth(periodType: _periodType, date: dateString);
       
       if (mounted) {
         setState(() {
@@ -187,6 +187,8 @@ class _ReportPageState extends State<ReportPage> {
     }
 
     final d = _data!;
+    debugPrint('ReportPage: forecastRevenue length: ${d.forecastRevenue.length}');
+    debugPrint('ReportPage: forecastRevenue: ${d.forecastRevenue}');
     
     return Scaffold(
       backgroundColor: kPrimaryRed, // Background fallback
@@ -223,6 +225,20 @@ class _ReportPageState extends State<ReportPage> {
                             _buildTrendChart(d),
                             const SizedBox(height: 20),
 
+                            // FORECAST CHART
+                            // Always show if we have forecast data (even if all zeros)
+                            // This ensures historical periods show a flat line instead of hiding
+                            if (d.forecastRevenue.isNotEmpty) ...[
+                              _buildForecastChart(d),
+                              const SizedBox(height: 20),
+                            ],
+
+                            // TOP TECHNICIANS
+                            if (d.topMechanics.isNotEmpty) ...[
+                              _buildTechnicianLeaderboard(d),
+                              const SizedBox(height: 20),
+                            ],
+
                             // Breakdown & Queue
                             _buildBreakdownRow(d),
                             const SizedBox(height: 20),
@@ -233,7 +249,7 @@ class _ReportPageState extends State<ReportPage> {
 
                       // Operational Health
                       ReportHealthMatrix(
-                        avgQueue: '${d.avgQueue} mobil',
+                        avgQueue: '${d.avgQueue} kendaraan',
                         occupancy: '${d.occupancy}%',
                         peakRange: d.peakRange,
                         efficiency: '${d.efficiency}%',
@@ -261,7 +277,6 @@ class _ReportPageState extends State<ReportPage> {
     final double topPadding = MediaQuery.of(context).padding.top;
 
     return Container(
-      // Add topPadding to local padding
       padding: EdgeInsets.fromLTRB(20, topPadding + 10, 20, 24),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -272,67 +287,153 @@ class _ReportPageState extends State<ReportPage> {
       ),
       child: Column(
         children: [
-          // Nav Bar Row (Icons only)
+          // Nav Bar
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Back Button (Only if canPop)
               canPop 
                   ? _buildCircleButton(
                       icon: Icons.chevron_left_rounded,
                       onTap: () => Navigator.maybePop(context),
                     )
-                  : const SizedBox(width: 44, height: 44), // Placeholder to keep layout balanced
-              
-              const SizedBox(width: 44, height: 44), // Placeholder for removed notification button
+                  : const SizedBox(width: 44, height: 44),
+              const SizedBox(width: 44, height: 44), 
             ],
           ),
           const SizedBox(height: 16),
           
-          // Centered Title & Subtitle
+          // Title
           Center(
             child: Column(
               children: [
                  Text(
                   'Laporan',
-                  style: GoogleFonts.poppins(
-                    fontSize: 28, // Matches AppTheme.headingTitle
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+                  style: GoogleFonts.poppins(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Dashboard Analitik',
-                  style: GoogleFonts.poppins(
-                    fontSize: 14, // Matches AppTheme.headingSubtitle
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white.withValues(alpha: 0.9),
-                  ),
+                  style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.white.withOpacity(0.9)),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 24),
           
-          // Segmented Control
+          // --- NEW FILTER CONTROLS ---
           Container(
-            padding: const EdgeInsets.all(4),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.2), // Matches StaffPerformanceScreen dark transparent
-              borderRadius: BorderRadius.circular(30),
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withOpacity(0.1)),
             ),
-            child: Row(
+            child: Column(
               children: [
-                _buildSegmentTab('Harian', TimeRange.daily),
-                _buildSegmentTab('Mingguan', TimeRange.weekly),
-                _buildSegmentTab('Bulanan', TimeRange.monthly),
+                // 1. Period Type Toggle (Bulanan | Tahunan)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildPeriodToggle('Bulanan', 'monthly'),
+                    const SizedBox(width: 12),
+                    _buildPeriodToggle('Tahunan', 'yearly'),
+                  ],
+                ),
+                const Divider(color: Colors.white24, height: 24),
+                
+                // 2. Date Navigation (< Jan 2025 >)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.chevron_left_rounded, color: Colors.white),
+                      onPressed: _prevDate,
+                    ),
+                    Text(
+                      _formatDateFilter(),
+                      style: GoogleFonts.poppins(
+                        fontSize: 16, 
+                        fontWeight: FontWeight.w600, 
+                        color: Colors.white
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.chevron_right_rounded, color: Colors.white),
+                      onPressed: _nextDate,
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildPeriodToggle(String label, String value) {
+    final isSelected = _periodType == value;
+    return GestureDetector(
+      onTap: () {
+        if (!isSelected) {
+            setState(() { 
+                _periodType = value; 
+                if (value == 'yearly') {
+                   // When switching to yearly, defaulting to current year usually makes sense
+                   // but keeping selectedDate is fine too
+                }
+            });
+            _loadAnalytics();
+        }
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6.0), // Reduced vertical padding
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.poppins(
+            fontSize: 13,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+            color: isSelected ? kPrimaryRed : Colors.white70,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _prevDate() {
+    setState(() {
+      if (_periodType == 'monthly') {
+        _selectedDate = DateTime(_selectedDate.year, _selectedDate.month - 1, 1);
+      } else {
+        _selectedDate = DateTime(_selectedDate.year - 1, 1, 1);
+      }
+    });
+    _loadAnalytics();
+  }
+
+  void _nextDate() {
+    setState(() {
+      if (_periodType == 'monthly') {
+        _selectedDate = DateTime(_selectedDate.year, _selectedDate.month + 1, 1);
+      } else {
+        _selectedDate = DateTime(_selectedDate.year + 1, 1, 1);
+      }
+    });
+    _loadAnalytics();
+  }
+
+  String _formatDateFilter() {
+    if (_periodType == 'yearly') {
+      return '${_selectedDate.year}';
+    } else {
+      const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+      return '${months[_selectedDate.month - 1]} ${_selectedDate.year}';
+    }
   }
 
   Widget _buildCircleButton({required IconData icon, required VoidCallback onTap}) {
@@ -350,43 +451,7 @@ class _ReportPageState extends State<ReportPage> {
     );
   }
 
-  Widget _buildSegmentTab(String label, TimeRange range) {
-    final bool isSelected = _range == range;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          if (_range != range) {
-            setState(() => _range = range);
-            _loadAnalytics(); // Reload with new range
-          }
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: isSelected ? Colors.white : Colors.transparent,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: isSelected ? [
-               BoxShadow(
-                 color: Colors.black.withValues(alpha: 0.1), 
-                 blurRadius: 4, 
-                 offset: const Offset(0, 2)
-               )
-            ] : [],
-          ),
-          child: Text(
-            label,
-            style: GoogleFonts.poppins(
-              fontSize: 13,
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-              color: isSelected ? kPrimaryRed : Colors.white.withValues(alpha: 0.9),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+
 
   // --- KPI Section ---
   Widget _buildKpiSection(ReportData d) {
@@ -515,6 +580,219 @@ class _ReportPageState extends State<ReportPage> {
               );
             }(),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildForecastChart(ReportData d) {
+    // Check if forecast has any meaningful data (non-zero values)
+    final hasData = d.forecastRevenue.any((item) => (item['value'] as num) > 0);
+    
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+         color: Colors.white,
+         borderRadius: BorderRadius.circular(24),
+         boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 15, offset: const Offset(0, 4)),
+         ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+           Row(
+             children: [
+               Container(
+                 padding: const EdgeInsets.all(8),
+                 decoration: BoxDecoration(
+                   color: const Color(0xFFE8F5E9),
+                   borderRadius: BorderRadius.circular(8),
+                 ),
+                 child: const Icon(Icons.show_chart_rounded, size: 18, color: Color(0xFF2E7D32)),
+               ),
+               const SizedBox(width: 12),
+               Column(
+                 crossAxisAlignment: CrossAxisAlignment.start,
+                 children: [
+                   Text('Forecast Pendapatan', style: _titleStyle),
+                   Text('Prediksi 7 hari kedepan (ML)', style: _subtitleStyle),
+                 ],
+               ),
+             ],
+           ),
+           const SizedBox(height: 24),
+           SizedBox(
+             height: 180,
+             child: hasData 
+               ? LineChart(
+                   LineChartData(
+                     gridData: FlGridData(show: false),
+                     titlesData: FlTitlesData(show: false),
+                     borderData: FlBorderData(show: false),
+                     lineBarsData: [
+                       LineChartBarData(
+                         spots: d.forecastRevenue.asMap().entries.map((e) {
+                           return FlSpot(e.key.toDouble(), (e.value['value'] as num).toDouble());
+                         }).toList(),
+                         isCurved: true,
+                         color: const Color(0xFF2E7D32),
+                         barWidth: 3,
+                         isStrokeCapRound: true,
+                         dotData: FlDotData(show: false),
+                         belowBarData: BarAreaData(
+                           show: true,
+                           color: const Color(0xFF2E7D32).withOpacity(0.1),
+                         ),
+                       ),
+                     ],
+                   ),
+                 )
+               : Center(
+                   child: Column(
+                     mainAxisAlignment: MainAxisAlignment.center,
+                     children: [
+                       Icon(Icons.insights_outlined, size: 48, color: Colors.grey[300]),
+                       const SizedBox(height: 12),
+                       Text(
+                         'Belum ada prediksi',
+                         style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                       ),
+                       const SizedBox(height: 4),
+                       Text(
+                         'ML memerlukan data historis untuk prediksi',
+                         style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                       ),
+                     ],
+                   ),
+                 ),
+           ),
+           const SizedBox(height: 16),
+           Text(
+             hasData 
+               ? "Estimasi berdasarkan tren data historis. Akurasi tergantung pada kelengkapan data."
+               : "Prediksi akan muncul setelah ada cukup data transaksi historis.",
+             style: GoogleFonts.poppins(fontSize: 10, color: Colors.grey, fontStyle: FontStyle.italic),
+           )
+        ],
+      ),
+    );
+  }
+
+
+
+  Widget _buildTechnicianLeaderboard(ReportData d) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+         color: Colors.white,
+         borderRadius: BorderRadius.circular(24),
+         boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 15, offset: const Offset(0, 4)),
+         ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+           Row(
+             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+             children: [
+               Column(
+                 crossAxisAlignment: CrossAxisAlignment.start,
+                 children: [
+                   Text('Teknisi Terbaik', style: _titleStyle),
+                   Text('Performa penyelesaian service', style: _subtitleStyle),
+                 ],
+               ),
+               Container(
+                 padding: const EdgeInsets.all(8),
+                 decoration: BoxDecoration(
+                   color: Colors.orange.withValues(alpha: 0.1),
+                   borderRadius: BorderRadius.circular(8),
+                 ),
+                 child: const Icon(Icons.workspace_premium_outlined, size: 18, color: Colors.orange),
+               ),
+             ],
+           ),
+           const SizedBox(height: 24),
+           ...d.topMechanics.asMap().entries.map((entry) {
+             final index = entry.key;
+             final mech = entry.value;
+             final isLast = index == d.topMechanics.length - 1;
+             
+             return Container(
+               margin: EdgeInsets.only(bottom: isLast ? 0 : 16),
+               child: Row(
+                 children: [
+                   // Minimal Rank Text
+                    SizedBox(
+                      width: 24, 
+                      child: Text(
+                        '#${index + 1}',
+                        style: GoogleFonts.poppins(
+                          fontSize: 14, 
+                          fontWeight: index < 3 ? FontWeight.bold : FontWeight.w500,
+                          color: index < 3 ? kPrimaryRed : Colors.grey[400]
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Avatar (Standard)
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        shape: BoxShape.circle,
+                        image: (mech['photo_url'] != null && (mech['photo_url'] as String).isNotEmpty)
+                            ? DecorationImage(
+                                image: NetworkImage(mech['photo_url']),
+                                fit: BoxFit.cover,
+                              )
+                            : null,
+                      ),
+                      child: (mech['photo_url'] == null || (mech['photo_url'] as String).isEmpty)
+                          ? Icon(Icons.person_outline_rounded, size: 20, color: Colors.grey[400])
+                          : null,
+                    ),
+                    const SizedBox(width: 16),
+                    // Details
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(mech['name'] ?? 'Teknisi', style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 13, color: const Color(0xFF212121))),
+                          const SizedBox(height: 2),
+                          Row(
+                            children: [
+                               Icon(Icons.check_circle_outline_rounded, size: 12, color: Colors.grey[500]),
+                               const SizedBox(width: 4),
+                               Text('${mech['jobs_count']} Pekerjaan', style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey[600])),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Rating (Clean)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.star_border_rounded, size: 14, color: Color(0xFFFFA000)),
+                          const SizedBox(width: 4),
+                          Text('${mech['rating']}', style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF212121))),
+                        ],
+                      ),
+                    )
+                 ],
+               ),
+             );
+           }).toList(),
         ],
       ),
     );
@@ -732,10 +1010,12 @@ class _ReportPageState extends State<ReportPage> {
         ),
         onPressed: () async {
           // Generate and show PDF
-          if (_data != null) {
+          // Generate and show PDF
+           if (_data != null) {
             await ReportPdfService.generate(
               data: _data!,
-              range: _range,
+              periodType: _periodType,
+              dateLabel: _formatDateFilter(),
             );
           }
         },

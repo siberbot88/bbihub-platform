@@ -190,12 +190,33 @@ class DashboardController extends Controller
                 ? Carbon::parse($rawTo)->endOfDay()
                 : Carbon::now()->endOfDay();
 
+            // === FREEMIUM RESTRICTION ===
+            // Admins can only view current month unless the Owner is Premium
+            $workshop = $user->employment->workshop;
+            $owner = $workshop->owner; // Ensure eager loading or just access
+
+            // Check if premium (using User::hasPremiumAccess if owner exists)
+            $isPremium = $owner && $owner->hasPremiumAccess();
+
+            if (!$isPremium) {
+                // Check if requesting data before current month
+                $currentMonthStart = Carbon::now()->startOfMonth();
+                if ($dateFrom->lt($currentMonthStart)) {
+                    return response()->json([
+                        'message' => 'Akses Terbatas. Upgrade ke Premium untuk melihat data historis.',
+                        'is_premium_locked' => true
+                    ], 403);
+                }
+            }
+            // ============================
+
             \Illuminate\Support\Facades\Log::info("Dashboard Stats Filter: ", [
                 'raw_from' => $rawFrom,
                 'raw_to' => $rawTo,
                 'parsed_from' => $dateFrom->toDateTimeString(),
                 'parsed_to' => $dateTo->toDateTimeString(),
-                'workshop_id' => $workshopId
+                'workshop_id' => $workshopId,
+                'is_premium' => $isPremium
             ]);
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error("Dashboard Date Parse Error: " . $e->getMessage());

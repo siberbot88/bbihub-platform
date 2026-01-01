@@ -518,7 +518,7 @@
                                             </div>
                         </div>
                         <td class="px-6 py-4">
-                            @if($srv->transaction?->status === 'paid')
+                            @if($srv->transaction?->status === 'success')
                                 <span
                                     class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
                                     Lunas
@@ -560,7 +560,7 @@
                                         Selesaikan
                                     </button>
                                 @endif
-                            @elseif($srv->status === 'completed' && $srv->transaction?->status !== 'paid' && $srv->type === 'booking')
+                            @elseif($srv->status === 'completed' && $srv->transaction?->status !== 'success' && $srv->type === 'booking')
                                 <button wire:click="openPayment('{{ $srv->transaction?->id }}')"
                                     class="inline-flex items-center gap-1 rounded bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
@@ -570,7 +570,7 @@
                                     </svg>
                                     Bayar
                                 </button>
-                            @elseif($srv->transaction?->status === 'paid' && !$srv->transaction->feedback)
+                            @elseif($srv->transaction?->status === 'success' && !$srv->transaction->feedback)
                                 <button wire:click="openFeedback('{{ $srv->transaction?->id }}')"
                                     class="inline-flex items-center gap-1 rounded bg-yellow-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-yellow-600">
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-3 w-3">

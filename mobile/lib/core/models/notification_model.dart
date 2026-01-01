@@ -22,15 +22,17 @@ class NotificationModel {
 
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
     final date = DateTime.parse(json['created_at']).toLocal();
+    final data = json['data'] != null ? Map<String, dynamic>.from(json['data']) : <String, dynamic>{};
+    
     return NotificationModel(
       id: json['id'],
-      title: json['title'],
-      message: json['message'],
+      title: json['title'] ?? data['title'] ?? 'Notifikasi',
+      message: json['message'] ?? data['message'] ?? data['body'] ?? 'Pesan baru',
       type: json['type'],
-      isRead: json['is_read'] == 1 || json['is_read'] == true,
+      isRead: json['read_at'] != null, // Laravel uses read_at, not is_read usually, but let's support both if needed
       createdAt: date,
       timeAgo: _timeAgo(date),
-      data: json['data'] != null ? Map<String, dynamic>.from(json['data']) : null,
+      data: data,
     );
   }
 

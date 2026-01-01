@@ -143,7 +143,9 @@ class _ServiceDetailPageState extends State<ServiceDetailPage> {
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                               decoration: BoxDecoration(
-                                color: (s?.acceptanceStatus ?? 'pending') == 'pending' ? _statusPending : Colors.green,
+                                color: (s?.transaction != null && (s!.transaction!['status'] == 'success' || s.transaction!['status'] == 'paid')) 
+                                    ? Colors.green 
+                                    : (s?.acceptanceStatus ?? 'pending') == 'pending' ? _statusPending : Colors.green,
                                 borderRadius: BorderRadius.circular(100),
                                 boxShadow: [
                                   BoxShadow(
@@ -154,13 +156,15 @@ class _ServiceDetailPageState extends State<ServiceDetailPage> {
                                 ],
                               ),
                               child: Text(
-                                (['completed', 'lunas'].contains((s?.status ?? '').toLowerCase()))
-                                  ? "SERVICE SELESAI"
-                                  : (isAssigned 
-                                      ? "MENUNGGU PENGECEKAN" 
-                                      : (s?.acceptanceStatus == 'accepted' 
-                                          ? "DITERIMA" 
-                                          : (s?.status.toUpperCase() ?? "PENDING"))),
+                                (s?.transaction != null && (s!.transaction!['status'] == 'success' || s.transaction!['status'] == 'paid'))
+                                  ? "LUNAS"
+                                  : (['completed', 'lunas'].contains((s?.status ?? '').toLowerCase()))
+                                      ? "SERVICE SELESAI"
+                                      : (isAssigned 
+                                          ? "MENUNGGU PENGECEKAN" 
+                                          : (s?.acceptanceStatus == 'accepted' 
+                                              ? "DITERIMA" 
+                                              : (s?.status.toUpperCase() ?? "PENDING"))),
                                 style: AppTextStyles.caption(color: Colors.white).copyWith(
                                   fontWeight: FontWeight.w800,
                                   letterSpacing: 0.5,
@@ -382,7 +386,9 @@ class _ServiceDetailPageState extends State<ServiceDetailPage> {
                     Builder(
                       builder: (context) {
                         final invoice = _service?.invoice;
-                        final isPaid = (invoice != null && invoice['status'] == 'paid') || (_service?.status ?? '').toLowerCase() == 'lunas';
+                        final isPaid = (invoice != null && invoice['status'] == 'paid') || 
+                                       (_service?.status ?? '').toLowerCase() == 'lunas' ||
+                                       (_service?.transaction != null && (_service!.transaction!['status'] == 'success' || _service!.transaction!['status'] == 'paid'));
                         
                         // Check if booking (online) vs on-site (walk-in)
                         final isBooking = (_service?.type != 'on-site' && _service?.type != 'ditempat');
@@ -585,16 +591,26 @@ class _ServiceDetailPageState extends State<ServiceDetailPage> {
 
   Future<void> _acceptService() async {
      if (_service == null) return;
+     
+     // 1. Set loading
      setState(() => _isLoadingAction = true);
+     
      try {
+       // 2. Call API
        await context.read<AdminServiceProvider>().acceptServiceAsAdmin(_service!.id);
+       
+       // 3. Check mounted before using context
+       if (!mounted) return;
+
+       // 4. Show success & Navigate back
+       ScaffoldMessenger.of(context).showSnackBar(
+         const SnackBar(content: Text('Servis diterima!'), backgroundColor: Colors.green, duration: Duration(seconds: 1)),
+       );
+       
+       // Wait slightly for snackbar visibility then pop
+       await Future.delayed(const Duration(milliseconds: 300));
        if (mounted) {
-         ScaffoldMessenger.of(context).showSnackBar(
-           const SnackBar(content: Text('Servis diterima!'), backgroundColor: Colors.green),
-         );
-         // Navigate back to list (which leads to Pencatatan/Logging if flow dictates)
-         // Per request: "untuk menerima atau menolak setelah dipencet akan berpindah ke pencatatan dan load data"
-         Navigator.pop(context, true); // Return true to signal refresh
+          Navigator.of(context).pop(true); // Return true to signal refresh
        }
      } catch (e) {
        if (mounted) {

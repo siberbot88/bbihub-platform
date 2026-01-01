@@ -3,21 +3,79 @@
 namespace App\Services;
 
 use App\Models\EisMetricTarget;
+use App\Models\EisSnapshot;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Models\OwnerSubscription;
 use App\Models\MembershipTransaction;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class EisService
 {
     /**
-     * Get KPI Scorecard Data (Actual vs Target)
+     * Create a Snapshot for a given Year (and optional Month)
+     * effectively "Archiving" the report.
      */
+    public function createSnapshot(int $year, ?int $month = null): void
+    {
+        // 1. CLV Analysis
+        $clvData = $this->getClvAnalysis($year, true); // force fresh
+        EisSnapshot::updateOrCreate(
+            ['year' => $year, 'month' => null, 'type' => 'clv'],
+            ['data' => $clvData, 'snapshotted_at' => now()]
+        );
+
+        // 2. Market Gap
+        $gapData = $this->getMarketGapAnalysis($year, true);
+        EisSnapshot::updateOrCreate(
+            ['year' => $year, 'month' => null, 'type' => 'market_gap'],
+            ['data' => $gapData, 'snapshotted_at' => now()]
+        );
+
+        // 3. City Stats (Map)
+        $cityStats = $this->getCityMarketStats($year, true);
+        EisSnapshot::updateOrCreate(
+            ['year' => $year, 'month' => null, 'type' => 'city_stats'],
+            ['data' => $cityStats, 'snapshotted_at' => now()]
+        );
+
+        // 4. Top Workshops
+        $topWorkshops = $this->getTopWorkshops(10, $year, true);
+        EisSnapshot::updateOrCreate(
+            ['year' => $year, 'month' => null, 'type' => 'top_workshops'],
+            ['data' => $topWorkshops, 'snapshotted_at' => now()]
+        );
+
+        Log::info("EIS Snapshot created for Year: {$year}");
+    }
+
     /**
-     * Get KPI Scorecard Data (Actual vs Target)
+     * internal helper to get snapshot or compute
      */
+    private function getOrCompute(string $type, int $year, callable $computeCallback, bool $forceFresh = false)
+    {
+        // If forcing fresh (e.g. for generating snapshot), strictly compute
+        if ($forceFresh) {
+            return $computeCallback();
+        }
+
+        // 1. Try to find an existing Snapshot (Archive)
+        // If Snapshot exists, USE IT. Use "Force Refresh" button to update snapshot if needed.
+        $snapshot = EisSnapshot::where('year', $year)
+            ->whereNull('month')
+            ->where('type', $type)
+            ->first();
+
+        if ($snapshot) {
+            return $snapshot->data;
+        }
+
+        // 2. Fallback to Live Compute (Cached)
+        return $computeCallback();
+    }
+
     /**
      * Get KPI Scorecard Data (Actual vs Target)
      */
@@ -37,8 +95,6 @@ class EisService
             $revenueTarget = $this->getTarget('revenue_monthly', $monthKey, 150000000); // Default 150M
 
             // 2. Active Users (Snapshot - Currently always Realtime)
-            // Ideally we query count of users created_at <= end of month if historical
-            // Exclude orphaned owners (users with owner role but no workshop)
             $ownerUserIds = \DB::table('model_has_roles')
                 ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
                 ->where('roles.name', 'owner')
@@ -47,6 +103,7 @@ class EisService
             $workshopOwnerIds = \App\Models\Workshop::distinct('user_uuid')->pluck('user_uuid');
             $orphanedOwnerIds = $ownerUserIds->diff($workshopOwnerIds);
 
+            // Corrected: Filter users created UNTIL end of selected month
             $activeUsers = User::where('created_at', '<=', $date->endOfMonth())
                 ->whereNotNull('email_verified_at')
                 ->whereNotIn('id', $orphanedOwnerIds)
@@ -58,13 +115,10 @@ class EisService
             $clvTarget = $this->getTarget('avg_clv', $monthKey, 5000000);
 
             // 4. MRR (Monthly Recurring Revenue)
-            // MRR is hard to calculate historically without snapshots. Using Current for now.
             $mrr = $this->calculateMRR($year);
             $mrrTarget = $this->getTarget('mrr', $monthKey, 120000000);
 
             // 5. Active Subscriptions
-            // Approximation: Active subs created before end of target month
-            // (Assuming no cancellations for simplicity in this MVP)
             $activeSubs = OwnerSubscription::where('status', 'active')
                 ->where('created_at', '<=', $date->endOfMonth())
                 ->count();
@@ -101,7 +155,7 @@ class EisService
                     'chart_data' => $this->generateTrend($mrr)
                 ],
                 [
-                    'id' => 'subscriptions', // Changed from arpu
+                    'id' => 'subscriptions',
                     'name' => 'Total Langganan Aktif',
                     'description' => 'Jumlah bengkel yang saat ini berlangganan paket premium secara aktif.',
                     'value' => $activeSubs,
@@ -282,182 +336,190 @@ class EisService
      * Logic: Avg Order Value * Purchase Frequency * Lifespan
      * Grouped by Tiers/Segments if possible, here global for Phase 1.
      */
-    public function getClvAnalysis(?int $year = null): array
+    public function getClvAnalysis(?int $year = null, bool $forceFresh = false): array
     {
         $year = $year ?? now()->year;
-        return \Illuminate\Support\Facades\Cache::remember("eis_clv_{$year}", 3600, function () use ($year) { // 60 mins
-            // Get customer metrics: Frequency (x) & Monetary (y) & Recency (size)
-            // Only for users who have at least 1 successful transaction
-            $customers = Transaction::select(
-                'customer_uuid',
-                DB::raw('count(*) as freq'),
-                DB::raw('avg(amount) as aov'),
-                DB::raw('sum(amount) as total_value'),
-                DB::raw('max(created_at) as last_transaction')
-            )
-                ->where('status', 'success')
-                ->whereYear('created_at', $year)
-                ->groupBy('customer_uuid')
-                ->get();
 
-            $scatterData = $customers->map(function ($c) {
-                $recencyDays = Carbon::parse($c->last_transaction)->diffInDays(now());
-                // Invert recency for size (newer = bigger bubble or distinct color)
+        return $this->getOrCompute('clv', $year, function () use ($year) {
+            return \Illuminate\Support\Facades\Cache::remember("eis_clv_{$year}", 3600, function () use ($year) { // 60 mins
+                // Get customer metrics: Frequency (x) & Monetary (y) & Recency (size)
+                // Only for users who have at least 1 successful transaction
+                $customers = Transaction::select(
+                    'customer_uuid',
+                    DB::raw('count(*) as freq'),
+                    DB::raw('avg(amount) as aov'),
+                    DB::raw('sum(amount) as total_value'),
+                    DB::raw('max(created_at) as last_transaction')
+                )
+                    ->where('status', 'success')
+                    ->whereYear('created_at', $year)
+                    ->groupBy('customer_uuid')
+                    ->get();
+
+                $scatterData = $customers->map(function ($c) {
+                    $recencyDays = Carbon::parse($c->last_transaction)->diffInDays(now());
+                    // Invert recency for size (newer = bigger bubble or distinct color)
+                    return [
+                        'x' => $c->freq, // Frequency
+                        'y' => (float) $c->total_value, // Total Value (LTV)
+                        'r' => $recencyDays < 30 ? 6 : ($recencyDays < 90 ? 4 : 2), // Bubble logic
+                        'customer' => $c->customer_uuid // Ideally format to Name
+                    ];
+                });
+
                 return [
-                    'x' => $c->freq, // Frequency
-                    'y' => (float) $c->total_value, // Total Value (LTV)
-                    'r' => $recencyDays < 30 ? 6 : ($recencyDays < 90 ? 4 : 2), // Bubble logic
-                    'customer' => $c->customer_uuid // Ideally format to Name
+                    'scatter' => $scatterData,
+                    'summary' => [
+                        'avg_ltv' => $customers->avg('total_value') ?? 0,
+                        'high_value_count' => $customers->where('total_value', '>', 10000000)->count()
+                    ]
                 ];
             });
-
-            return [
-                'scatter' => $scatterData,
-                'summary' => [
-                    'avg_ltv' => $customers->avg('total_value') ?? 0,
-                    'high_value_count' => $customers->where('total_value', '>', 10000000)->count()
-                ]
-            ];
-        });
+        }, $forceFresh);
     }
 
     /**
      * Get Market Gap Analysis (Geospatial)
      * Limit to O(n) or O(n log n) by using DB grouping
      */
-    /**
-     * Get Market Gap Analysis (Geospatial)
-     * Limit to O(n) or O(n log n) by using DB grouping
-     */
-    public function getMarketGapAnalysis(?int $year = null): array
+    public function getMarketGapAnalysis(?int $year = null, bool $forceFresh = false): array
     {
         $year = $year ?? now()->year;
-        return \Illuminate\Support\Facades\Cache::remember("eis_market_gap_v2_{$year}", 3600, function () use ($year) { // 60 mins
-            // Get Cities with Workshop Count (Supply - All Time as infrastructure exists)
-            // Or should supply also be "Active Workshops this year"? Let's keep Supply as All Time
-            $workshopCounts = \App\Models\Workshop::select('city', DB::raw('count(*) as total_workshops'))
-                ->groupBy('city')
-                ->pluck('total_workshops', 'city');
 
-            // Get Service Demand by City (via Workshop relation) - Filter by Year
-            // Ensure efficient join
-            $serviceDemand = \App\Models\Service::join('workshops', 'services.workshop_uuid', '=', 'workshops.id')
-                ->whereYear('services.created_at', $year)
-                ->select('workshops.city', DB::raw('count(*) as total_requests'))
-                ->groupBy('workshops.city')
-                ->pluck('total_requests', 'city');
+        return $this->getOrCompute('market_gap', $year, function () use ($year) {
+            return \Illuminate\Support\Facades\Cache::remember("eis_market_gap_v2_{$year}", 3600, function () use ($year) { // 60 mins
+                // Get Cities with Workshop Count (Supply - All Time as infrastructure exists)
+                // Or should supply also be "Active Workshops this year"? Let's keep Supply as All Time
+                $workshopCounts = \App\Models\Workshop::select('city', DB::raw('count(*) as total_workshops'))
+                    ->groupBy('city')
+                    ->pluck('total_workshops', 'city');
 
-            // Merge unique cities from both Supply and Demand
-            $allCities = $workshopCounts->keys()->merge($serviceDemand->keys())->unique();
+                // Get Service Demand by City (via Workshop relation) - Filter by Year
+                // Ensure efficient join
+                $serviceDemand = \App\Models\Service::join('workshops', 'services.workshop_uuid', '=', 'workshops.id')
+                    ->whereYear('services.created_at', $year)
+                    ->select('workshops.city', DB::raw('count(*) as total_requests'))
+                    ->groupBy('workshops.city')
+                    ->pluck('total_requests', 'city');
 
-            $marketGaps = [];
-            foreach ($allCities as $city) {
-                $demand = $serviceDemand[$city] ?? 0;
-                $supply = $workshopCounts[$city] ?? 0;
+                // Merge unique cities from both Supply and Demand
+                $allCities = $workshopCounts->keys()->merge($serviceDemand->keys())->unique();
 
-                // Market Gap Formula: (Demand / Supply) * 100
-                if ($supply > 0) {
-                    $gapScore = ($demand / $supply) * 100;
-                } else {
-                    // High demand, zero supply => Infinite gap (cap at high value for viz)
-                    $gapScore = $demand > 0 ? 1000 : 0;
+                $marketGaps = [];
+                foreach ($allCities as $city) {
+                    $demand = $serviceDemand[$city] ?? 0;
+                    $supply = $workshopCounts[$city] ?? 0;
+
+                    // Market Gap Formula: (Demand / Supply) * 100
+                    if ($supply > 0) {
+                        $gapScore = ($demand / $supply) * 100;
+                    } else {
+                        // High demand, zero supply => Infinite gap (cap at high value for viz)
+                        $gapScore = $demand > 0 ? 1000 : 0;
+                    }
+
+                    // Only include if there is ANY activity (Supply or Demand)
+                    if ($demand > 0 || $supply > 0) {
+                        $marketGaps[] = [
+                            'city' => $city,
+                            'demand' => $demand,
+                            'supply' => $supply,
+                            'gap_score' => $gapScore
+                        ];
+                    }
                 }
 
-                // Only include if there is ANY activity (Supply or Demand)
-                if ($demand > 0 || $supply > 0) {
-                    $marketGaps[] = [
-                        'city' => $city,
-                        'demand' => $demand,
-                        'supply' => $supply,
-                        'gap_score' => $gapScore
-                    ];
-                }
-            }
+                // Sort by Gap Score Descending (Highest Demand vs Low Supply) -> O(n log n)
+                usort($marketGaps, fn($a, $b) => $b['gap_score'] <=> $a['gap_score']);
 
-            // Sort by Gap Score Descending (Highest Demand vs Low Supply) -> O(n log n)
-            usort($marketGaps, fn($a, $b) => $b['gap_score'] <=> $a['gap_score']);
-
-            return array_slice($marketGaps, 0, 10); // Return Top 10 opportunities
-        });
+                return array_slice($marketGaps, 0, 10); // Return Top 10 opportunities
+            });
+        }, $forceFresh);
     }
 
     /**
      * Get Top Performing Workshops by Revenue
      */
-    public function getTopWorkshops(int $limit = 10, ?int $year = null): array
+    public function getTopWorkshops(int $limit = 10, ?int $year = null, bool $forceFresh = false): array
     {
         $year = $year ?? now()->year;
-        return \Illuminate\Support\Facades\Cache::remember("eis_top_workshops_{$year}", 1800, function () use ($limit, $year) {
-            return Transaction::join('workshops', 'transactions.workshop_uuid', '=', 'workshops.id')
-                ->where('transactions.status', 'success')
-                ->whereYear('transactions.created_at', $year)
-                ->select(
-                    'workshops.id',
-                    'workshops.name',
-                    DB::raw('SUM(transactions.amount) as total_revenue'),
-                    DB::raw('COUNT(transactions.id) as total_trx')
-                )
-                ->groupBy('workshops.id', 'workshops.name')
-                ->orderByDesc('total_revenue')
-                ->limit($limit)
-                ->get()
-                ->map(function ($item) {
-                    return [
-                        'id' => $item->id,
-                        'name' => $item->name,
-                        'revenue' => (float) $item->total_revenue,
-                        'trx_count' => (int) $item->total_trx
-                    ];
-                })
-                ->values()
-                ->toArray();
-        });
+
+        return $this->getOrCompute('top_workshops', $year, function () use ($limit, $year) {
+            return \Illuminate\Support\Facades\Cache::remember("eis_top_workshops_{$year}", 1800, function () use ($limit, $year) {
+                return Transaction::join('workshops', 'transactions.workshop_uuid', '=', 'workshops.id')
+                    ->where('transactions.status', 'success')
+                    ->whereYear('transactions.created_at', $year)
+                    ->select(
+                        'workshops.id',
+                        'workshops.name',
+                        DB::raw('SUM(transactions.amount) as total_revenue'),
+                        DB::raw('COUNT(transactions.id) as total_trx')
+                    )
+                    ->groupBy('workshops.id', 'workshops.name')
+                    ->orderByDesc('total_revenue')
+                    ->limit($limit)
+                    ->get()
+                    ->map(function ($item) {
+                        return [
+                            'id' => $item->id,
+                            'name' => $item->name,
+                            'revenue' => (float) $item->total_revenue,
+                            'trx_count' => (int) $item->total_trx
+                        ];
+                    })
+                    ->values()
+                    ->toArray();
+            });
+        }, $forceFresh);
     }
 
     /**
      * Get City Market Stats for Map (Supply vs Demand)
      * Returns all cities with workshop count (supply) and service count (demand)
      */
-    public function getCityMarketStats(?int $year = null): array
+    public function getCityMarketStats(?int $year = null, bool $forceFresh = false): array
     {
         $year = $year ?? now()->year;
-        return \Illuminate\Support\Facades\Cache::remember("eis_city_stats_map_{$year}", 3600, function () use ($year) { // 1 hr
-            // 1. Supply: Count Workshops per City
-            $supply = \App\Models\Workshop::select('city', DB::raw('count(*) as total_supply'))
-                ->groupBy('city')
-                ->pluck('total_supply', 'city');
 
-            // 2. Demand: Count Services per City (via Workshop)
-            $demand = \App\Models\Service::join('workshops', 'services.workshop_uuid', '=', 'workshops.id')
-                ->whereYear('services.created_at', $year)
-                ->select('workshops.city', DB::raw('count(*) as total_demand'))
-                ->groupBy('workshops.city')
-                ->pluck('total_demand', 'city');
+        return $this->getOrCompute('city_stats', $year, function () use ($year) {
+            return \Illuminate\Support\Facades\Cache::remember("eis_city_stats_map_{$year}", 3600, function () use ($year) { // 1 hr
+                // 1. Supply: Count Workshops per City
+                $supply = \App\Models\Workshop::select('city', DB::raw('count(*) as total_supply'))
+                    ->groupBy('city')
+                    ->pluck('total_supply', 'city');
 
-            // 3. Merge All Cities
-            $allCities = $supply->keys()->merge($demand->keys())->unique()->values();
+                // 2. Demand: Count Services per City (via Workshop)
+                $demand = \App\Models\Service::join('workshops', 'services.workshop_uuid', '=', 'workshops.id')
+                    ->whereYear('services.created_at', $year)
+                    ->select('workshops.city', DB::raw('count(*) as total_demand'))
+                    ->groupBy('workshops.city')
+                    ->pluck('total_demand', 'city');
 
-            $stats = [];
-            foreach ($allCities as $city) {
-                $s = $supply[$city] ?? 0;
-                $d = $demand[$city] ?? 0;
+                // 3. Merge All Cities
+                $allCities = $supply->keys()->merge($demand->keys())->unique()->values();
 
-                // Activity Score for sorting (Supply + Demand)
-                $activity = $s + $d;
+                $stats = [];
+                foreach ($allCities as $city) {
+                    $s = $supply[$city] ?? 0;
+                    $d = $demand[$city] ?? 0;
 
-                $stats[] = [
-                    'city' => $city,
-                    'supply' => $s,
-                    'demand' => $d,
-                    'activity' => $activity
-                ];
-            }
+                    // Activity Score for sorting (Supply + Demand)
+                    $activity = $s + $d;
 
-            // Sort by Activity (Biggest markets first)
-            usort($stats, fn($a, $b) => $b['activity'] <=> $a['activity']);
+                    $stats[] = [
+                        'city' => $city,
+                        'supply' => $s,
+                        'demand' => $d,
+                        'activity' => $activity
+                    ];
+                }
 
-            return $stats;
-        });
+                // Sort by Activity (Biggest markets first)
+                usort($stats, fn($a, $b) => $b['activity'] <=> $a['activity']);
+
+                return $stats;
+            });
+        }, $forceFresh);
     }
 
     /**
@@ -631,7 +693,7 @@ class EisService
 
         // Get Data
         $scorecard = $this->getKpiScorecard($month, $year);
-        $clv = $this->getClvAnalysis();
+        $clv = $this->getClvAnalysis($year);
 
         $analysis = [];
 

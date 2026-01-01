@@ -127,17 +127,42 @@ class MidtransWebhookController extends Controller
             }
 
             if ($newStatus) {
-                $transaction->update([
-                    'status' => $newStatus,
-                    'payment_method' => $paymentType // Store payment method (e.g. gopay, bank_transfer)
-                ]);
+                try {
+                    // Map Midtrans payment_type to DB ENUM ['QRIS', 'Cash', 'Bank']
+                    // Midtrans types: bank_transfer, qris, gopay, cstore, etc.
+                    $mappedPaymentMethod = null;
+                    if ($paymentType === 'qris' || $paymentType === 'gopay') {
+                        $mappedPaymentMethod = 'QRIS'; // Simplify E-Wallet to QRIS or null if strict
+                    } elseif (str_contains($paymentType, 'bank') || str_contains($paymentType, 'va') || $paymentType === 'echannel') {
+                        $mappedPaymentMethod = 'Bank';
+                    } else {
+                        // Default fallback or null
+                        $mappedPaymentMethod = null;
+                    }
 
-                // If paid, ensure service is completed
-                if ($newStatus === 'paid' && $transaction->service) {
-                    $transaction->service->update(['status' => 'completed']);
+                    // Map Midtrans Status to DB Enum ['pending', 'process', 'success']
+                    $finalStatus = $newStatus;
+                    if (in_array($newStatus, ['cancelled', 'expired', 'deny'])) {
+                        $finalStatus = 'pending'; // Fallback for failed/cancelled transactions
+                    } elseif ($newStatus === 'paid') {
+                        $finalStatus = 'success';
+                    }
+
+                    $transaction->update([
+                        'status' => $finalStatus,
+                        'payment_method' => $mappedPaymentMethod
+                    ]);
+
+                    // If success (paid), ensure service is completed
+                    if ($finalStatus === 'success' && $transaction->service) {
+                        $transaction->service->update(['status' => 'completed']);
+                    }
+
+                    Log::info("Transaction $trxUuid updated to $newStatus via Webhook");
+                } catch (\Exception $e) {
+                    Log::error("Failed to update transaction via webhook: " . $e->getMessage());
+                    return response()->json(['message' => 'Internal Server Error'], 500);
                 }
-
-                Log::info("Transaction $trxUuid updated to $newStatus via Webhook");
             }
         }
 

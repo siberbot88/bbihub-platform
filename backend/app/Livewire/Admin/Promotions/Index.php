@@ -18,26 +18,35 @@ class Index extends Component
     public string $placement = 'all'; // ⬅️ WAJIB ADA
     protected string $paginationTheme = 'tailwind';
 
-    #[Url(as: 'q')]      public string $q = '';
+    #[Url(as: 'q')] public string $q = '';
     #[Url(as: 'status')] public string $status = 'all';
-    #[Url(as: 'pp')]     public int    $perPage = 10;
+    #[Url(as: 'pp')] public int $perPage = 10;
 
     public array $statusOptions = [
-        'all'     => 'Semua Status',
-        'active'  => 'Aktif',
-        'draft'   => 'Draft',
+        'all' => 'Semua Status',
+        'active' => 'Aktif',
+        'draft' => 'Draft',
         'expired' => 'Kadaluarsa',
     ];
 
-    public function updatingQ()       { $this->resetPage(); }
-    public function updatingStatus()  { $this->resetPage(); }
-    public function updatingPerPage() { $this->resetPage(); }
-
-     public function updatingPlacement()
+    public function updatingQ()
     {
         $this->resetPage();
     }
-    
+    public function updatingStatus()
+    {
+        $this->resetPage();
+    }
+    public function updatingPerPage()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingPlacement()
+    {
+        $this->resetPage();
+    }
+
     public function refresh()
     {
         $this->resetPage();
@@ -65,25 +74,31 @@ class Index extends Component
 
     public function render()
     {
-        $q = Promotion::query();
+        // Get all slot groups
+        $slotGroups = Promotion::getAllSlots();
 
-        if ($this->q !== '') {
-            $term = $this->q;
-            $q->where(function ($w) use ($term) {
-                $w->where('title', 'like', "%{$term}%")
-                  ->orWhere('description', 'like', "%{$term}%");
-            });
+        // For each group, get the banner data per slot
+        $bannersBySlot = [];
+        foreach ($slotGroups as $groupKey => $group) {
+            $bannersBySlot[$groupKey] = [];
+            foreach ($group['slots'] as $slot) {
+                $banner = Promotion::where('placement_slot', $slot)->first();
+                $size = Promotion::getRecommendedSize($slot);
+
+                $bannersBySlot[$groupKey][] = [
+                    'slot' => $slot,
+                    'banner' => $banner,
+                    'recommended_width' => $size['width'],
+                    'recommended_height' => $size['height'],
+                    'label' => $size['label'],
+                    'is_available' => $banner === null,
+                ];
+            }
         }
-
-        if ($this->status !== 'all' && Schema::hasColumn('promotions', 'status')) {
-            $q->where('status', $this->status);
-        }
-
-        $promos = $q->latest()->paginate($this->perPage);
 
         return view('livewire.admin.promotions.index', [
-            'promotions'    => $promos,
-            'statusOptions' => $this->statusOptions,
+            'slotGroups' => $slotGroups,
+            'bannersBySlot' => $bannersBySlot,
         ]);
     }
 }

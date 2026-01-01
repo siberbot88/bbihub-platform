@@ -365,11 +365,27 @@ class _ServiceHistoryAdminPageState extends State<ServiceHistoryAdminPage> with 
                        service.status.toLowerCase() == 'selesai' ||
                        service.status.toLowerCase() == 'lunas';
     
+    // Check Transaction Status First
+    String displayStatus = service.status.toUpperCase();
+    bool isPaid = false;
+
+    if (service.transaction != null) {
+      final tStatus = service.transaction!['status']?.toString().toLowerCase();
+      if (tStatus == 'success' || tStatus == 'paid') {
+        isPaid = true;
+        displayStatus = 'LUNAS';
+      } else if (tStatus == 'pending' && isCompleted) {
+         displayStatus = 'MENUNGGU BAYAR';
+      }
+    }
+    
     // Status Color
     Color statusColor;
-    if (isCancelled) statusColor = AppColors.error;
-    else if (isCompleted) statusColor = AppColors.success;
-    else statusColor = Colors.orange;
+    if (isPaid) statusColor = AppColors.success; // LUNAS is always Green
+    else if (isCancelled) statusColor = AppColors.error;
+    else if (displayStatus == 'MENUNGGU BAYAR') statusColor = Colors.orange;
+    else if (isCompleted) statusColor = Colors.blue; // Completed but maybe not paid or no logic
+    else statusColor = Colors.orange; // In Progress / Pending Service
 
     return Container(
         margin: const EdgeInsets.only(bottom: 16),
@@ -423,7 +439,7 @@ class _ServiceHistoryAdminPageState extends State<ServiceHistoryAdminPage> with 
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
-                                service.status.toUpperCase(),
+                                displayStatus, // Use computed display status
                                 style: AppTextStyles.caption(color: statusColor).copyWith(fontWeight: FontWeight.bold),
                               ),
                             )

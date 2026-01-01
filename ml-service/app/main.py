@@ -101,6 +101,44 @@ def train_all_models():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/predict/workshop-revenue', methods=['GET'])
+def predict_workshop_revenue():
+    """
+    Predict revenue for a specific workshop
+    Query Params: ?workshop_uuid=...&days=30
+    """
+    try:
+        from models.workshop_forecast import WorkshopForecastModel
+        
+        workshop_uuid = request.args.get('workshop_uuid')
+        days = int(request.args.get('days', 30))
+
+        if not workshop_uuid:
+            return jsonify({'error': 'workshop_uuid is required'}), 400
+
+        # Build DB Config (Reusable)
+        db_config = {
+            'user': os.getenv('DB_USER', 'root'),
+            'password': os.getenv('DB_PASS', ''),
+            'host': os.getenv('DB_HOST', 'localhost'),
+            'port': int(os.getenv('DB_PORT', 3306)),
+            'database': os.getenv('DB_NAME', 'bbihub_core') # Default DB
+        }
+        
+        model = WorkshopForecastModel(db_config)
+        result = model.predict(workshop_uuid, days)
+        
+        return jsonify({
+            'success': True,
+            'data': result
+        })
+
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({'error': str(e)}), 500
+
+
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
     debug = os.getenv('FLASK_DEBUG', 'False') == 'True'

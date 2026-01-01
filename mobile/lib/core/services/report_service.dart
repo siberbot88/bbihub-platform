@@ -19,14 +19,21 @@ class ReportService {
     };
   }
 
-  /// Get list of owner's reports with pagination
+  /// Get list of reports with pagination (supports both owner and admin)
   Future<Map<String, dynamic>> getReports({
     int page = 1, 
-    int perPage = 10
+    int perPage = 10,
+    bool isAdmin = false, // New parameter to differentiate admin vs owner
   }) async {
     try {
       final headers = await _getAuthHeaders();
-      final uri = Uri.parse('${_baseUrl}owners/reports?page=$page&per_page=$perPage');
+      
+      // Use different endpoint based on user type
+      final String endpoint = isAdmin 
+          ? '${_baseUrl}admins/reports?page=$page&per_page=$perPage'
+          : '${_baseUrl}owners/reports?page=$page&per_page=$perPage';
+      
+      final uri = Uri.parse(endpoint);
 
       final response = await http.get(uri, headers: headers);
 

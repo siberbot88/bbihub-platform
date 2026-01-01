@@ -78,6 +78,16 @@ class ServiceResource extends JsonResource
             'feedback_mechanic' => $this->feedback_mechanic,
             'note' => $this->note,
 
+
+            'transaction' => $this->whenLoaded('transaction', function () {
+                return [
+                    'id' => $this->transaction->id,
+                    'status' => $this->transaction->status,
+                    'amount' => $this->transaction->amount,
+                    'snap_token' => $this->transaction->snap_token,
+                ];
+            }),
+
             'items' => $this->when(
                 $this->relationLoaded('transaction') && $this->transaction && $this->transaction->relationLoaded('items'),
                 function () {

@@ -35,8 +35,8 @@ class SubscriptionPlanSeeder extends Seeder
                 'code' => 'bbi_hub_plus',
                 'name' => 'BBI Hub Plus',
                 'description' => 'Paket premium dengan semua fitur lengkap untuk bengkel profesional',
-                'price_monthly' => 299000,
-                'price_yearly' => 2990000,
+                'price_monthly' => 120000,
+                'price_yearly' => 1440000,
                 'features' => json_encode([
                     'Unlimited Staff',
                     'Advanced Analytics & Reports',

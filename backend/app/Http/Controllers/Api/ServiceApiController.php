@@ -109,7 +109,7 @@ class ServiceApiController extends Controller
 
         // Always load essential relations for mobile app compatibility
         // QueryBuilder allowedIncludes will handle additional includes if requested
-        $query->with(['customer', 'vehicle', 'mechanic.user', 'workshop', 'invoice']);
+        $query->with(['customer', 'vehicle', 'mechanic.user', 'workshop', 'invoice', 'transaction']);
 
         $perPage = (int) $request->get('per_page', 15);
         $services = $query->paginate($perPage)->appends($request->query());

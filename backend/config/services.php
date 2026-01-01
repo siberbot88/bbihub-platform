@@ -48,4 +48,8 @@ return [
         'max_tokens' => env('CHAT_AI_MAX_TOKENS', 500),
     ],
 
+    'ml_service' => [
+        'url' => env('ML_SERVICE_URL', 'http://127.0.0.1:5000'),
+        'key' => env('ML_API_KEY'),
+    ],
 ];

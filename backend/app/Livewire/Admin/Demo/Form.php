@@ -517,8 +517,8 @@ class Form extends Component
     // Called after success payment (frontend can redirect or calling this)
     public function finishDemo()
     {
-        // Update status to paid/completed
-        $this->transaction->update(['status' => 'paid']);
+        // Update status to success (matches DB Enum)
+        $this->transaction->update(['status' => 'success']);
         $this->service->update(['status' => 'completed']);
 
         // Decrement Voucher Quota if used
@@ -531,7 +531,7 @@ class Form extends Component
         session()->flash('message', 'Pembayaran Berhasil! Transaksi telah selesai.');
 
         // Redirect to Demo Form Dashboard as requested so user can see the Feedback button
-        return redirect()->route('demo-form');
+        return redirect()->route('admin.demo-form');
     }
 
     public function submitFeedback()
