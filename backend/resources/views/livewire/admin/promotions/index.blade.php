@@ -86,9 +86,9 @@
               {{-- EMPTY STATE --}}
               @if($slotData['is_available'])
                 <div class="border-2 border-dashed border-neutral-300 rounded-xl bg-gradient-to-br from-white to-neutral-50 
-                                        {{ $aspectClass }}
-                                        {{ $isComingSoon ? 'opacity-50 cursor-not-allowed' : 'hover:border-neutral-400 hover:bg-neutral-50 transition-all cursor-pointer' }}
-                                        flex flex-col items-center justify-center p-6">
+                                              {{ $aspectClass }}
+                                              {{ $isComingSoon ? 'opacity-50 cursor-not-allowed' : 'hover:border-neutral-400 hover:bg-neutral-50 transition-all cursor-pointer' }}
+                                              flex flex-col items-center justify-center p-6">
 
                   {{-- Upload Icon --}}
                   <svg class="h-12 w-12 text-neutral-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -121,12 +121,12 @@
               @else
                 @php
                   $banner = $slotData['banner'];
-                  $imgUrl = $banner->image_url ?? asset('images/placeholder.svg');
+                  $imgUrl = $banner->banner_url ?? $banner->getFirstMediaUrl('banner') ?? asset('images/placeholder.svg');
                 @endphp
 
                 <div class="relative rounded-xl overflow-hidden shadow-md 
-                                        {{ $aspectClass }}
-                                        group-hover:shadow-xl transition-shadow">
+                                              {{ $aspectClass }}
+                                              group-hover:shadow-xl transition-shadow">
 
                   {{-- Banner Image --}}
                   <img src="{{ $imgUrl }}" alt="{{ $banner->title }}" class="w-full h-full object-cover">

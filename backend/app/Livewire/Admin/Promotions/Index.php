@@ -66,7 +66,13 @@ class Index extends Component
     // 🔹 HAPUS – hapus langsung dari sini
     public function delete(int $id)
     {
-        Promotion::findOrFail($id)->delete();
+        $promotion = Promotion::findOrFail($id);
+
+        // Delete associated media first
+        $promotion->clearMediaCollection('banner');
+
+        // Then delete promotion
+        $promotion->delete();
 
         session()->flash('success', 'Banner berhasil dihapus.');
         $this->resetPage(); // refresh data

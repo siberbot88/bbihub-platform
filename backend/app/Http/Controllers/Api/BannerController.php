@@ -25,12 +25,17 @@ class BannerController extends Controller
             ->orderBy('display_order')
             ->get()
             ->map(function ($banner) {
+                $imageUrl = $banner->banner_url ?? $banner->getFirstMediaUrl('banner');
+                // Replace localhost with 10.0.2.2 for Android emulator
+                $imageUrl = str_replace('http://localhost:8000', 'http://10.0.2.2:8000', $imageUrl);
+
                 return [
                     'id' => $banner->id,
                     'title' => $banner->title,
                     'description' => $banner->description,
-                    'image_url' => $banner->image_url ? url($banner->image_url) : null,
-                    'slot' => $banner->placement_slot,
+                    'image_url' => $imageUrl,
+                    'placement_slot' => $banner->placement_slot,
+                    'status' => $banner->status,
                 ];
             });
 
@@ -38,15 +43,23 @@ class BannerController extends Controller
             ->where('status', 'active')
             ->first();
 
+        $characterImageUrl = null;
+        if ($characterBanner) {
+            $characterImageUrl = $characterBanner->banner_url ?? $characterBanner->getFirstMediaUrl('banner');
+            $characterImageUrl = str_replace('http://localhost:8000', 'http://10.0.2.2:8000', $characterImageUrl);
+        }
+
         return response()->json([
             'success' => true,
-            'data' => [
-                'promo_banners' => $promoBanners,
-                'character_image' => $characterBanner ? [
-                    'id' => $characterBanner->id,
-                    'image_url' => $characterBanner->image_url ? url($characterBanner->image_url) : null,
-                ] : null,
-            ],
+            'banners' => $promoBanners,
+            'character' => $characterBanner ? [
+                'id' => $characterBanner->id,
+                'title' => $characterBanner->title ?? 'Character Image',
+                'description' => $characterBanner->description,
+                'image_url' => $characterImageUrl,
+                'placement_slot' => $characterBanner->placement_slot,
+                'status' => $characterBanner->status,
+            ] : null,
         ]);
     }
 

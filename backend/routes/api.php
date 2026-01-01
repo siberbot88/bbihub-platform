@@ -49,7 +49,7 @@ Route::prefix('v1/auth')->group(function () {
         ->middleware('throttle:5,10'); // Max 5 attempts per 10 minutes
 
     // Email Verification
-    Route::get('email/verify/{id}/{hash}', [\App\Http\Controllers\Api\EmailVerificationController::class, 'verify'])->name('verification.verify');
+    Route::get('email/verify/{id}/{hash}', [\App\Http\Controllers\Api\EmailVerificationController::class, 'verify'])->name('api.verification.verify');
 });
 
 // Test endpoint for chat (no auth)

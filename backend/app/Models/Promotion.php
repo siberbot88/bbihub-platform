@@ -3,10 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
 
-class Promotion extends Model
+class Promotion extends Model implements HasMedia
 {
+    use InteractsWithMedia;
     protected $fillable = [
         'title',
         'description',
@@ -121,6 +124,47 @@ class Promotion extends Model
     public static function isSlotAvailable(string $slot): bool
     {
         return !self::where('placement_slot', $slot)->exists();
+    }
+
+    /**
+     * Register media collections
+     */
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('banner')
+            ->singleFile() // Only one image per banner
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp', 'image/jpg']);
+    }
+
+    /**
+     * Get banner image URL (from media library or fallback to image_url field)
+     */
+    public function getBannerUrlAttribute(): ?string
+    {
+        // Try to get from media library first
+        $media = $this->getFirstMediaUrl('banner');
+
+        if ($media) {
+            return $media;
+        }
+
+        // Fallback to image_url field
+        return $this->image_url ? url($this->image_url) : null;
+    }
+
+    /**
+     * Update image dimensions after upload
+     */
+    public function updateImageDimensions(): void
+    {
+        $media = $this->getFirstMedia('banner');
+
+        if ($media) {
+            $this->image_width = $media->getCustomProperty('width');
+            $this->image_height = $media->getCustomProperty('height');
+            $this->image_url = $media->getUrl();
+            $this->save();
+        }
     }
 }
 
