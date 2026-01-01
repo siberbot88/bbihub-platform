@@ -26,6 +26,7 @@ class _LiveChatPageState extends State<LiveChatPage> {
   String? _errorMessage;
   DateTime? _lastMessageTime;
   String? _roomId;
+  String? _currentUserId;
 
   @override
   void initState() {
@@ -46,6 +47,7 @@ class _LiveChatPageState extends State<LiveChatPage> {
     }
 
     // Generate room ID based on user ID - ADMIN VERSION
+    _currentUserId = user.id;
     _roomId = 'support_admin_${user.id}';
     
     // Load chat history
@@ -79,7 +81,7 @@ class _LiveChatPageState extends State<LiveChatPage> {
         setState(() {
           _messages.clear();
           for (var msg in messages) {
-            _messages.add(ChatMessage.fromJson(msg));
+            _messages.add(ChatMessage.fromJson(msg, _currentUserId!));
             _lastMessageTime = DateTime.parse(msg['created_at']);
           }
           _isLoading = false;
@@ -136,7 +138,7 @@ class _LiveChatPageState extends State<LiveChatPage> {
           setState(() {
             bool hasAdminReply = false;
             for (var msg in newMessages) {
-              final newMsg = ChatMessage.fromJson(msg);
+              final newMsg = ChatMessage.fromJson(msg, _currentUserId!);
               // Check if message already exists (deduplication)
               final exists = _messages.any((m) => m.id == newMsg.id);
               if (!exists) {
@@ -200,7 +202,7 @@ class _LiveChatPageState extends State<LiveChatPage> {
 
       if (response.statusCode == 201) {
         final data = json.decode(response.body);
-        final newMessage = ChatMessage.fromJson(data['data']);
+        final newMessage = ChatMessage.fromJson(data['data'], _currentUserId!);
         
         setState(() {
           _messages.add(newMessage);
@@ -760,14 +762,12 @@ class ChatMessage {
     required this.timestamp,
   });
 
-  factory ChatMessage.fromJson(Map<String, dynamic> json) {
-    final userType = json['user_type'] ?? 'support';
-    // ADMIN VERSION: admin messages are from user (isUser = true)
+  factory ChatMessage.fromJson(Map<String, dynamic> json, String currentUserId) {
     return ChatMessage(
       id: json['id'],
       text: json['message'],
       userName: json['user_name'] ?? 'Unknown',
-      isUser: userType == 'admin', // Changed from 'owner' to 'admin'
+      isUser: json['user_id'].toString() == currentUserId,
       timestamp: DateTime.parse(json['created_at']).toLocal(),
     );
   }

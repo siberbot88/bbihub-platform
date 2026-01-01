@@ -50,8 +50,8 @@ class ChatController extends Controller
 
             \Log::info('Chat message created', ['id' => $chatMessage->id]);
 
-            // TRIGGER AI CHATBOT (Only if sender is owner)
-            if ($userType === 'owner') {
+            // TRIGGER AI CHATBOT (Only if sender is owner or admin)
+            if ($userType === 'owner' || $userType === 'admin') {
                 try {
                     // Get recent history for context (last 5 messages)
                     $history = ChatMessage::inRoom($request->room_id)

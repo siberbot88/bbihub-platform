@@ -180,8 +180,14 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
 
     // ADMIN ROUTES (Consolidated)
     Route::prefix('admins')->middleware('role:admin,sanctum')->name('api.admin.')->group(function () {
+        // Vouchers - Admin can access same endpoints as Owner
+        Route::get('/vouchers', [VoucherApiController::class, 'index']);
+        Route::post('/vouchers', [VoucherApiController::class, 'store']);
+        Route::get('/vouchers/{voucher}', [VoucherApiController::class, 'show']);
+        Route::put('/vouchers/{voucher}', [VoucherApiController::class, 'update']);
+        Route::patch('/vouchers/{voucher}', [VoucherApiController::class, 'update']);
+        Route::delete('/vouchers/{voucher}', [VoucherApiController::class, 'destroy']);
         Route::post('vouchers/validate', [VoucherApiController::class, 'validateVoucher']);
-        Route::apiResource('vouchers', VoucherApiController::class);
 
         // Admin Users/Employees
         Route::get('users', [AdminController::class, 'employees']);
