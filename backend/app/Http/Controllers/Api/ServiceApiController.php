@@ -48,6 +48,7 @@ class ServiceApiController extends Controller
                     }
                     $query->whereIn('status', (array) $value);
                 }),
+                AllowedFilter::exact('acceptance_status'),
                 AllowedFilter::exact('type'),
                 AllowedFilter::scope('search'), // Enable search scope
                 AllowedFilter::partial('code'),
@@ -108,7 +109,7 @@ class ServiceApiController extends Controller
 
         // Always load essential relations for mobile app compatibility
         // QueryBuilder allowedIncludes will handle additional includes if requested
-        $query->with(['customer', 'vehicle', 'mechanic.user', 'workshop', 'invoice']);
+        $query->with(['customer', 'vehicle', 'mechanic.user', 'workshop', 'invoice', 'transaction']);
 
         $perPage = (int) $request->get('per_page', 15);
         $services = $query->paginate($perPage)->appends($request->query());

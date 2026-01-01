@@ -7,6 +7,7 @@ import '../widgets/dashboard/admin_quick_menu.dart';
 
 import 'package:provider/provider.dart';
 import '../providers/admin_analytics_provider.dart';
+import '../services/banner_service.dart' as banner_svc;
 
 const Color primaryRed = Color(0xFFB70F0F);
 const Color gradientRedStart = Color(0xFF9B0F0D);
@@ -25,24 +26,47 @@ class _HomePageState extends State<HomePage> {
   Timer? _autoScrollTimer;
   int _currentBannerIndex = 0;
 
-  final List<BannerData> banners = [
-    BannerData(imagePath: 'assets/image/banner1.png'),
-    BannerData(imagePath: 'assets/image/banner2.png'),
-    BannerData(imagePath: 'assets/image/banner3.png'),
-    BannerData(imagePath: 'assets/image/banner4.png'),
-  ];
-
+  List<banner_svc.Banner> banners = []; // Will hold Banner objects from API
+  banner_svc.Banner? characterImage;
+  bool isLoadingBanners = true;
   bool autoScroll = true;
 
   @override
   void initState() {
     super.initState();
-    if (autoScroll) _startAutoScroll();
+    _fetchBanners();
     
     // Fetch dashboard stats on load
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<AdminAnalyticsProvider>().fetchQuickStats();
     });
+  }
+
+  Future<void> _fetchBanners() async {
+    setState(() => isLoadingBanners = true);
+    
+    try {
+      final fetchedBanners = await banner_svc.BannerService.getAdminHomepageBanners();
+      final fetchedCharacter = await banner_svc.BannerService.getAdminCharacterImage();
+      
+      if (mounted) {
+        setState(() {
+          banners = fetchedBanners;
+          characterImage = fetchedCharacter;
+          isLoadingBanners = false;
+        });
+        
+        // Start auto-scroll after banners loaded
+        if (autoScroll && banners.isNotEmpty) {
+          _startAutoScroll();
+        }
+      }
+    } catch (e) {
+      print('Error loading banners: $e');
+      if (mounted) {
+        setState(() => isLoadingBanners = false);
+      }
+    }
   }
 
   void _startAutoScroll() {
@@ -107,7 +131,10 @@ class _HomePageState extends State<HomePage> {
       backgroundColor: Colors.white,
       body: RefreshIndicator(
         onRefresh: () async {
-          await context.read<AdminAnalyticsProvider>().fetchQuickStats();
+          await Future.wait([
+            context.read<AdminAnalyticsProvider>().fetchQuickStats(),
+            _fetchBanners(),
+          ]);
         },
         child: CustomScrollView(
           physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
@@ -372,117 +399,207 @@ class _HomePageState extends State<HomePage> {
                       ],
                     ),
 
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 16),
 
-                    // Banner PageView
+                    // Banner PageView - Modern Design
                     SizedBox(
-                      height: 300,
-                      child: Stack(
-                        children: [
-                          PageView.builder(
-                            controller: _bannerController,
-                            itemCount: banners.length,
-                            onPageChanged: (index) {
-                              setState(() {
-                                _currentBannerIndex = index;
-                              });
-                            },
-                            itemBuilder: (context, index) {
-                              final b = banners[index];
-                              return Container(
-                                margin: EdgeInsets.only(
-                                  right: index == banners.length - 1 ? 0 : 12,
-                                ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(16),
-                                  child: Stack(
-                                    fit: StackFit.expand,
-                                    children: [
-                                      Image.asset(
-                                        b.imagePath,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (context, error, stackTrace) {
-                                          return Container(
-                                            decoration: BoxDecoration(
-                                              gradient: _getBannerGradient(index),
+                      height: 320,
+                      child: isLoadingBanners
+                          ? Center(
+                              child: CircularProgressIndicator(
+                                color: primaryRed,
+                                strokeWidth: 3,
+                              ),
+                            )
+                          : banners.isEmpty
+                              ? Container(
+                                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(20),
+                                    color: Colors.grey[50],
+                                    border: Border.all(
+                                      color: Colors.grey[200]!,
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  child: Center(
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.image_not_supported_outlined,
+                                          size: 64,
+                                          color: Colors.grey[300],
+                                        ),
+                                        const SizedBox(height: 16),
+                                        Text(
+                                          'Belum ada banner promo',
+                                          style: TextStyle(
+                                            color: Colors.grey[500],
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          'Banner akan ditampilkan di sini',
+                                          style: TextStyle(
+                                            color: Colors.grey[400],
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                )
+                              : PageView.builder(
+                                  controller: _bannerController,
+                                  itemCount: banners.length,
+                                  onPageChanged: (index) {
+                                    setState(() {
+                                      _currentBannerIndex = index;
+                                    });
+                                  },
+                                  itemBuilder: (context, index) {
+                                    final b = banners[index];
+                                    return Container(
+                                      margin: EdgeInsets.only(
+                                        left: 4,
+                                        right: index == banners.length - 1 ? 4 : 16,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(20),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(0.08),
+                                            blurRadius: 16,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ],
+                                      ),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(20),
+                                        child: Stack(
+                                          fit: StackFit.expand,
+                                          children: [
+                                            Image.network(
+                                              b.imageUrl,
+                                              fit: BoxFit.cover,
+                                              loadingBuilder: (context, child, loadingProgress) {
+                                                if (loadingProgress == null) return child;
+                                                return Container(
+                                                  color: Colors.grey[100],
+                                                  child: Center(
+                                                    child: CircularProgressIndicator(
+                                                      value: loadingProgress.expectedTotalBytes != null
+                                                          ? loadingProgress.cumulativeBytesLoaded /
+                                                              loadingProgress.expectedTotalBytes!
+                                                          : null,
+                                                      color: primaryRed,
+                                                      strokeWidth: 3,
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                              errorBuilder: (context, error, stackTrace) {
+                                                return Container(
+                                                  decoration: BoxDecoration(
+                                                    gradient: _getBannerGradient(index),
+                                                  ),
+                                                  child: Center(
+                                                    child: Padding(
+                                                      padding: const EdgeInsets.all(24.0),
+                                                      child: Column(
+                                                        mainAxisAlignment: MainAxisAlignment.center,
+                                                        children: [
+                                                          Icon(
+                                                            Icons.broken_image_rounded,
+                                                            color: Colors.white.withOpacity(0.9),
+                                                            size: 56,
+                                                          ),
+                                                          const SizedBox(height: 16),
+                                                          Text(
+                                                            b.title,
+                                                            style: const TextStyle(
+                                                              color: Colors.white,
+                                                              fontWeight: FontWeight.bold,
+                                                              fontSize: 18,
+                                                            ),
+                                                            textAlign: TextAlign.center,
+                                                          ),
+                                                          if (b.description != null) ...[
+                                                            const SizedBox(height: 8),
+                                                            Text(
+                                                              b.description!,
+                                                              style: TextStyle(
+                                                                color: Colors.white.withOpacity(0.85),
+                                                                fontSize: 13,
+                                                              ),
+                                                              textAlign: TextAlign.center,
+                                                              maxLines: 2,
+                                                              overflow: TextOverflow.ellipsis,
+                                                            ),
+                                                          ],
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                );
+                                              },
                                             ),
-                                            child: const Center(
-                                              child: Padding(
-                                                padding: EdgeInsets.symmetric(
-                                                  horizontal: 14.0,
-                                                ),
-                                                child: Column(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.center,
+                                            // Subtle gradient overlay
+                                            Container(
+                                              decoration: BoxDecoration(
+                                                gradient: LinearGradient(
+                                                  begin: Alignment.topCenter,
+                                                  end: Alignment.bottomCenter,
+                                                  colors: [
+                                                    Colors.transparent,
+                                                    Colors.black.withOpacity(0.1),
+                                                  ],
                                                 ),
                                               ),
                                             ),
-                                          );
-                                        },
-                                      ),
-                                      Container(
-                                        decoration: BoxDecoration(
-                                          gradient: LinearGradient(
-                                            begin: Alignment.topCenter,
-                                            end: Alignment.bottomCenter,
-                                            colors: [
-                                              Colors.transparent,
-                                              Colors.black.withAlpha(115)
-                                            ],
-                                          ),
+                                          ],
                                         ),
                                       ),
-                                    ],
-                                  ),
+                                    );
+                                  },
                                 ),
-                              );
-                            },
-                          ),
+                    ),
 
-                          // Progress indicator
-                          Positioned(
-                            top: 8,
-                            left: 0,
-                            right: 0,
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                              child: LinearProgressIndicator(
-                                value: banners.isEmpty
-                                    ? 0
-                                    : (_currentBannerIndex + 1) / banners.length,
-                                color: primaryRed,
-                                backgroundColor: primaryRed.withAlpha(31),
-                                minHeight: 4,
-                              ),
+                    const SizedBox(height: 16),
+
+                    // Modern Dots indicator
+                    if (banners.isNotEmpty)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(banners.length, (i) {
+                          final isActive = _currentBannerIndex == i;
+                          return AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                            margin: const EdgeInsets.symmetric(horizontal: 4),
+                            width: isActive ? 24 : 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: isActive ? primaryRed : Colors.grey[300],
+                              borderRadius: BorderRadius.circular(4),
+                              boxShadow: isActive
+                                  ? [
+                                      BoxShadow(
+                                        color: primaryRed.withOpacity(0.3),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ]
+                                  : null,
                             ),
-                          ),
-                        ],
+                          );
+                        }),
                       ),
-                    ),
 
-                    const SizedBox(height: 12),
-
-                    // Dots indicator
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(banners.length, (i) {
-                        final isActive = _currentBannerIndex == i;
-                        return AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          margin: const EdgeInsets.symmetric(horizontal: 4),
-                          width: isActive ? 18 : 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: isActive
-                                ? primaryRed
-                                : Colors.grey.withAlpha(64),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        );
-                      }),
-                    ),
-
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 32),
                   ],
                 ),
               ),
@@ -492,10 +609,4 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
-}
-
-// Banner data model
-class BannerData {
-  final String imagePath;
-  BannerData({required this.imagePath});
 }

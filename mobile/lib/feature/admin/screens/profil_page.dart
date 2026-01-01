@@ -3,16 +3,16 @@ import 'package:provider/provider.dart';
 
 import 'package:bengkel_online_flutter/core/services/auth_provider.dart';
 import 'package:bengkel_online_flutter/core/models/user.dart';
+import 'package:bengkel_online_flutter/core/models/workshop.dart';
 
-// Import widgets from owner feature (reusing them)
-import 'package:bengkel_online_flutter/feature/owner/widgets/profile/profile_header.dart';
-import 'package:bengkel_online_flutter/feature/owner/widgets/profile/profile_menu_card.dart';
+import '../widgets/profile/profile_header.dart';
+import '../widgets/profile/profile_menu_card.dart';
 
 class ProfilePageAdmin extends StatelessWidget {
   const ProfilePageAdmin({super.key});
 
   String _getInitials(String name) {
-    if (name.isEmpty) return 'A';
+    if (name.isEmpty) return 'B';
     final parts = name.trim().split(' ');
     if (parts.length > 1) {
       return (parts.first.isNotEmpty ? parts.first[0] : '') +
@@ -20,7 +20,7 @@ class ProfilePageAdmin extends StatelessWidget {
     } else if (parts.first.isNotEmpty) {
       return parts.first[0];
     }
-    return 'A';
+    return 'B';
   }
 
   String _formatRole(String role) {
@@ -42,10 +42,15 @@ class ProfilePageAdmin extends StatelessWidget {
       );
     }
 
+    final Workshop? workshop =
+        (user.workshops != null && user.workshops!.isNotEmpty)
+            ? user.workshops!.first
+            : null;
+
     final String photoUrl = user.photo ?? '';
-    final String adminName = user.name;
-    final String initials = _getInitials(adminName);
-    final String adminEmail = user.email;
+    final String workshopName = workshop?.name ?? user.name;
+    final String initials = _getInitials(workshopName);
+    final String workshopEmail = workshop?.email ?? user.email;
     final String roleName = _formatRole(user.role);
 
     return Scaffold(
@@ -55,20 +60,18 @@ class ProfilePageAdmin extends StatelessWidget {
           final width = constraints.maxWidth;
 
           return SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
+            physics: const ClampingScrollPhysics(),
             child: Column(
               children: [
-                // Reusing ProfileHeader from Owner feature
-                // Passing adminName as workshopName since the layout is compatible
                 ProfileHeader(
                   width: width,
                   photoUrl: photoUrl,
-                  workshopName: adminName,
+                  workshopName: workshopName,
                   initials: initials,
-                  workshopEmail: adminEmail,
+                  workshopEmail: workshopEmail,
                   roleName: roleName,
+                  workshop: workshop,
                 ),
-                // Reusing ProfileMenuCard from Owner feature
                 ProfileMenuCard(width: width),
                 SizedBox(height: width * 0.02),
               ],

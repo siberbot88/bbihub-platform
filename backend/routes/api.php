@@ -17,7 +17,15 @@ use App\Http\Controllers\Api\Owner\FeedbackController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AdminController;
+use App\Http\Controllers\Api\BannerController;
 
+
+// Banner API (Public - no auth required)
+Route::prefix('v1/banners')->group(function () {
+    Route::get('admin-homepage', [BannerController::class, 'adminHomepage'])->name('api.banners.admin-homepage');
+    Route::get('owner-dashboard', [BannerController::class, 'ownerDashboard'])->name('api.banners.owner-dashboard');
+    Route::get('website-landing', [BannerController::class, 'websiteLanding'])->name('api.banners.website-landing');
+});
 
 // Midtrans Webhook (no auth required)
 Route::post('v1/webhooks/midtrans', [MidtransWebhookController::class, 'handle'])
@@ -41,7 +49,7 @@ Route::prefix('v1/auth')->group(function () {
         ->middleware('throttle:5,10'); // Max 5 attempts per 10 minutes
 
     // Email Verification
-    Route::get('email/verify/{id}/{hash}', [\App\Http\Controllers\Api\EmailVerificationController::class, 'verify'])->name('verification.verify');
+    Route::get('email/verify/{id}/{hash}', [\App\Http\Controllers\Api\EmailVerificationController::class, 'verify'])->name('api.verification.verify');
 });
 
 // Test endpoint for chat (no auth)
@@ -129,7 +137,8 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
             ->name('staff.performance.show');
 
         // Analytics Report (PREMIUM ONLY)
-        Route::get('analytics/report', [\App\Http\Controllers\Api\Owner\ReportAnalyticsController::class, 'getReport'])
+        // Analytics Report (PREMIUM ONLY)
+        Route::get('analytics/report', [\App\Http\Controllers\Api\Owner\AnalyticsController::class, 'report'])
             ->middleware('premium')
             ->name('analytics.report');
 
@@ -171,8 +180,14 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
 
     // ADMIN ROUTES (Consolidated)
     Route::prefix('admins')->middleware('role:admin,sanctum')->name('api.admin.')->group(function () {
+        // Vouchers - Admin can access same endpoints as Owner
+        Route::get('/vouchers', [VoucherApiController::class, 'index']);
+        Route::post('/vouchers', [VoucherApiController::class, 'store']);
+        Route::get('/vouchers/{voucher}', [VoucherApiController::class, 'show']);
+        Route::put('/vouchers/{voucher}', [VoucherApiController::class, 'update']);
+        Route::patch('/vouchers/{voucher}', [VoucherApiController::class, 'update']);
+        Route::delete('/vouchers/{voucher}', [VoucherApiController::class, 'destroy']);
         Route::post('vouchers/validate', [VoucherApiController::class, 'validateVoucher']);
-        Route::apiResource('vouchers', VoucherApiController::class);
 
         // Admin Users/Employees
         Route::get('users', [AdminController::class, 'employees']);
@@ -187,6 +202,8 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         // ⚠️ IMPORTANT: Specific routes MUST come BEFORE {service} parameter routes
         // Mechanics
         Route::get('mechanics', [\App\Http\Controllers\Api\Admin\AdminEmployeeController::class, 'getMechanics']);
+        Route::get('mechanics/performance', [\App\Http\Controllers\Api\Admin\AdminEmployeeController::class, 'getMechanicPerformance']);
+
 
         Route::get('services/schedule', [\App\Http\Controllers\Api\Admin\ServiceSchedulingController::class, 'index'])->name('api.admin.services.schedule');
 
@@ -261,6 +278,9 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         });
         Route::get('services/{service}/invoice', [\App\Http\Controllers\Api\Admin\ServiceLoggingController::class, 'getInvoice'])
             ->name('services.invoice.get');
+
+        // ===== REPORTS/ADUAN APLIKASI (ADMIN) =====
+        Route::apiResource('reports', \App\Http\Controllers\API\Owner\ReportController::class)->only(['index', 'store', 'show']);
     });
 
     Route::prefix('mechanics')->middleware('role:mechanic,sanctum')->name('api.mechanic.')->group(function () {
@@ -273,6 +293,11 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::post('start-trial', [\App\Http\Controllers\Api\OwnerSubscriptionController::class, 'startTrial'])->name('owner.subscription.start-trial');
         Route::post('cancel', [\App\Http\Controllers\Api\OwnerSubscriptionController::class, 'cancel'])->name('owner.subscription.cancel');
         Route::post('check-status', [\App\Http\Controllers\Api\OwnerSubscriptionController::class, 'checkStatus'])->name('owner.subscription.check-status');
+    });
+
+    // Owner Analytics
+    Route::prefix('v1/owners/analytics')->middleware(['auth:sanctum', 'role:owner'])->group(function () {
+        Route::get('report', [\App\Http\Controllers\Api\Owner\AnalyticsController::class, 'report'])->name('owner.analytics.report');
     });
 
     // Membership Routes (for customers)

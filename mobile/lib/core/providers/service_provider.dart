@@ -71,6 +71,7 @@ class ServiceProvider extends ChangeNotifier {
     String? type,
     String? dateColumn,
     String? search, // Added search param
+    String? acceptanceStatus,
     bool useScheduleEndpoint = true, // Control endpoint selection
   }) {
     return _api.fetchServicesRaw(
@@ -85,6 +86,8 @@ class ServiceProvider extends ChangeNotifier {
       type: type,
       dateColumn: dateColumn,
       search: search, // Pass search
+
+      acceptanceStatus: acceptanceStatus,
       useScheduleEndpoint: useScheduleEndpoint, // Note: Base ServiceProvider uses owner endpoint, not admin // So useScheduleEndpoint doesn't apply here, but needed for signature
     );
   }
@@ -133,6 +136,7 @@ class ServiceProvider extends ChangeNotifier {
     String? type, // Added type param
     String? dateColumn,
     String? search, // Added search param
+    String? acceptanceStatus,
     bool useScheduleEndpoint = true, // Control endpoint type
   }) async {
     _loading = true;
@@ -159,6 +163,7 @@ class ServiceProvider extends ChangeNotifier {
         type: type, // Pass type
         dateColumn: dateColumn,
         search: search, // Pass search
+        acceptanceStatus: acceptanceStatus,
         useScheduleEndpoint: useScheduleEndpoint, // Pass through to API
       );
 

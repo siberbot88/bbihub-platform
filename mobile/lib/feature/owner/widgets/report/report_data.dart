@@ -23,6 +23,8 @@ class ReportData {
   final int avgQueue;
   final String peakRange;
   final int efficiency;
+  final List<Map<String, dynamic>> forecastRevenue;
+  final List<Map<String, dynamic>> topMechanics;
 
   ReportData({
     required this.serviceBreakdown,
@@ -43,6 +45,8 @@ class ReportData {
     required this.avgQueue,
     required this.peakRange,
     required this.efficiency,
+    required this.forecastRevenue,
+    required this.topMechanics,
   });
 
   static ReportData seed() {
@@ -79,95 +83,93 @@ class ReportData {
       avgQueue: 15,
       peakRange: '14:00 - 18:00',
       efficiency: 92,
+      forecastRevenue: [],
+      topMechanics: [
+        {'name': 'Budi Santoso', 'jobs_count': 12, 'rating': 4.8},
+        {'name': 'Ahmad Dani', 'jobs_count': 10, 'rating': 4.5},
+      ],
     );
   }
 
   /// Parse analytics data from backend API response
   factory ReportData.fromJson(Map<String, dynamic> json, String rangeString) {
-    final metrics = json['metrics'] as Map<String, dynamic>;
-    final growth = json['growth'] as Map<String, dynamic>;
-    final serviceBreakdown = (json['service_breakdown'] as Map<String, dynamic>?)?.map(
-      (key, value) => MapEntry(key, (value as num).toDouble()),
-    ) ?? {};
-    final peakHours = json['peak_hours'] as Map<String, dynamic>;
-    final health = json['operational_health'] as Map<String, dynamic>;
-
-    // Format growth text with + or - sign
-    String formatGrowth(dynamic value) {
-      final numValue = (value as num).toDouble();
-      if (numValue >= 0) {
-        return '+${numValue.toStringAsFixed(1)}%';
-      } else {
-        return '${numValue.toStringAsFixed(1)}%';
+    final metrics = json['metrics'] ?? json; // Handle flat structure if needed
+    final growth = json['growth'] ?? {
+       'revenue': 0, 'jobs': 0, 'occupancy': 0, 'rating': 0
+    }; 
+    // Backend returns 'data' which contains everything directly (step 682 AnalyticsController)
+    // AnalyticsController structure:
+    // data: { revenue_this_period, jobs_done, ..., revenue_trend, forecast_revenue ... }
+    
+    // Check if we are receiving the aggregated structure from AnalyticsController
+    final isAggregated = json.containsKey('revenue_this_period');
+    
+    // Helper to safely get value
+    T safeGet<T>(String key, T def) => json[key] is T ? json[key] : def;
+    
+    // Service Breakdown - handle both Map and List (defensive)
+    Map<String, double> serviceBreakdown = {};
+    try {
+      final sbData = json['service_breakdown'];
+      if (sbData is Map<String, dynamic>) {
+        serviceBreakdown = sbData.map((key, value) => MapEntry(key, (value as num).toDouble()));
+      } else if (sbData is List) {
+        // If it's a list, convert to empty map
+        print('Warning: service_breakdown is List, expected Map');
+        serviceBreakdown = {};
       }
+    } catch (e) {
+      print('Error parsing service_breakdown: $e');
     }
 
-    // Generate trend data (simplified - using current metrics)
-    // In a real scenario, backend should provide historical trend data
-    final revenue = (metrics['revenue_this_period'] as num).toInt();
-    final jobs = (metrics['jobs_done'] as num).toInt();
-    
-    // Generate labels based on range
-    List<String> labels;
-    if (rangeString == 'monthly') {
-      labels = ['Minggu 1', 'Minggu 2', 'Minggu 3', 'Minggu 4'];
-    } else if (rangeString == 'weekly') {
-      labels = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
-    } else {
-      labels = ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00'];
+    // Forecast - defensive handling
+    List<Map<String, dynamic>> forecastList = [];
+    try {
+      final fcData = json['forecast_revenue'];
+      if (fcData is List) {
+        forecastList = fcData.map((e) => e as Map<String, dynamic>).toList();
+      }
+    } catch (e) {
+      print('Error parsing forecast_revenue: $e');
     }
 
-    // Simplified trend (distribute revenue evenly for now)
-    // Ensure minimum values to prevent chart interval errors
-    final revenueInMillions = revenue == 0 ? 0.0 : revenue / 1000000;
-    final safeJobs = jobs == 0 ? 0 : jobs;
-    
-    List<double> revenueTrend = List.generate(
-      labels.length,
-      (i) => (revenueInMillions / labels.length) * (0.8 + (i * 0.05)),
-    );
-    List<double> jobsTrend = List.generate(
-      labels.length,
-      (i) => ((safeJobs / labels.length) * (0.8 + (i * 0.05))),
-    );
-
-    // Peak hour visualization data
-    final peakRange = peakHours['peak_range'] as String;
-    final hourlyDist = peakHours['hourly_distribution'] as Map<String, dynamic>?;
-    
-    List<String> peakHourLabels = ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00'];
-    List<double> peakHourBars;
-    
-    if (hourlyDist != null && hourlyDist.isNotEmpty) {
-      // Use REAL data from backend
-      peakHourBars = peakHourLabels.map((label) {
-        final count = hourlyDist[label];
-        return count != null ? (count as num).toDouble() : 0.0;
-      }).toList();
-    } else {
-      // Return zeros if empty
-      peakHourBars = List.filled(8, 0.0);
+    // Top Mechanics - defensive handling  
+    List<Map<String, dynamic>> topMechList = [];
+    try {
+      final tmData = json['top_mechanics'];
+      if (tmData is List) {
+        topMechList = tmData.map((e) => e as Map<String, dynamic>).toList();
+      }
+    } catch (e) {
+      print('Error parsing top_mechanics: $e');
     }
+
+    // Trend
+    final revenueTrend = (json['revenue_trend'] as List<dynamic>?)?.map((e) => (e as num).toDouble()).toList() ?? [];
+    final jobsTrend = (json['jobs_trend'] as List<dynamic>?)?.map((e) => (e as num).toDouble()).toList() ?? [];
+    final labels = (json['trend_labels'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
 
     return ReportData(
       serviceBreakdown: serviceBreakdown,
       revenueTrend: revenueTrend,
       jobsTrend: jobsTrend,
       labels: labels,
-      jobsDone: (metrics['jobs_done'] as num).toInt(),
-      occupancy: (metrics['occupancy'] as num).toInt(),
-      avgRating: (metrics['avg_rating'] as num).toDouble(),
-      revenueThisPeriod: (metrics['revenue_this_period'] as num).toInt(),
-      revenueGrowthText: formatGrowth(growth['revenue']),
-      jobsGrowthText: formatGrowth(growth['jobs']),
-      occupancyGrowthText: formatGrowth(growth['occupancy']),
-      ratingGrowthText: formatGrowth(growth['rating']),
-      avgQueueBars: List.generate(7, (i) => (health['avg_queue'] as num).toDouble() * (0.8 + (i * 0.1))),
-      peakHourBars: peakHourBars,
-      peakHourLabels: peakHourLabels,
-      avgQueue: (health['avg_queue'] as num).toInt(),
-      peakRange: peakRange,
-      efficiency: (health['efficiency'] as num).toInt(),
+      jobsDone: safeGet('jobs_done', 0),
+      occupancy: safeGet('occupancy_rate', 0),
+      avgRating: (json['avg_rating'] as num?)?.toDouble() ?? 0.0,
+      revenueThisPeriod: safeGet('revenue_this_period', 0),
+      revenueGrowthText: json['revenue_growth_text'] ?? '+0%',
+      jobsGrowthText: json['jobs_growth_text'] ?? '+0%',
+      occupancyGrowthText: json['occupancy_growth_text'] ?? '0%',
+      ratingGrowthText: json['rating_growth_text'] ?? '0%',
+      avgQueueBars: (json['avg_queue_bars'] as List<dynamic>?)?.map((e) => (e as num).toDouble()).toList() ?? [],
+      peakHourBars: (json['peak_hour_bars'] as List<dynamic>?)?.map((e) => (e as num).toDouble()).toList() ?? [],
+      peakHourLabels: (json['peak_hour_labels'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      avgQueue: safeGet('avg_queue', 0),
+      peakRange: json['peak_range'] ?? '-',
+      efficiency: safeGet('efficiency', 0),
+      forecastRevenue: forecastList,
+      topMechanics: topMechList,
     );
   }
 
@@ -204,6 +206,8 @@ class ReportData {
         avgQueue: 14,
         peakRange: '12:00 - 18:00',
         efficiency: 90,
+        forecastRevenue: [],
+        topMechanics: [],
       );
     }
 
@@ -235,6 +239,8 @@ class ReportData {
       avgQueue: 12,
       peakRange: '12:00 - 16:00',
       efficiency: 91,
+      forecastRevenue: [],
+      topMechanics: [],
     );
   }
 }

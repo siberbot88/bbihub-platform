@@ -17,7 +17,7 @@ class ExecutiveDashboard extends Component
     public array $customerSegmentation = [];
     public array $platformOutlook = [];
     public array $topWorkshops = [];
-    public array $allWorkshops = [];
+    public array $cityStats = [];
 
     // Drill Down State
     public bool $showWorkshopModal = false;
@@ -39,27 +39,38 @@ class ExecutiveDashboard extends Component
 
     public function loadData(EisService $eisService, \App\Services\PlatformIntelligenceService $platformService)
     {
+        $this->loadMonthlyData($eisService);
+        $this->loadYearlyData($eisService, $platformService);
+    }
+
+    public function loadMonthlyData(EisService $eisService)
+    {
         $this->scorecard = $eisService->getKpiScorecard($this->selectedMonth, $this->selectedYear);
-        // These metrics are currently global snapshots, but cached
-        $this->clvAnalysis = $eisService->getClvAnalysis();
-        $this->marketGap = $eisService->getMarketGapAnalysis();
+    }
+
+    public function loadYearlyData(EisService $eisService, \App\Services\PlatformIntelligenceService $platformService)
+    {
+        // YEARLY DATA (CLV, Map, Top Workshops)
+        $this->clvAnalysis = $eisService->getClvAnalysis($this->selectedYear);
+        $this->marketGap = $eisService->getMarketGapAnalysis($this->selectedYear);
+        $this->topWorkshops = $eisService->getTopWorkshops(10, $this->selectedYear);
+        $this->cityStats = $eisService->getCityMarketStats($this->selectedYear);
+
+        // CUSTOMER SEGMENTATION - Keep global for now
         $this->customerSegmentation = $eisService->getCustomerSegmentation();
 
         // Platform Intelligence (SaaS)
-        // Platform Business Outlook - Call ML API
         $this->platformOutlook = $this->getPlatformOutlookFromML();
 
-        $this->topWorkshops = $eisService->getTopWorkshops();
-        $this->allWorkshops = $eisService->getAllWorkshopsForMap();
-
-        // Set filters
-        $this->selectedYear = now()->year;
-        $this->selectedMonth = now()->month;
+        \Illuminate\Support\Facades\Log::info("ExecutiveDashboard loaded for Year {$this->selectedYear} forced log", [
+            'clv_scatter_count' => count($this->clvAnalysis['scatter'] ?? []),
+            'market_gap_count' => count($this->marketGap),
+            'top_workshops_count' => count($this->topWorkshops),
+        ]);
     }
 
     /**
      * Get Platform Outlook from ML Service
-     * Falls back to basic calculation if ML service unavailable
      */
     private function getPlatformOutlookFromML(): array
     {
@@ -70,27 +81,18 @@ class ExecutiveDashboard extends Component
             );
 
             if ($response->successful()) {
-                \Illuminate\Support\Facades\Log::info('ML API call successful');
                 return $response->json();
             }
-
-            // Fallback if API call failed
-            \Illuminate\Support\Facades\Log::warning('ML API failed, using fallback');
             return $this->getPlatformOutlookFallback();
 
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('ML API Error: ' . $e->getMessage());
             return $this->getPlatformOutlookFallback();
         }
     }
 
-    /**
-     * Fallback Platform Outlook (basic calculation)
-     */
     private function getPlatformOutlookFallback(): array
     {
         try {
-            // Use Laravel service container to get PlatformIntelligenceService
             $platformService = app(\App\Services\PlatformIntelligenceService::class);
 
             return [
@@ -99,7 +101,6 @@ class ExecutiveDashboard extends Component
                 'mrr_forecast' => $platformService->forecastMRR()
             ];
         } catch (\Exception $e) {
-            // Return empty structure if fallback also fails
             return [
                 'churn_candidates' => [],
                 'upsell_candidates' => [],
@@ -116,20 +117,50 @@ class ExecutiveDashboard extends Component
     {
         // Clear specific caches
         \Illuminate\Support\Facades\Cache::forget("eis_scorecard_{$this->selectedYear}_{$this->selectedMonth}");
-        \Illuminate\Support\Facades\Cache::forget("eis_clv");
-        \Illuminate\Support\Facades\Cache::forget("eis_market_gap");
-        \Illuminate\Support\Facades\Cache::forget("eis_segmentation");
-        \Illuminate\Support\Facades\Cache::forget("eis_top_workshops");
+        \Illuminate\Support\Facades\Cache::forget("eis_clv_{$this->selectedYear}");
+        \Illuminate\Support\Facades\Cache::forget("eis_market_gap_v2_{$this->selectedYear}");
+        \Illuminate\Support\Facades\Cache::forget("eis_top_workshops_{$this->selectedYear}");
+        \Illuminate\Support\Facades\Cache::forget("eis_city_stats_map_{$this->selectedYear}");
 
         $this->loadData($eisService, $platformService);
 
-        $this->dispatch('refresh-charts'); // Signal JS to re-render charts
+        $this->dispatch('refresh-charts');
     }
 
     public function applyFilter(EisService $eisService, \App\Services\PlatformIntelligenceService $platformService)
     {
         $this->showFilter = false;
+        $this->loadData($eisService, $platformService); // Load Everything
+        $this->dispatch('refresh-charts');
+    }
+
+    // Livewire Hook: When Year Changes
+    public function updatedSelectedYear(EisService $eisService, \App\Services\PlatformIntelligenceService $platformService)
+    {
+        // When Year changes, we reload everything (Monthly Scorecard depends on Year too, and Yearly charts)
         $this->loadData($eisService, $platformService);
+        $this->dispatch('refresh-charts');
+    }
+
+    // Livewire Hook: When Month Changes
+    public function updatedSelectedMonth(EisService $eisService)
+    {
+        // When Month changes, ONLY reload Monthly Data (Scorecard)
+        $this->loadMonthlyData($eisService);
+        // No need to refresh charts for Scorecard as they are rendered via Blade loop (except Sparklines?)
+        // Sparklines in Scorecard MIGHT need refresh if they depend on Month? 
+        // Current Scorecard sparkline is just "trend", usually based on year history ending in month.
+        // Let's dispatch refresh anyway to be safe, or just partial?
+        // Scorecard sparklines are canvas. They need re-init.
+        $this->dispatch('refresh-charts');
+    }
+
+    public function generateSnapshot(EisService $eisService)
+    {
+        $eisService->createSnapshot($this->selectedYear);
+        $this->dispatch('notify', type: 'success', message: "Data tahun {$this->selectedYear} berhasil diarsipkan.");
+        // Reload to presumably fetch from snapshot
+        $this->loadData($eisService, app(\App\Services\PlatformIntelligenceService::class));
         $this->dispatch('refresh-charts');
     }
 
@@ -146,8 +177,6 @@ class ExecutiveDashboard extends Component
         $this->selectedWorkshopId = $id;
         $this->workshopDetail = $eisService->getWorkshopDetail($id);
         $this->showWorkshopModal = true;
-
-        // Dispatch event safely for chart initialization in modal
         $this->dispatch('init-workshop-chart');
     }
 
@@ -156,6 +185,18 @@ class ExecutiveDashboard extends Component
         $this->showWorkshopModal = false;
         $this->workshopDetail = [];
         $this->selectedWorkshopId = '';
+    }
+
+    public function sendUpsellOffer(string $workshopId)
+    {
+        $workshop = \App\Models\Workshop::find($workshopId);
+
+        if ($workshop && $workshop->owner) {
+            $workshop->owner->notify(new \App\Notifications\UpsellPremiumNotification());
+            $this->dispatch('notify', type: 'success', message: "Penawaran Premium berhasil dikirim.");
+        } else {
+            $this->dispatch('notify', type: 'error', message: "Gagal mengirim penawaran.");
+        }
     }
 
     public function render()

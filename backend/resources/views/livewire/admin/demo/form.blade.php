@@ -36,6 +36,29 @@
         </div>
     @endif
 
+    {{-- System Error Message --}}
+    @if ($errors->any())
+        <div class="rounded-lg bg-red-50 p-4 text-red-800 border border-red-200 mb-6">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                            clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium">Terdapat kesalahan pada form:</h3>
+                    <ul class="mt-2 list-disc list-inside text-sm">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            </div>
+        </div>
+    @endif
+
     {{-- Stepper --}}
     <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
         <div class="relative flex items-center justify-between">
@@ -64,8 +87,8 @@
             @foreach($steps as $s => $info)
                 <div class="flex flex-col items-center bg-white px-4">
                     <div class="flex h-10 w-10 items-center justify-center rounded-full border-2 
-                                                    {{ $step >= $s ? 'border-red-600 bg-red-600' : 'border-gray-300 bg-white' }} 
-                                                    transition-colors">
+                                                            {{ $step >= $s ? 'border-red-600 bg-red-600' : 'border-gray-300 bg-white' }} 
+                                                            transition-colors">
                         {{-- Raw SVG to ensure color control --}}
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
                             stroke="currentColor" class="h-5 w-5 {{ $step >= $s ? 'text-white' : 'text-gray-400' }}">
@@ -437,8 +460,34 @@
 
     {{-- Recent Services Table --}}
     <div class="rounded-xl border border-gray-100 bg-white shadow-sm overflow-hidden mt-8">
-        <div class="border-b border-gray-100 bg-gray-50 px-6 py-4">
+        <div
+            class="flex flex-col md:flex-row md:items-center justify-between border-b border-gray-100 bg-gray-50 px-6 py-4 gap-4">
             <h3 class="font-semibold text-gray-900">Daftar Demo Terakhir & Antrian</h3>
+
+            <div class="flex flex-col sm:flex-row gap-3">
+                {{-- Filter Type --}}
+                <select wire:model.live="filterType"
+                    class="rounded-lg border-gray-300 text-sm focus:ring-red-500 focus:border-red-500">
+                    <option value="">Semua Tipe</option>
+                    <option value="booking">Booking</option>
+                    <option value="on_site">Walk-in (Onsite)</option>
+                </select>
+
+                {{-- Search --}}
+                <div class="relative">
+                    <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                        <svg class="h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                            fill="currentColor">
+                            <path fill-rule="evenodd"
+                                d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z"
+                                clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <input type="text" wire:model.live.debounce.300ms="search"
+                        class="block w-full rounded-lg border-gray-300 pl-10 text-sm focus:border-red-500 focus:ring-red-500"
+                        placeholder="Cari customer, nopol...">
+                </div>
+            </div>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full text-left text-sm text-gray-500">
@@ -469,7 +518,7 @@
                                             </div>
                         </div>
                         <td class="px-6 py-4">
-                            @if($srv->transaction?->status === 'paid')
+                            @if($srv->transaction?->status === 'success')
                                 <span
                                     class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
                                     Lunas
@@ -511,7 +560,7 @@
                                         Selesaikan
                                     </button>
                                 @endif
-                            @elseif($srv->status === 'completed' && $srv->transaction?->status !== 'paid' && $srv->type === 'booking')
+                            @elseif($srv->status === 'completed' && $srv->transaction?->status !== 'success' && $srv->type === 'booking')
                                 <button wire:click="openPayment('{{ $srv->transaction?->id }}')"
                                     class="inline-flex items-center gap-1 rounded bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
@@ -521,7 +570,7 @@
                                     </svg>
                                     Bayar
                                 </button>
-                            @elseif($srv->transaction?->status === 'paid' && !$srv->transaction->feedback)
+                            @elseif($srv->transaction?->status === 'success' && !$srv->transaction->feedback)
                                 <button wire:click="openFeedback('{{ $srv->transaction?->id }}')"
                                     class="inline-flex items-center gap-1 rounded bg-yellow-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-yellow-600">
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-3 w-3">
@@ -543,26 +592,47 @@
         </tbody>
         </table>
     </div>
+
+    <div class="mt-4">
+        {{ $recentServices->links() }}
+    </div>
 </div>
 
 {{-- MIDTRANS SCRIPT --}}
-@section('scripts')
+{{-- MIDTRANS SCRIPT --}}
+@push('scripts')
     <script src="https://app.sandbox.midtrans.com/snap/snap.js"
-        data-client-key="{{ config('services.midtrans.client_key') ?? env('MIDTRANS_CLIENT_KEY') }}"></script>
-@endsection
+        data-client-key="{{ config('midtrans.client_key') }}"></script>
+@endpush
 
 {{-- LIVEWIRE SCRIPT FOR SNAP --}}
 <script>
     document.addEventListener('livewire:initialized', () => {
         @this.on('snap-token-generated', (event) => {
-            const token = event[0]['token']; // Livewire dispatch sends array
-            console.log("Snap Token:", token);
+            console.log("Snap Event Triggered", event);
+            
+            // Handle both possible event structures (direct object or array wrap)
+            let token = null;
+            if (event.token) {
+                token = event.token;
+            } else if (Array.isArray(event) && event[0] && event[0].token) {
+                token = event[0].token;
+            } else if (event.detail && event.detail.token) {
+                 token = event.detail.token;
+            }
+
+            console.log("Extracted Snap Token:", token);
+
+            if (!token) {
+                alert("Error: Token pembayaran tidak ditemukan.");
+                return;
+            }
 
             window.snap.pay(token, {
                 onSuccess: function (result) {
                     console.log('success', result);
                     @this.call('finishDemo');
-                    alert("Pembayaran Berhasil!");
+                    // alert("Pembayaran Berhasil!"); // Optional, finishDemo flash message is enough
                 },
                 onPending: function (result) {
                     console.log('pending', result);

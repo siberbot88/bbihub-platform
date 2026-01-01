@@ -28,7 +28,9 @@ class ServiceRepository
         string $workshopId,
         ?Carbon $date = null,
         int $perPage = 15,
-        ?string $type = null
+        ?string $type = null,
+        ?string $dateFrom = null,
+        ?string $dateTo = null
     ): LengthAwarePaginator {
         $query = Service::with(['customer', 'vehicle'])
             ->where('workshop_uuid', $workshopId)
@@ -36,9 +38,22 @@ class ServiceRepository
             ->orderBy('scheduled_date', 'asc')
             ->orderBy('created_at', 'asc');
 
-        // Filter by date if provided
+        // Filter by specific date if provided
         if ($date) {
             $query->whereDate('scheduled_date', $date);
+        }
+
+        // Filter by date range if provided
+        // Filter by date range if provided
+        if ($dateFrom && $dateTo) {
+            $query->whereBetween('scheduled_date', [
+                Carbon::parse($dateFrom)->startOfDay(),
+                Carbon::parse($dateTo)->endOfDay()
+            ]);
+        } elseif ($dateFrom) {
+            $query->whereDate('scheduled_date', '>=', $dateFrom);
+        } elseif ($dateTo) {
+            $query->whereDate('scheduled_date', '<=', $dateTo);
         }
 
         // Filter by type if provided
@@ -49,9 +64,12 @@ class ServiceRepository
             }
             $query->where('type', $type);
 
-            // Refinement: Booking must have acceptance_status IS NULL
+            // Refinement: Booking must have acceptance_status 'pending'
             if ($type === 'booking') {
-                $query->whereNull('acceptance_status');
+                $query->where(function ($q) {
+                    $q->where('acceptance_status', 'pending')
+                        ->orWhereNull('acceptance_status');
+                });
             }
         }
 
@@ -67,14 +85,28 @@ class ServiceRepository
      */
     public function getInProgressServices(
         string $workshopId,
-        int $perPage = 15
+        int $perPage = 15,
+        ?string $dateFrom = null,
+        ?string $dateTo = null
     ): LengthAwarePaginator {
-        return Service::with(['customer', 'vehicle', 'mechanic.user', 'invoice.items'])
+        $query = Service::with(['customer', 'vehicle', 'mechanic.user', 'invoice.items'])
             ->where('workshop_uuid', $workshopId)
             ->where('acceptance_status', 'accepted')
             ->whereIn('status', ['in progress', 'completed']) // Include completed for billing processing
-            ->orderBy('accepted_at', 'desc')
-            ->paginate($perPage);
+            ->orderBy('accepted_at', 'desc');
+
+        if ($dateFrom && $dateTo) {
+            $query->whereBetween('scheduled_date', [
+                Carbon::parse($dateFrom)->startOfDay(),
+                Carbon::parse($dateTo)->endOfDay()
+            ]);
+        } elseif ($dateFrom) {
+            $query->whereDate('scheduled_date', '>=', $dateFrom);
+        } elseif ($dateTo) {
+            $query->whereDate('scheduled_date', '<=', $dateTo);
+        }
+
+        return $query->paginate($perPage);
     }
 
     /**
@@ -114,14 +146,14 @@ class ServiceRepository
      * @param string $mechanicId
      * @return Service
      */
-    public function acceptService(string $serviceId, string $mechanicId): Service
+    public function acceptService(string $serviceId, ?string $mechanicId): Service
     {
         return DB::transaction(function () use ($serviceId, $mechanicId) {
             $service = Service::lockForUpdate()->findOrFail($serviceId);
 
             $service->update([
                 'acceptance_status' => 'accepted',
-                'status' => 'in progress',
+                'status' => $mechanicId ? 'in progress' : 'pending',
                 'mechanic_uuid' => $mechanicId,
                 'accepted_at' => now(),
             ]);

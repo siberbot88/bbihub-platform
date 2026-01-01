@@ -12,11 +12,12 @@ class AnalyticsRepository {
   /// [range] - 'daily', 'weekly', or 'monthly'
   /// [token] - Bearer authentication token
   Future<ReportData> getAnalytics({
-    required String range,
+    required String periodType, // monthly, yearly
+    required String date,
     required String token,
   }) async {
     try {
-      final url = Uri.parse('$_baseUrl/api/v1/owners/analytics/report?range=$range');
+      final url = Uri.parse('$_baseUrl/api/v1/owners/analytics/report?period_type=$periodType&date=$date');
       
       final response = await http.get(
         url,
@@ -30,7 +31,7 @@ class AnalyticsRepository {
         final jsonData = json.decode(response.body);
         
         if (jsonData['success'] == true && jsonData['data'] != null) {
-          return ReportData.fromJson(jsonData['data'], range);
+          return ReportData.fromJson(jsonData['data'], periodType);
         } else {
           throw Exception('Invalid response format from server');
         }
@@ -52,7 +53,8 @@ class AnalyticsRepository {
 
   /// Get analytics with automatic token retrieval from storage
   Future<ReportData> getAnalyticsWithAuth({
-    required String range,
+    required String periodType,
+    required String date,
   }) async {
     try {
       // Get token from secure storage
@@ -63,7 +65,7 @@ class AnalyticsRepository {
         throw Exception('No authentication token found. Please login.');
       }
 
-      return await getAnalytics(range: range, token: token);
+      return await getAnalytics(periodType: periodType, date: date, token: token);
     } catch (e) {
       rethrow;
     }

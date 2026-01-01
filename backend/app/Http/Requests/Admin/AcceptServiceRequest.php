@@ -22,7 +22,7 @@ class AcceptServiceRequest extends FormRequest
     {
         return [
             'mechanic_uuid' => [
-                'required',
+                'nullable', // Changed from required to nullable
                 'uuid',
                 'exists:employments,id', // Check Employment.id (UUID), not user_uuid
             ],

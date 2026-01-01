@@ -15,7 +15,7 @@ class ServiceListController extends Controller
 {
     public function index()
     {
-        $services = Service::with(['workshop','customer','vehicle','mechanic','items','log','task'])
+        $services = Service::with(['workshop', 'customer', 'vehicle', 'mechanic', 'items', 'log', 'task'])
             ->latest()
             ->paginate(15);
 
@@ -24,7 +24,7 @@ class ServiceListController extends Controller
 
     public function show($id)
     {
-        $service = Service::with(['workshop','customer','vehicle','mechanic','items','log','task'])
+        $service = Service::with(['workshop', 'customer', 'vehicle', 'mechanic', 'items', 'log', 'task'])
             ->findOrFail($id);
 
         return new ServiceResource($service);
@@ -33,20 +33,20 @@ class ServiceListController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'workshop_uuid' => ['required','string'],
-            'name' => ['required','string'],
-            'description' => ['nullable','string'],
-            'price' => ['required','numeric'],
-            'scheduled_date' => ['required','date'],
-            'estimated_time' => ['required','date'],
-            'customer_uuid' => ['required','string'],
-            'vehicle_uuid' => ['required','string'],
-            'mechanic_uuid' => ['nullable','string'],
+            'workshop_uuid' => ['required', 'string'],
+            'name' => ['required', 'string'],
+            'description' => ['nullable', 'string'],
+            'price' => ['required', 'numeric'],
+            'scheduled_date' => ['required', 'date'],
+            'estimated_time' => ['required', 'date'],
+            'customer_uuid' => ['required', 'string'],
+            'vehicle_uuid' => ['required', 'string'],
+            'mechanic_uuid' => ['nullable', 'string'],
         ]);
 
         // RULE: cek apakah kendaraan sudah punya service aktif
         $existing = Service::where('vehicle_uuid', $data['vehicle_uuid'])
-            ->whereIn('status', ['pending','in progress'])
+            ->whereIn('status', ['pending', 'in progress'])
             ->first();
 
         if ($existing) {
@@ -66,7 +66,7 @@ class ServiceListController extends Controller
         // (opsional) buat log awal & task notifikasi di event/dispatch
         // ServiceLog::create([...]); Task::create([...]);
 
-        return new ServiceResource($service->load(['workshop','customer','vehicle','mechanic','items','log','task']));
+        return new ServiceResource($service->load(['workshop', 'customer', 'vehicle', 'mechanic', 'items', 'log', 'task']));
     }
 
     public function update(Request $request, $id)
@@ -74,13 +74,13 @@ class ServiceListController extends Controller
         $service = Service::findOrFail($id);
 
         $data = $request->validate([
-            'status' => ['nullable', Rule::in(['pending','in progress','completed'])],
-            'acceptance_status' => ['nullable', Rule::in(['pending','accepted','decline'])],
-            'mechanic_uuid' => ['nullable','string'],
-            'scheduled_date' => ['nullable','date'],
-            'estimated_time' => ['nullable','date'],
-            'price' => ['nullable','numeric'],
-            'description' => ['nullable','string'],
+            'status' => ['nullable', Rule::in(['pending', 'in progress', 'completed'])],
+            'acceptance_status' => ['nullable', Rule::in(['pending', 'accepted', 'decline'])],
+            'mechanic_uuid' => ['nullable', 'string'],
+            'scheduled_date' => ['nullable', 'date'],
+            'estimated_time' => ['nullable', 'date'],
+            'price' => ['nullable', 'numeric'],
+            'description' => ['nullable', 'string'],
         ]);
 
         $service->update($data);
@@ -88,7 +88,7 @@ class ServiceListController extends Controller
         // contoh: jika status jadi completed -> bisa set log / hapus task
         // if (isset($data['status']) && $data['status'] === 'completed') { ... }
 
-        return new ServiceResource($service->fresh()->load(['workshop','customer','vehicle','mechanic','items','log','task']));
+        return new ServiceResource($service->load(['workshop', 'customer', 'vehicle', 'mechanic', 'log', 'task']));
     }
 
     public function destroy(Service $service)

@@ -73,6 +73,7 @@ class _ServiceLoggingPageState extends State<ServiceLoggingPage> with SingleTick
         dateFrom: _dateFrom != null ? DateFormat('yyyy-MM-dd').format(_dateFrom!) : null,
         dateTo: _dateTo != null ? DateFormat('yyyy-MM-dd').format(_dateTo!) : null,
         search: _searchController.text,
+        acceptanceStatus: 'accepted',
         useScheduleEndpoint: false, // Use flat list for logging
       );
 

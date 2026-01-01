@@ -1,5 +1,10 @@
-<div class="space-y-8" x-data="{ loaded: false }"
-    x-init="setTimeout(() => { loaded = true; setTimeout(() => initCharts(), 1000); }, 500)">
+<div class="space-y-8" x-data="{ 
+    loaded: false, 
+    showArchiveModal: false,
+    showUpsellModal: false,
+    selectedUpsell: null
+}" x-init="setTimeout(() => { loaded = true; setTimeout(() => initCharts(), 1000); }, 500)">
+
     {{-- Header & Controls --}}
     <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
@@ -26,37 +31,58 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                     </svg>
-                    Filter
+                    Filter & Arsip
                 </button>
 
                 {{-- Filter Dropdown --}}
                 <div x-show="open" @click.away="open = false"
                     class="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-xl border border-gray-100 p-4 z-50 origin-top-right"
                     style="display: none;">
-                    <h3 class="font-bold text-gray-900 mb-3">Pilih Periode</h3>
-                    <div class="space-y-3">
+
+                    <div class="mb-4 pb-4 border-b border-gray-100">
+                        <h3 class="font-bold text-gray-900 mb-3 text-xs uppercase tracking-wider">Laporan Tahunan (EIS)
+                        </h3>
                         <div>
-                            <label class="block text-xs font-medium text-gray-500 mb-1">Bulan</label>
-                            <select wire:model="selectedMonth"
+                            <select wire:model.live="selectedYear"
+                                class="w-full text-sm border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                                @foreach(range(date('Y'), date('Y') - 4) as $y)
+                                    <option value="{{ $y }}">{{ $y }}</option>
+                                @endforeach
+                            </select>
+                            <p class="text-[10px] text-gray-500 mt-1">Mengubah grafik CLV, Market Gap, dan Top
+                                Workshops.</p>
+                        </div>
+                    </div>
+
+                    <div class="mb-4 pb-4 border-b border-gray-100">
+                        <h3 class="font-bold text-gray-900 mb-3 text-xs uppercase tracking-wider">Periode Scorecard
+                            (Bulanan)</h3>
+                        <div>
+                            <select wire:model.live="selectedMonth"
                                 class="w-full text-sm border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
                                 @foreach(range(1, 12) as $m)
                                     <option value="{{ $m }}">{{ DateTime::createFromFormat('!m', $m)->format('F') }}
                                     </option>
                                 @endforeach
                             </select>
+                            <p class="text-[10px] text-gray-500 mt-1">Mengubah kartu KPI pendapatan bulanan.</p>
                         </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-500 mb-1">Tahun</label>
-                            <select wire:model="selectedYear"
-                                class="w-full text-sm border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
-                                @foreach(range(date('Y'), date('Y') - 2) as $y)
-                                    <option value="{{ $y }}">{{ $y }}</option>
-                                @endforeach
-                            </select>
-                        </div>
+                    </div>
+
+                    <div class="space-y-2">
                         <button wire:click="applyFilter"
                             class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors">
-                            Terapkan Filter
+                            Tutup
+                        </button>
+
+                        {{-- Archive Button with Custom Modal Trigger --}}
+                        <button @click="showArchiveModal = true; open = false"
+                            class="w-full py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                            </svg>
+                            Arsipkan Data Tahun Ini
                         </button>
                     </div>
                 </div>
@@ -85,14 +111,12 @@
     </div>
 
     {{-- 1. KPI Scorecard (Dashboard Style) --}}
-    {{-- Grid change: lg:grid-cols-3 to make cards wider as requested --}}
     <div wire:loading.remove class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3" x-show="loaded"
         x-transition:enter="transition ease-out duration-500" x-transition:enter-start="opacity-0 transform scale-95"
         x-transition:enter-end="opacity-100 transform scale-100">
 
         @foreach($scorecard as $index => $card)
             @php
-                // Design Config based on ID
                 switch ($card['id']) {
                     case 'revenue':
                         $color = 'emerald';
@@ -123,32 +147,15 @@
                         $icon = 'chart-bar';
                         break;
                 }
-
-                // Tailwind classes map
                 $bgClass = "bg-{$color}-50";
                 $textClass = "text-{$color}-600";
-
-                // Tooltip Positioning Logic (3-column grid)
-                // If it's the 3rd item in a row (index 2, 5, 8...), align to right.
-                // Or if it's the last item in a row on smaller screens.
-                // We mainly care about lg breakpoint where grid is 3 cols.
                 $isRightEdge = ($index + 1) % 3 === 0;
                 $tooltipClass = $isRightEdge ? 'right-0 origin-top-right' : 'left-0 origin-top-left';
                 $arrowClass = $isRightEdge ? 'right-2' : 'left-2';
             @endphp
 
-            {{--
-            FIX: Removed 'overflow-hidden' from here so Tooltip can pop out.
-            Added group class for hover effects.
-            Added hover:z-20 for Stacking Context fix.
-            --}}
             <div
                 class="relative rounded-2xl bg-white p-6 shadow-sm border border-gray-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:z-20 group">
-
-                {{--
-                FIX: Inner layer for Background Decoration.
-                This has overflow-hidden to clip the circle, but is absolute/behind content.
-                --}}
                 <div class="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
                     <div
                         class="absolute -right-6 -top-6 h-24 w-24 rounded-full {{ $bgClass }} opacity-50 transition-transform group-hover:scale-110">
@@ -156,24 +163,18 @@
                 </div>
 
                 <div class="relative z-10 flex justify-between items-start">
-                    <div class="flex-1"> {{-- Added flex-1 to push icon to right --}}
-                        <div class="flex items-start gap-2"> {{-- Changed items-center to items-start --}}
-                            <span class="text-sm font-medium text-gray-500">{{ $card['name'] }}</span> {{-- Removed
-                            line-clamp-1 --}}
-
-                            {{-- Info Tooltip --}}
-                            <div class="relative group/info cursor-help inline-block mt-0.5"> {{-- Added mt-0.5 for optical
-                                alignment --}}
+                    <div class="flex-1">
+                        <div class="flex items-start gap-2">
+                            <span class="text-sm font-medium text-gray-500">{{ $card['name'] }}</span>
+                            <div class="relative group/info cursor-help inline-block mt-0.5">
                                 <svg class="w-4 h-4 text-gray-300 hover:text-gray-500 transition-colors" fill="none"
                                     viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
-                                {{-- Tooltip Box: z-50 to float above everything --}}
                                 <div
                                     class="absolute z-50 invisible w-64 p-3 mt-2 text-xs font-normal text-white bg-gray-900 rounded-lg opacity-0 {{ $tooltipClass }} group-hover/info:visible group-hover/info:opacity-100 transition-all duration-200 shadow-xl">
                                     {{ $card['description'] }}
-                                    {{-- Arrow --}}
                                     <div class="absolute -top-1 {{ $arrowClass }} w-2 h-2 bg-gray-900 rotate-45"></div>
                                 </div>
                             </div>
@@ -183,8 +184,6 @@
                             <span class="text-2xl font-bold text-gray-900 leading-tight">
                                 {{ $card['unit'] === 'IDR' ? 'Rp' . number_format($card['value'], 0, ',', '.') : ($card['unit'] === '%' ? number_format($card['value'], 1) . '%' : number_format($card['value'])) }}
                             </span>
-
-                            {{-- Status Pill --}}
                             @if($card['status'] === 'blue')
                                 <span
                                     class="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-1">
@@ -192,16 +191,14 @@
                                         <path fill-rule="evenodd"
                                             d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z"
                                             clip-rule="evenodd" />
-                                    </svg>
-                                    Strong
+                                    </svg> Strong
                                 </span>
                             @elseif($card['status'] === 'green')
                                 <span
                                     class="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full flex items-center gap-1">
                                     <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                                    </svg>
-                                    On Track
+                                    </svg> On Track
                                 </span>
                             @else
                                 <span
@@ -210,15 +207,13 @@
                                         <path fill-rule="evenodd"
                                             d="M10 18a8 8 0 100-16 8 8 0 000 16zm-1-4a1 1 0 112 0v-4a1 1 0 11-2 0v4zm1-9a1 1 0 100 2 1 1 0 000-2z"
                                             clip-rule="evenodd" />
-                                    </svg>
-                                    Review
+                                    </svg> Review
                                 </span>
                             @endif
                         </div>
                         <div class="mt-1 text-xs text-gray-400">Target: {{ number_format($card['target']) }}</div>
                     </div>
 
-                    {{-- Icon Container --}}
                     <div class="p-3 rounded-xl {{ $bgClass }} {{ $textClass }} shrink-0 ml-4">
                         @if($icon === 'banknotes')
                             <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
@@ -240,11 +235,6 @@
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v9.632a2.25 2.25 0 01-.894 1.785 2.25 2.25 0 001.077 4.083h19.134a2.25 2.25 0 001.077-4.083 2.25 2.25 0 01-.894-1.785V6.375c0-.621-.504-1.125-1.125-1.125H3.375z" />
                             </svg>
-                        @elseif($icon === 'credit-card')
-                            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                            </svg>
                         @elseif($icon === 'star')
                             <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -262,10 +252,9 @@
                             </svg>
                         @endif
                     </div>
-
                 </div>
 
-                {{-- Sparkline Chart (Edge-to-Edge) --}}
+                {{-- Sparkline Chart --}}
                 <div class="mt-4 h-24 w-[calc(100%+3rem)] -ml-6 -mb-6 relative z-10 overflow-hidden rounded-b-2xl">
                     <canvas id="sparkline-{{ $loop->index }}"
                         data-chart="{{ json_encode($card['chart_data'] ?? [0, 0, 0]) }}" data-color="{{ $color }}">
@@ -288,7 +277,6 @@
                     <div>
                         <div class="flex items-center gap-2">
                             <h3 class="text-lg font-bold text-gray-900">Matriks Nilai Pelanggan (CLV)</h3>
-                            {{-- Info Tooltip --}}
                             <div class="relative group/info cursor-help inline-block">
                                 <svg class="w-4 h-4 text-gray-300 hover:text-gray-500 transition-colors" fill="none"
                                     viewBox="0 0 24 24" stroke="currentColor">
@@ -298,7 +286,7 @@
                                 <div
                                     class="absolute z-50 invisible w-64 p-3 mt-2 text-xs leading-relaxed text-white bg-gray-900 rounded-lg opacity-0 -right-1/2 group-hover/info:visible group-hover/info:opacity-100 transition-all duration-200 shadow-xl">
                                     Identifikasi segmen pelanggan berdasarkan Frekuensi Pembelian (Sumbu X) dan Total
-                                    Nilai Uang (Sumbu Y). Pelanggan di kanan atas adalah 'Champions'.
+                                    Nilai Uang (Sumbu Y).
                                 </div>
                             </div>
                         </div>
@@ -306,7 +294,8 @@
                     </div>
                 </div>
                 <div class="h-80 w-full relative">
-                    <canvas id="clvBubbleChart"></canvas>
+                    <canvas id="clvBubbleChart"
+                        data-chart-json="{{ json_encode($clvAnalysis['scatter'] ?? []) }}"></canvas>
                 </div>
             </div>
 
@@ -324,8 +313,8 @@
                     </div>
                 </div>
 
-                {{-- Map Container --}}
-                <div id="marketMap" class="w-full h-80 rounded-xl border border-gray-200 bg-gray-50 relative z-0"></div>
+                <div id="marketMap" data-chart-json="{{ json_encode($cityStats) }}"
+                    class="w-full h-80 rounded-xl border border-gray-200 bg-gray-50 relative z-0"></div>
 
                 <div class="mt-4 grid grid-cols-2 gap-2 max-h-40 overflow-y-auto custom-scrollbar">
                     @forelse(array_slice($marketGap, 0, 5) as $city)
@@ -339,30 +328,23 @@
                     @endforelse
                 </div>
             </div>
-
-        </div> {{-- End CLV/Map Column (w-2/3) --}}
+        </div>
 
         {{-- Insight Panel (1/3 width on desktop) --}}
         <div class="flex flex-col gap-6 w-1/3">
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                 <h3 class="text-lg font-bold text-gray-900 mb-6">Quick Insights</h3>
-
                 <div class="space-y-6">
                     <div class="relative pl-4 border-l-4 border-indigo-500">
                         <div class="text-xs font-semibold text-indigo-500 uppercase tracking-wide">High Value Customers
                         </div>
                         <div class="text-3xl font-bold text-gray-900 mt-1">
-                            {{ $clvAnalysis['summary']['high_value_count'] }}
-                        </div>
-                        <div class="text-sm text-gray-500 mt-1">Pelanggan dengan LTV > Rp 10 Juta</div>
+                            {{ $clvAnalysis['summary']['high_value_count'] ?? 0 }}</div>
                     </div>
-
                     <div class="relative pl-4 border-l-4 border-emerald-500">
                         <div class="text-xs font-semibold text-emerald-500 uppercase tracking-wide">Rata-rata LTV</div>
                         <div class="text-3xl font-bold text-gray-900 mt-1">Rp
-                            {{ number_format($clvAnalysis['summary']['avg_ltv'], 0, ',', '.') }}
-                        </div>
-                        <div class="text-sm text-gray-500 mt-1">Pendapatan per pelanggan berbayar</div>
+                            {{ number_format($clvAnalysis['summary']['avg_ltv'] ?? 0, 0, ',', '.') }}</div>
                     </div>
                 </div>
             </div>
@@ -372,23 +354,20 @@
                 <div class="relative z-10">
                     <h4 class="font-bold text-lg mb-2">Rekomendasi AI</h4>
                     <p class="text-indigo-100 text-sm leading-relaxed">
-                        Fokus retensi pada {{ $clvAnalysis['summary']['high_value_count'] }} pelanggan bernilai tinggi.
-                        Pertimbangkan program loyalitas eksklusif untuk meningkatkan frekuensi transaksi mereka.
+                        Fokus retensi pada {{ $clvAnalysis['summary']['high_value_count'] ?? 0 }} pelanggan bernilai
+                        tinggi.
+                        Pertimbangkan program loyalitas eksklusif.
                     </p>
                 </div>
                 <div class="absolute -bottom-8 -right-8 w-32 h-32 bg-white opacity-10 rounded-full blur-2xl"></div>
             </div>
         </div>
+    </div>
 
-    </div> {{-- End flex-row container (CLV/Map + Quick Insights) --}}
-
-    {{-- 3. Operational Deep Dive (Drill-Down Capable) --}}
+    {{-- 3. Operational Deep Dive --}}
     <div wire:loading.remove
         class="mt-8 bg-white rounded-2xl shadow-sm border border-gray-100 p-8 relative overflow-hidden">
-
-        {{-- Decorative Background --}}
-        <div class="absolute top-0 right-0 w-64 h-64 bg-indigo-50 rounded-bl-full opacity-50 pointer-events-none">
-        </div>
+        <div class="absolute top-0 right-0 w-64 h-64 bg-indigo-50 rounded-bl-full opacity-50 pointer-events-none"></div>
 
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 relative z-10">
             <div class="flex items-center gap-3">
@@ -407,174 +386,255 @@
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 relative z-10">
-            {{-- Chart Section --}}
             <div class="lg:col-span-2">
                 <div class="w-full relative" style="height: 320px; min-height: 320px;">
-                    <canvas id="topWorkshopsChart"></canvas>
+                    <canvas id="topWorkshopsChart" data-chart-json="{{ json_encode($topWorkshops) }}"></canvas>
                 </div>
-
             </div>
-
-            {{-- Summary / Legend --}}
             <div class="space-y-6">
                 <div class="bg-gray-50 rounded-xl p-5 border border-gray-100">
                     <h4 class="font-bold text-gray-900 text-sm mb-3">Highlight Performa</h4>
                     @if(count($topWorkshops) > 0)
                         <div class="flex items-center gap-4 mb-4">
-                            <div class="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center text-2xl">
-                                🏆
+                            <div class="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center text-2xl">🏆
                             </div>
                             <div>
                                 <div class="text-xs text-gray-500 uppercase tracking-widest">Top Performer</div>
                                 <div class="font-bold text-gray-900">{{ $topWorkshops[0]['name'] }}</div>
                                 <div class="text-xs text-indigo-600 font-semibold">Rp
-                                    {{ number_format($topWorkshops[0]['revenue'], 0, ',', '.') }}
-                                </div>
+                                    {{ number_format($topWorkshops[0]['revenue'], 0, ',', '.') }}</div>
                             </div>
                         </div>
                     @endif
                     <p class="text-xs text-gray-500 leading-relaxed">
-                        Grafik disamping interaktif.
-                        <span class="font-bold text-indigo-600">Klik salah satu bar</span> untuk membuka modal
-                        detail
-                        yang berisi tren pendapatan 6 bulan terakhir, layanan terlaris, dan rating kepuasan
-                        pelanggan
-                        spesifik untuk bengkel tersebut.
+                        <span class="font-bold text-indigo-600">Klik salah satu bar</span> untuk membuka modal detail.
                     </p>
                 </div>
             </div>
         </div>
     </div>
 
-    {{-- Detail Modal --}}
+    {{-- Detail Modal (Workshop) --}}
     <div x-data="{ show: @entangle('showWorkshopModal') }" x-show="show" x-cloak
         class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-
         <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            {{-- Backdrop --}}
-            <div x-show="show" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0"
-                x-transition:enter-end="opacity-100" x-transition:leave="ease-in duration-200"
-                x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
-                class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="$wire.closeWorkshopModal()"
-                aria-hidden="true"></div>
-
-            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-
-            {{-- Modal Panel --}}
-            <div x-show="show" x-transition:enter="ease-out duration-300"
-                x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-                x-transition:leave="ease-in duration-200"
-                x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
-                x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
-
+            <div x-show="show" class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+                @click="$wire.closeWorkshopModal(); setTimeout(() => { if(window.marketMapInstance) window.marketMapInstance.invalidateSize(); }, 100)"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+            <div x-show="show"
+                class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-6xl sm:w-full">
                 @if(!empty($workshopDetail))
                     <div class="bg-indigo-600 px-4 py-4 sm:px-6">
                         <div class="flex items-center justify-between">
-                            <h3 class="text-lg leading-6 font-medium text-white" id="modal-title">
-                                Workshop Deep Dive: {{ $workshopDetail['name'] }}
-                            </h3>
-                            <button type="button" class="text-indigo-200 hover:text-white" wire:click="closeWorkshopModal">
-                                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
+                            <h3 class="text-lg leading-6 font-medium text-white">Workshop Deep Dive:
+                                {{ $workshopDetail['name'] }}</h3>
+                            <button type="button" class="text-indigo-200 hover:text-white"
+                                wire:click="closeWorkshopModal"
+                                @click="setTimeout(() => { if(window.marketMapInstance) window.marketMapInstance.invalidateSize(); }, 100)">X</button>
                         </div>
-                        <p class="mt-1 text-sm text-indigo-200">
-                            Owner: {{ $workshopDetail['owner_name'] }} | {{ $workshopDetail['address'] }}
-                        </p>
+                        <p class="mt-1 text-sm text-indigo-200">Owner: {{ $workshopDetail['owner_name'] }} |
+                            {{ $workshopDetail['address'] }}</p>
                     </div>
-
                     <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            {{-- Stats Cards --}}
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                             <div class="space-y-4">
                                 <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
                                     <div class="text-xs text-gray-500 uppercase tracking-wide">Total Revenue</div>
                                     <div class="text-2xl font-bold text-gray-900 mt-1">Rp
-                                        {{ number_format($workshopDetail['total_revenue'], 0, ',', '.') }}
-                                    </div>
-                                </div>
-                                <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                                    <div class="text-xs text-gray-500 uppercase tracking-wide">Transactions</div>
-                                    <div class="text-2xl font-bold text-gray-900 mt-1">
-                                        {{ $workshopDetail['total_trx'] }}
-                                    </div>
+                                        {{ number_format($workshopDetail['total_revenue'], 0, ',', '.') }}</div>
                                 </div>
                                 <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
                                     <div class="text-xs text-gray-500 uppercase tracking-wide">Avg Rating</div>
                                     <div class="flex items-center gap-1 mt-1">
                                         <span
                                             class="text-2xl font-bold text-gray-900">{{ $workshopDetail['rating'] }}</span>
-                                        <svg class="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
-                                            <path
-                                                d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                        </svg>
                                     </div>
                                 </div>
+                                <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                    <div class="text-xs text-gray-500 uppercase tracking-wide">Total Transaksi</div>
+                                    <div class="text-2xl font-bold text-gray-900 mt-1">{{ number_format($workshopDetail['total_trx'] ?? 0) }}</div>
+                                </div>
                             </div>
-
-                            {{-- Trend Chart --}}
                             <div class="md:col-span-2">
                                 <h4 class="font-bold text-gray-900 text-sm mb-3">Tren Pendapatan (6 Bulan Terakhir)</h4>
                                 <div class="h-48 w-full">
-                                    {{-- Pass data via data attribute --}}
                                     <canvas id="workshopDetailChart"
                                         data-labels="{{ json_encode(array_keys($workshopDetail['revenue_trend'] ?? [])) }}"
                                         data-values="{{ json_encode(array_values($workshopDetail['revenue_trend'] ?? [])) }}">
                                     </canvas>
                                 </div>
                             </div>
-                        </div>
-
-                        <div class="mt-6 border-t border-gray-100 pt-4">
-                            <h4 class="font-bold text-gray-900 text-sm mb-3">Top 5 Layanan Terlaris</h4>
-                            <div class="space-y-2">
-                                @foreach($workshopDetail['top_services'] as $idx => $service)
-                                    <div class="flex items-center justify-between text-sm">
-                                        <div class="flex items-center gap-3">
-                                            <div
-                                                class="w-6 h-6 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-xs font-bold">
-                                                {{ $idx + 1 }}
+                            
+                            {{-- Column 4: Popular Services --}}
+                            <div>
+                                <h4 class="font-bold text-gray-900 text-sm mb-3">Service Paling Laris</h4>
+                                <div class="space-y-2 max-h-64 overflow-y-auto">
+                                    @forelse($workshopDetail['top_services'] ?? [] as $service)
+                                        <div class="bg-gradient-to-r from-indigo-50 to-purple-50 p-3 rounded-lg border border-indigo-100">
+                                            <div class="flex items-start justify-between gap-2">
+                                                <div class="flex-1 min-w-0">
+                                                    <div class="text-sm font-semibold text-gray-900 leading-tight truncate" title="{{ $service['name'] }}">
+                                                        {{ $service['name'] }}
+                                                    </div>
+                                                    <div class="text-xs text-gray-500 mt-1">{{ $service['count'] }} transaksi</div>
+                                                </div>
+                                                <div class="flex items-center justify-center h-7 w-7 rounded-full bg-indigo-600 text-white text-xs font-bold flex-shrink-0">
+                                                    {{ $loop->iteration }}
+                                                </div>
                                             </div>
-                                            <span class="font-medium text-gray-700">{{ $service['name'] }}</span>
                                         </div>
-                                        <span class="text-gray-500">{{ $service['count'] }} request</span>
-                                    </div>
-                                @endforeach
+                                    @empty
+                                        <div class="text-center py-8 text-gray-400 text-sm">
+                                            <svg class="w-12 h-12 mx-auto mb-2 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                            </svg>
+                                            Belum ada data service
+                                        </div>
+                                    @endforelse
+                                </div>
                             </div>
                         </div>
                     </div>
-
-                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                        <button type="button" wire:click="closeWorkshopModal"
-                            class="w-full inline-flex justify-center rounded-lg border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:w-auto sm:text-sm">
-                            Tutup
-                        </button>
-                    </div>
                 @else
-                    <div class="p-10 text-center">
-                        <svg class="mx-auto h-12 w-12 text-gray-400 animate-spin" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
-                            </circle>
-                            <path class="opacity-75" fill="currentColor"
-                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                            </path>
-                        </svg>
-                        <h3 class="mt-2 text-sm font-medium text-gray-900">Memuat data...</h3>
-                    </div>
+                    <div class="p-10 text-center">Memuat data...</div>
                 @endif
             </div>
         </div>
     </div>
 
-    {{-- 3. Business Outlook (Platform Intelligence) --}}
-    <div wire:loading.remove class="mt-8 bg-white rounded-2xl shadow-sm border border-gray-100 p-8" x-show="loaded"
-        x-transition:enter="transition ease-out duration-700 delay-200"
-        x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0">
+    {{-- Premium Archive Modal --}}
+    <div x-show="showArchiveModal" x-cloak class="relative z-[60]" aria-labelledby="modal-title" role="dialog"
+        aria-modal="true">
+        <div x-show="showArchiveModal" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100" x-transition:leave="ease-in duration-200"
+            x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+            class="fixed inset-0 bg-gray-500 bg-opacity-75 backdrop-blur-sm transition-opacity"></div>
 
+        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                <div x-show="showArchiveModal" x-transition:enter="ease-out duration-300"
+                    x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                    x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                    x-transition:leave="ease-in duration-200"
+                    x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                    x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                    @click.away="showArchiveModal = false"
+                    class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+                    <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                        <div class="sm:flex sm:items-start">
+                            <div
+                                class="mx-auto flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full bg-red-100 sm:mx-0 sm:h-12 sm:w-12">
+                                <svg class="h-8 w-8 text-red-600 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24"
+                                    stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                                </svg>
+                            </div>
+                            <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
+                                <h3 class="text-xl font-bold leading-6 text-gray-900" id="modal-title">Konfirmasi
+                                    Pengarsipan</h3>
+                                <div class="mt-2">
+                                    <p class="text-sm text-gray-500">
+                                        Anda akan mengarsipkan data analitik untuk tahun
+                                        <strong>{{ date('Y') }}</strong>.
+                                        Tindakan ini akan membuat snapshot permanen untuk referensi histori. Data saat
+                                        ini tidak akan dihapus, namun snapshot akan ditimpa jika sudah ada.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                        <button type="button" wire:click="generateSnapshot" @click="showArchiveModal = false"
+                            class="inline-flex w-full justify-center rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:ml-3 sm:w-auto transition-colors">
+                            Ya, Arsipkan Data
+                        </button>
+                        <button type="button" @click="showArchiveModal = false"
+                            class="mt-3 inline-flex w-full justify-center rounded-xl bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto transition-colors">
+                            Batal
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Premium Upsell Modal --}}
+    <div x-show="showUpsellModal" x-cloak class="relative z-[60]" aria-labelledby="modal-title" role="dialog"
+        aria-modal="true">
+        <div x-show="showUpsellModal" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100" x-transition:leave="ease-in duration-200"
+            x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+            class="fixed inset-0 bg-gray-500 bg-opacity-75 backdrop-blur-sm transition-opacity"></div>
+
+        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                <div x-show="showUpsellModal" x-transition:enter="ease-out duration-300"
+                    x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                    x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                    x-transition:leave="ease-in duration-200"
+                    x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                    x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                    @click.away="showUpsellModal = false"
+                    class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+                    <div class="bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-6 sm:px-6">
+                        <div class="flex items-center gap-3 text-white">
+                            <div class="rounded-full bg-white/20 p-2">
+                                <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold leading-6">Kirim Penawaran Spesial</h3>
+                                <p class="text-emerald-100 text-xs mt-1">Maksimalkan potensi pendapatan dari mitra ini.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="px-4 py-6 sm:px-6 space-y-4">
+                        <div class="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                            <div class="text-xs text-gray-500 uppercase font-bold">Mitra Penerima</div>
+                            <div class="font-bold text-gray-900" x-text="selectedUpsell?.workshop"></div>
+                            <div class="text-sm text-gray-600" x-text="selectedUpsell?.owner"></div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Pilih Jenis Promo</label>
+                            <select
+                                class="w-full rounded-lg border-gray-300 focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm shadow-sm">
+                                <option>Diskon Langganan 20% (Recommended)</option>
+                                <option>Akses Fitur Premium 7 Hari</option>
+                                <option>Undangan Webinar Bisnis Eksklusif</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Pesan Personal
+                                (Opsional)</label>
+                            <textarea rows="3"
+                                class="w-full rounded-lg border-gray-300 focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm shadow-sm"
+                                placeholder="Tambahkan catatan khusus..."></textarea>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                        <button type="button"
+                            @click="$wire.sendUpsellOffer(selectedUpsell.workshop_id); showUpsellModal = false"
+                            class="inline-flex w-full justify-center rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 sm:ml-3 sm:w-auto transition-colors">
+                            Kirim Penawaran
+                        </button>
+                        <button type="button" @click="showUpsellModal = false"
+                            class="mt-3 inline-flex w-full justify-center rounded-xl bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto transition-colors">
+                            Batal
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- 3. Business Outlook section - Update Tawarkan Button to trigger modal --}}
+    <div wire:loading.remove class="mt-8 bg-white rounded-2xl shadow-sm border border-gray-100 p-8" x-show="loaded">
         <div class="flex items-center gap-3 mb-8">
             <div class="p-2 bg-indigo-50 rounded-lg text-indigo-600">
                 <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -589,77 +649,69 @@
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {{-- MRR Forecast --}}
             <div class="p-6 bg-gray-50 rounded-xl border border-gray-100">
                 <h3 class="font-bold text-gray-900 mb-1">Prediksi Pendapatan (MRR)</h3>
-                <p class="text-xs text-gray-500 mb-4">Proyeksi bulan depan berbasis Linear Regression</p>
-
                 <div class="flex items-baseline gap-2 mb-4">
                     <span class="text-3xl font-bold text-gray-900">Rp
                         {{ number_format($platformOutlook['mrr_forecast']['prediction'], 0, ',', '.') }}</span>
-                    @if($platformOutlook['mrr_forecast']['growth_rate'] > 0)
-                        <span
-                            class="text-xs font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">+{{ number_format($platformOutlook['mrr_forecast']['growth_rate'], 1) }}%</span>
-                    @else
-                        <span
-                            class="text-xs font-bold text-rose-600 bg-rose-100 px-2 py-0.5 rounded-full">{{ number_format($platformOutlook['mrr_forecast']['growth_rate'], 1) }}%</span>
-                    @endif
                 </div>
                 <div class="h-32">
-                    <canvas id="mrrForecastChart"></canvas>
+                    <canvas id="mrrForecastChart"
+                        data-chart-json="{{ json_encode($platformOutlook['mrr_forecast']['history'] ?? []) }}"
+                        data-prediction="{{ $platformOutlook['mrr_forecast']['prediction'] ?? 0 }}"></canvas>
                 </div>
             </div>
-
-            {{-- Churn Risk --}}
             <div class="p-6 bg-rose-50 rounded-xl border border-rose-100">
-                <h3 class="font-bold text-rose-900 mb-1">Resiko Churn (High Risk)</h3>
-                <p class="text-xs text-rose-700 mb-4">Bengkel dengan penurunan aktivitas ekstrim (>50%)</p>
-
+                <h3 class="font-bold text-rose-900 mb-1">Resiko Churn</h3>
                 <div class="space-y-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
                     @forelse($platformOutlook['churn_candidates'] as $risk)
-                        <div
-                            class="bg-white p-3 rounded-lg shadow-sm border border-rose-100 flex justify-between items-center">
-                            <div>
-                                <div class="font-bold text-gray-900 text-sm">{{ $risk['name'] }}</div>
-                                <div class="text-xs text-gray-500">{{ $risk['owner'] }}</div>
-                            </div>
-                            <div class="text-right">
-                                <div class="text-xs font-bold text-rose-600">Drop {{ $risk['drop_rate'] }}</div>
-                                <div class="text-[10px] text-gray-400">{{ $risk['prev_vol'] }} ->
-                                    {{ $risk['current_vol'] }}
-                                    trx
+                        <div class="bg-white p-3 rounded-lg shadow-sm border border-rose-100">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <div class="font-bold text-gray-900 text-sm">{{ $risk['name'] }}</div>
+                                    <div class="text-[10px] text-gray-500">{{ $risk['owner'] ?? 'N/A' }}</div>
                                 </div>
+                                <div class="text-right">
+                                    <div class="text-xs font-bold text-rose-600">Drop {{ $risk['drop_rate'] }}</div>
+                                </div>
+                            </div>
+                            <div class="mt-2 text-[10px] text-gray-500 bg-rose-50 px-2 py-1 rounded flex justify-between">
+                                <span>Vol: <strong>{{ $risk['prev_vol'] ?? 0 }}</strong> <span
+                                        class="text-gray-400">-></span>
+                                    <strong>{{ $risk['current_vol'] ?? 0 }}</strong></span>
                             </div>
                         </div>
                     @empty
-                        <div class="text-center py-4 text-rose-400 text-sm">Tidak ada bengkel beresiko saat ini.</div>
+                        <div class="text-center py-4 text-rose-400 text-sm">Tidak ada resiko.</div>
                     @endforelse
                 </div>
             </div>
-
-            {{-- Upsell Opportunities --}}
             <div class="p-6 bg-emerald-50 rounded-xl border border-emerald-100">
-                <h3 class="font-bold text-emerald-900 mb-1">Peluang Upsell (Hot Leads)</h3>
-                <p class="text-xs text-emerald-700 mb-4">Pengguna Free dengan volume transaksi tinggi</p>
-
+                <h3 class="font-bold text-emerald-900 mb-1">Peluang Upsell</h3>
                 <div class="space-y-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
                     @forelse($platformOutlook['upsell_candidates'] as $lead)
-                        <div
-                            class="bg-white p-3 rounded-lg shadow-sm border border-emerald-100 flex justify-between items-center">
-                            <div>
-                                <div class="font-bold text-gray-900 text-sm">{{ $lead['workshop'] }}</div>
-                                <div class="text-xs text-gray-500">{{ $lead['owner'] }}</div>
+                        <div class="bg-white p-3 rounded-lg shadow-sm border border-emerald-100">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <div class="font-bold text-gray-900 text-sm">{{ $lead['workshop'] }}</div>
+                                    <div class="text-[10px] text-gray-500">{{ $lead['owner'] ?? 'N/A' }}</div>
+                                </div>
+                                <div class="text-right">
+                                    {{-- TRIGGER MODAL HERE --}}
+                                    <button @click="selectedUpsell = {{ json_encode($lead) }}; showUpsellModal = true"
+                                        class="text-[10px] bg-emerald-600 text-white px-2 py-0.5 rounded shadow hover:bg-emerald-700 transition-colors">Tawarkan</button>
+                                </div>
                             </div>
-                            <div class="text-right">
-                                <div class="text-xs font-bold text-indigo-600">{{ $lead['volume'] }} Trx/mo</div>
-                                <button
-                                    class="mt-1 text-[10px] bg-emerald-600 text-white px-2 py-0.5 rounded hover:bg-emerald-700">Tawarkan
-                                    Premium</button>
+                            <div class="mt-2 text-[10px] text-gray-500 flex items-center gap-1">
+                                <svg class="w-3 h-3 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                </svg>
+                                <span>High Volume: <strong>{{ $lead['volume'] }}</strong> trx/bulan</span>
                             </div>
                         </div>
                     @empty
-                        <div class="text-center py-4 text-emerald-500 text-sm">Belum ada kandidat upsell potensial.
-                        </div>
+                        <div class="text-center py-4 text-emerald-500 text-sm">Belum ada peluang.</div>
                     @endforelse
                 </div>
             </div>
@@ -674,537 +726,332 @@
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        document.addEventListener('livewire:navigated', initCharts);
-        document.addEventListener('DOMContentLoaded', initCharts);
-        window.addEventListener('refresh-charts', initCharts); // Listen for Livewire event
+        document.addEventListener('livewire:navigated', () => {
+            console.log('[EIS] Livewire navigated event');
+            initCharts();
+        });
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('[EIS] DOMContentLoaded event');
+            initCharts();
+        });
+        window.addEventListener('refresh-charts', () => {
+            console.log('[EIS] refresh-charts event');
+            initCharts();
+        });
 
         function initCharts() {
-            console.log('Starting Chart Initialization (Safe Mode)...');
-
-            // 1. Prioritize Main Chart (Drill-down)
-            try {
+            console.log('[EIS] initCharts() starting...');
+            // Increased timeout to ensure Livewire data is fully loaded
+            setTimeout(() => {
+                console.log('[EIS] Initializing all charts now');
                 initTopWorkshopsChart();
-            } catch (e) {
-                console.error('CRITICAL: Top Workshops Chart failed', e);
-            }
-
-            // 2. Load Secondary Charts (Safe Versions)
-            try { initClvChartSafe(); } catch (e) { console.warn('CLV Safe warning:', e); }
-            try { initSparklinesSafe(); } catch (e) { console.warn('Sparklines Safe warning:', e); }
-            try { initSegmentationChartSafe(); } catch (e) { console.warn('Segmentation Safe warning:', e); }
-            try { initMrrForecastChartSafe(); } catch (e) { console.warn('MRR Safe warning:', e); }
-            try { initMap(); } catch (e) { console.warn('Map Init failed:', e); }
+                initClvChartSafe();
+                initSparklinesSafe();
+                initMrrForecastChartSafe();
+                initMap();
+                console.log('[EIS] All charts initialized');
+            }, 250); // Increased from 100ms to 250ms
         }
 
-        // Listen for modal chart init event
         window.addEventListener('init-workshop-chart', event => {
-            // Look for canvas inside modal after Livewire updates DOM
-            setTimeout(() => {
-                initWorkshopDetailChart();
-            }, 300); // Slight delay for transition
+            setTimeout(() => initWorkshopDetailChart(), 300);
         });
 
         function initTopWorkshopsChart() {
-            console.log('[DRILL-DOWN] Starting initialization...');
+            console.log('[EIS] initTopWorkshopsChart() called');
             const ctx = document.getElementById('topWorkshopsChart');
             if (!ctx) {
-                console.error('[DRILL-DOWN] Canvas topWorkshopsChart not found!');
+                console.warn('[EIS] Top Workshops chart canvas not found');
                 return;
             }
-            console.log('[DRILL-DOWN] Canvas found:', ctx);
-
-            const rawData = @json($topWorkshops);
-            console.log('[DRILL-DOWN] Top Workshops Data:', rawData);
-
-            if (!rawData || rawData.length === 0) {
-                console.warn('No data for Top Workshops Chart');
-                return;
-            }
-
-
-            // Safe destroy
+            
+            // Properly check if destroy exists before calling it
             if (window.topWorkshopsChart && typeof window.topWorkshopsChart.destroy === 'function') {
+                console.log('[EIS] Destroying existing Top Workshops chart');
                 window.topWorkshopsChart.destroy();
-            } else if (window.topWorkshopsChart) {
-                window.topWorkshopsChart = null;
             }
 
+            try {
+                const rawData = JSON.parse(ctx.dataset.chartJson || '[]');
+                console.log('[EIS] Top Workshops data:', 'Count:', rawData.length);
+                
+                const labels = rawData.map(d => d.name);
+                const data = rawData.map(d => d.revenue);
+                const ids = rawData.map(d => d.id);
 
-            const labels = rawData.map(d => d.name);
-            const data = rawData.map(d => d.revenue);
-            const ids = rawData.map(d => d.id);
-
-            window.topWorkshopsChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Total Pendapatan',
-                        data: data,
-                        backgroundColor: 'rgba(79, 70, 229, 0.8)', // Indigo-600
-                        borderRadius: 6,
-                        barThickness: 20
-                    }]
-                },
-                options: {
-                    indexAxis: 'y', // Horizontal Bar
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: function (context) {
-                                    let label = context.dataset.label || '';
-                                    if (label) {
-                                        label += ': ';
-                                    }
-                                    if (context.parsed.x !== null) {
-                                        label += new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(context.parsed.x);
-                                    }
-                                    return label;
-                                },
-                                afterBody: function () {
-                                    return '\n(Klik untuk drill-down)';
-                                }
-                            }
-                        }
+                window.topWorkshopsChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Revenue',
+                            data: data,
+                            backgroundColor: 'rgba(79, 70, 229, 0.8)',
+                            borderRadius: 6
+                        }]
                     },
-                    onClick: (e, activeEls) => {
-                        if (activeEls.length === 0) return;
-
-                        const index = activeEls[0].index;
-                        const workshopId = ids[index];
-
-                        // Trigger Livewire Method
-                        @this.openWorkshopDetail(workshopId);
-                    },
-                    onHover: (event, chartElement) => {
-                        event.native.target.style.cursor = chartElement[0] ? 'pointer' : 'default';
-                    },
-                    scales: {
-                        x: {
-                            grid: { display: false },
-                            ticks: {
-                                callback: function (value) {
-                                    return 'Rp ' + (value / 1000000).toFixed(0) + 'jt';
-                                }
-                            }
-                        },
-                        y: {
-                            grid: { display: false }
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        onClick: (e, activeEls) => {
+                            if (activeEls.length === 0) return;
+                            const index = activeEls[0].index;
+                            @this.openWorkshopDetail(ids[index]);
                         }
                     }
-                }
-            });
+                });
+                console.log('[EIS] Top Workshops chart initialized successfully');
+            } catch (error) {
+                console.error('[EIS] Error initializing Top Workshops chart:', error);
+            }
         }
 
+        function initClvChartSafe() {
+            console.log('[EIS] initClvChartSafe() called');
+            const ctx = document.getElementById('clvBubbleChart');
+            if (!ctx) {
+                console.warn('[EIS] CLV Chart canvas not found');
+                return;
+            }
 
+            if (window.clvChart) {
+                console.log('[EIS] Destroying existing CLV chart');
+                window.clvChart.destroy();
+            }
 
-        // ... existing charts ...
+            const rawData = JSON.parse(ctx.dataset.chartJson || '[]');
+            console.log('[EIS] CLV Chart data:', rawData, 'Count:', rawData.length);
+
+            if (rawData.length === 0) {
+                console.warn('[EIS] CLV Chart: No data available');
+                // Show empty state by creating chart with placeholder
+                window.clvChart = new Chart(ctx, {
+                    type: 'bubble',
+                    data: {
+                        datasets: [{
+                            label: 'Pelanggan',
+                            data: [],
+                            backgroundColor: 'rgba(99, 102, 241, 0.6)',
+                            borderColor: 'rgba(99, 102, 241, 1)'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { enabled: false }
+                        }
+                    }
+                });
+                return;
+            }
+
+            try {
+                window.clvChart = new Chart(ctx, {
+                    type: 'bubble',
+                    data: {
+                        datasets: [{
+                            label: 'Pelanggan',
+                            data: rawData,
+                            backgroundColor: 'rgba(99, 102, 241, 0.6)',
+                            borderColor: 'rgba(99, 102, 241, 1)'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: {
+                                title: { display: true, text: 'Frekuensi Transaksi' }
+                            },
+                            y: {
+                                title: { display: true, text: 'Total Nilai (Rp)' }
+                            }
+                        }
+                    }
+                });
+                console.log('[EIS] CLV Chart initialized successfully');
+            } catch (error) {
+                console.error('[EIS] Error initializing CLV chart:', error);
+            }
+        }
 
         function initMrrForecastChartSafe() {
             const ctx = document.getElementById('mrrForecastChart');
             if (!ctx) return;
+            if (window.mrrChart) window.mrrChart.destroy();
 
-            if (window.mrrChart && typeof window.mrrChart.destroy === 'function') {
-                window.mrrChart.destroy();
-            } else if (window.mrrChart) {
-                window.mrrChart = null;
-            }
+            const rawData = JSON.parse(ctx.dataset.chartJson || '[]');
+            const prediction = parseFloat(ctx.dataset.prediction || 0);
 
-            const rawData = @json($platformOutlook['mrr_forecast']['history'] ?? []);
             const labels = rawData.map(d => d.label);
             const values = rawData.map(d => d.y);
 
-            // Add Prediction Point
-            const predictedVal = @json($platformOutlook['mrr_forecast']['prediction'] ?? 0);
-            labels.push('Next Month (Pred)');
-            // Pad values with null for historical line, add prediction at end
-            // Actually for simplicity, just append to array
+            // Add prediction
+            labels.push('Next Month');
             const historicalData = [...values, null];
-            const predictedData = Array(values.length).fill(null);
-            predictedData.push(values[values.length - 1]); // Connect lines
-            predictedData.push(predictedVal);
+
+            // Fix: Create array of nulls for previous months, leaving only the last history point and the new prediction point
+            // This ensures the line connects from the last actual point to the prediction
+            const predictedData = Array(Math.max(0, values.length - 1)).fill(null);
+            if (values.length > 0) {
+                predictedData.push(values[values.length - 1]);
+            }
+            predictedData.push(prediction);
 
             window.mrrChart = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: labels,
                     datasets: [
-                        {
-                            label: 'History',
-                            data: historicalData,
-                            borderColor: '#4f46e5', // Indigo
-                            backgroundColor: '#4f46e5',
-                            tension: 0.3
-                        },
-                        {
-                            label: 'AI Forecast',
-                            data: predictedData,
-                            borderColor: '#9333ea', // Purple
-                            borderDash: [5, 5],
-                            backgroundColor: '#9333ea',
-                            pointStyle: 'star',
-                            pointRadius: 6
-                        }
+                        { label: 'History', data: historicalData, borderColor: '#4f46e5', tension: 0.3 },
+                        { label: 'Forecast', data: predictedData, borderColor: '#9333ea', borderDash: [5, 5], tension: 0.3 }
                     ]
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } }, // Compact
-                    scales: {
-                        x: { display: false },
-                        y: {
-                            display: true,
-                            ticks: {
-                                callback: (val) => (val / 1000000).toFixed(0) + 'jt' // Abbreviate Millions
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        // ... existing functions ...
-
-
-        function initSegmentationChartSafe() {
-            const ctx = document.getElementById('segmentationChart');
-            if (!ctx) return;
-
-            // Safe Destroy
-            if (window.segmentationChart && typeof window.segmentationChart.destroy === 'function') {
-                window.segmentationChart.destroy();
-            } else if (window.segmentationChart) {
-                window.segmentationChart = null;
-            }
-
-            // Check for empty data to avoid Chart.js errors
-            const rawData = @json($customerSegmentation['segments'] ?? []);
-            if (!rawData || Object.keys(rawData).length === 0) {
-                console.warn('Skipping Segmentation Chart: No Data');
-                return;
-            }
-
-            const labels = Object.keys(rawData);
-            const values = Object.values(rawData);
-
-            const colors = {
-                'Champions': '#10b981',
-                'Loyal Customers': '#3b82f6',
-                'Potential Loyalists': '#8b5cf6',
-                'New Customers': '#06b6d4',
-                'At Risk': '#f59e0b',
-                'Hibernating': '#64748b',
-                'Others': '#d1d5db'
-            };
-            const bgColors = labels.map(label => colors[label] || '#9ca3af');
-
-            window.segmentationChart = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: values,
-                        backgroundColor: bgColors,
-                        borderWidth: 0,
-                        hoverOffset: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    cutout: '75%',
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            backgroundColor: 'rgba(17, 24, 39, 0.9)',
-                            padding: 12,
-                            cornerRadius: 8,
-                            titleFont: { size: 13 },
-                            bodyFont: { size: 12 },
-                            callbacks: {
-                                label: function (context) {
-                                    const label = context.label || '';
-                                    const val = context.raw;
-                                    const total = context.chart._metasets[context.datasetIndex].total;
-                                    const percentage = ((val / total) * 100).toFixed(1) + '%';
-                                    return `${label}: ${val} (${percentage})`;
-                                }
-                            }
-                        }
-                    }
-                }
+                options: { responsive: true, maintainAspectRatio: false }
             });
         }
 
         function initSparklinesSafe() {
-            if (window.sparklineInstances) {
-                window.sparklineInstances.forEach(chart => chart.destroy());
-            }
+            console.log('[EIS] initSparklinesSafe() called');
+            if (window.sparklineInstances) window.sparklineInstances.forEach(c => c.destroy());
             window.sparklineInstances = [];
-
-            // Select all canvases matching pattern
-            const canvases = document.querySelectorAll('canvas[id^="sparkline-"]');
-
-            canvases.forEach((canvas) => {
-                const chartData = JSON.parse(canvas.dataset.chart);
-                const colorName = canvas.dataset.color || 'gray';
-
-                // Simple map for Tailwind Colors to Hex
-                const colors = {
-                    'emerald': '#10b981', 'blue': '#2563eb', 'cyan': '#06b6d4',
-                    'violet': '#8b5cf6', 'amber': '#f59e0b', 'rose': '#f43f5e', 'gray': '#6b7280'
+            
+            document.querySelectorAll('canvas[id^="sparkline-"]').forEach(canvas => {
+                const data = JSON.parse(canvas.dataset.chart || '[]');
+                const color = canvas.dataset.color || 'gray';
+                const colors = { 
+                    'emerald': '#10b981', 
+                    'blue': '#3b82f6', 
+                    'rose': '#f43f5e', 
+                    'cyan': '#06b6d4',
+                    'violet': '#8b5cf6',
+                    'amber': '#f59e0b'
                 };
-                const hex = colors[colorName] || '#6b7280';
+
+                const lineColor = colors[color] || '#6b7280';
 
                 const chart = new Chart(canvas, {
                     type: 'line',
                     data: {
-                        labels: chartData.map((_, i) => i),
+                        labels: data.map((_, i) => i),
                         datasets: [{
-                            data: chartData,
-                            borderColor: hex,
-                            backgroundColor: hex + '1A', // 10% opacity
-                            borderWidth: 2,
+                            data: data,
+                            borderColor: lineColor,
+                            backgroundColor: lineColor + '20', // Semi-transparent fill
                             pointRadius: 0,
-                            pointHoverRadius: 3,
-                            fill: true,
-                            tension: 0.4
+                            borderWidth: 2,
+                            fill: true,  // Enable area fill
+                            tension: 0.4 // Smooth curves
                         }]
                     },
-                    options: {
-                        responsive: true,
+                    options: { 
+                        responsive: true, 
                         maintainAspectRatio: false,
-                        plugins: { legend: { display: false }, tooltip: { enabled: false } },
-                        scales: {
-                            x: { display: false },
-                            y: { display: false, min: Math.min(...chartData) * 0.9 }
+                        plugins: {
+                            legend: { display: false }, // Remove 'undefined'
+                            tooltip: { enabled: false }
                         },
-                        layout: { padding: 0 }
+                        scales: { 
+                            x: { display: false }, 
+                            y: { display: false } 
+                        }
                     }
                 });
                 window.sparklineInstances.push(chart);
             });
+            console.log('[EIS] Sparklines initialized:', window.sparklineInstances.length);
         }
 
-        function initClvChartSafe() {
-            const ctx = document.getElementById('clvBubbleChart');
-            if (!ctx) return;
-
-            if (window.clvChart && typeof window.clvChart.destroy === 'function') {
-                window.clvChart.destroy();
-            } else if (window.clvChart) {
-                window.clvChart = null;
-            }
-
-            const rawData = @json($clvAnalysis['scatter'] ?? []);
-
-            const data = {
-                datasets: [{
-                    label: 'Pelanggan',
-                    data: rawData,
-                    backgroundColor: 'rgba(99, 102, 241, 0.6)',
-                    borderColor: 'rgba(99, 102, 241, 1)',
-                    borderWidth: 1,
-                    hoverBackgroundColor: 'rgba(244, 63, 94, 0.8)',
-                    hoverBorderColor: 'rgba(244, 63, 94, 1)'
-                }]
-            };
-
-            window.clvChart = new Chart(ctx, {
-                type: 'bubble',
-                data: data,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            backgroundColor: 'rgba(17, 24, 39, 0.9)',
-                            padding: 12,
-                            cornerRadius: 8,
-                            titleFont: { size: 13 },
-                            bodyFont: { size: 12 },
-                            callbacks: {
-                                label: function (context) {
-                                    const v = context.raw;
-                                    return `Freq: ${v.x} | Value: Rp ${new Intl.NumberFormat('id-ID').format(v.y)}`;
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            title: { display: true, text: 'Frekuensi Pembelian', font: { weight: 'bold' } },
-                            beginAtZero: true,
-                            grid: { borderDash: [2, 2] }
-                        },
-                        y: {
-                            title: { display: true, text: 'Total Nilai (IDR)', font: { weight: 'bold' } },
-                            beginAtZero: true,
-                            grid: { borderDash: [2, 2] }
-                        }
-                    }
-                }
-            });
-        }
-    </script>
-
-
-    <script>
         function initMap() {
+            console.log('[EIS] initMap() called');
             const mapContainer = document.getElementById('marketMap');
-            if (!mapContainer) return;
-
-            // Prevent re-initialization
+            if (!mapContainer) {
+                console.warn('[EIS] Map container not found');
+                return;
+            }
+            
             if (window.marketMapInstance) {
+                console.log('[EIS] Removing existing map instance');
                 window.marketMapInstance.remove();
             }
 
-            // Coordinates for major Indonesian cities
-            const cityCoords = {
-                'Surabaya': [-7.2575, 112.7521],
-                'Jakarta': [-6.2088, 106.8456],
-                'Bandung': [-6.9175, 107.6191],
-                'Medan': [3.5952, 98.6722],
-                'Semarang': [-6.9667, 110.4167],
-                'Makassar': [-5.1477, 119.4328],
-                'Denpasar': [-8.6705, 115.2126],
-                'Yogyakarta': [-7.7956, 110.3695],
-                'Malang': [-7.9666, 112.6326],
-                'Palembang': [-2.9904, 104.7563],
-                'Bogor': [-6.5971, 106.8060],
-                'Batam': [1.1085, 104.0450],
-                'Balikpapan': [-1.2379, 116.8529]
-            };
+            try {
+                const map = L.map('marketMap').setView([-2.5489, 118.0149], 4);
+                window.marketMapInstance = map;
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                    attribution: '© OpenStreetMap contributors © CARTO'
+                }).addTo(map);
 
-            // Initialize Map centered on Indonesia
-            const map = L.map('marketMap').setView([-2.5489, 118.0149], 5);
-            window.marketMapInstance = map;
+                const cityStats = JSON.parse(mapContainer.dataset.chartJson || '[]');
+                console.log('[EIS] Map data:', cityStats, 'Count:', cityStats.length);
+                
+                const cityCoords = {
+                    'Surabaya': [-7.2575, 112.7521], 
+                    'Jakarta': [-6.2088, 106.8456], 
+                    'Bandung': [-6.9175, 107.6191],
+                    'Medan': [3.5952, 98.6722], 
+                    'Semarang': [-6.9667, 110.4167], 
+                    'Makassar': [-5.1477, 119.4328],
+                    'Denpasar': [-8.6705, 115.2126], 
+                    'Yogyakarta': [-7.7956, 110.3695], 
+                    'Malang': [-7.9666, 112.6326],
+                    'Palembang': [-2.9760, 104.7754],
+                    'Balikpapan': [-1.2379, 116.8529],
+                    'Banjarmasin': [-3.3194, 114.5908],
+                    'Pekanbaru': [0.5071, 101.4478],
+                    'Manado': [1.4748, 124.8421]
+                };
 
-            // Light Mode Tiles (CartoDB Positron) - Clean & Professional
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-                subdomains: 'abcd',
-                maxZoom: 19
-            }).addTo(map);
-
-            // All Workshops Data
-            const allWorkshops = @json($allWorkshops);
-
-            // Group workshops by city and sum revenue
-            const cityData = {};
-            allWorkshops.forEach(workshop => {
-                const city = workshop.city;
-                if (!cityData[city]) {
-                    cityData[city] = {
-                        city: city,
-                        totalRevenue: 0,
-                        workshopCount: 0,
-                        workshops: []
-                    };
-                }
-                cityData[city].totalRevenue += workshop.revenue;
-                cityData[city].workshopCount++;
-                cityData[city].workshops.push(workshop);
-            });
-
-            // Convert to array and sort by revenue
-            const citiesArray = Object.values(cityData).sort((a, b) => b.totalRevenue - a.totalRevenue);
-
-            // Identify top 5 cities
-            const top5Cities = citiesArray.slice(0, 5).map(c => c.city);
-
-            citiesArray.forEach(cityInfo => {
-                const coords = cityCoords[cityInfo.city];
-                if (coords) {
-                    const isTop5 = top5Cities.includes(cityInfo.city);
-
-                    // Marker size based on whether it's top 5
-                    const radius = isTop5 ? 25000 : 10000;
-
-                    // Color based on ranking
-                    let color = '#94a3b8'; // gray for regular
-                    if (isTop5) {
-                        const index = top5Cities.indexOf(cityInfo.city);
-                        const colors = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6'];
-                        color = colors[index];
+                let markersAdded = 0;
+                cityStats.forEach((stat, index) => {
+                    if (cityCoords[stat.city]) {
+                        const demand = stat.demand || 0;
+                        const supply = stat.supply || 0;
+                        const radius = index < 5 ? 40000 : 15000;
+                        const color = index < 5 ? '#ef4444' : '#94a3b8';
+                        
+                        L.circle(cityCoords[stat.city], {
+                            color: color,
+                            fillColor: color,
+                            fillOpacity: 0.5,
+                            radius: radius
+                        })
+                        .addTo(map)
+                        .bindTooltip(`
+                            <strong>${stat.city}</strong><br>
+                            Demand: ${demand} requests<br>
+                            Supply: ${supply} workshops
+                        `, { permanent: false, direction: 'top' });
+                        
+                        markersAdded++;
+                    } else {
+                        console.warn(`[EIS] No coordinates found for city: ${stat.city}`);
                     }
-
-                    const circle = L.circle(coords, {
-                        color: color,
-                        fillColor: color,
-                        fillOpacity: isTop5 ? 0.6 : 0.4,
-                        radius: radius,
-                        weight: isTop5 ? 3 : 1
-                    }).addTo(map);
-
-                    // Tooltip Content
-                    const tooltipContent = `
-                            <div class="p-2">
-                                <h4 class="font-bold text-sm">${cityInfo.city} ${isTop5 ? '⭐' : ''}</h4>
-                                <div class="text-xs text-gray-600 mt-1">
-                                    Total Revenue: <span class="font-bold text-indigo-600">Rp ${(cityInfo.totalRevenue / 1000000).toFixed(1)}M</span>
-                                </div>
-                                <div class="text-[10px] text-gray-500 mt-1">
-                                    ${cityInfo.workshopCount} bengkel
-                                </div>
-                            </div>
-                        `;
-                    circle.bindPopup(tooltipContent);
-
-                    // Auto-open popup for #1 city
-                    if (cityInfo === citiesArray[0]) {
-                        circle.openPopup();
-                    }
-                }
-            });
+                });
+                
+                console.log(`[EIS] Map initialized successfully. Added ${markersAdded} markers`);
+                
+                // Invalidate size to ensure proper rendering
+                setTimeout(() => map.invalidateSize(), 100);
+                
+            } catch (error) {
+                console.error('[EIS] Error initializing map:', error);
+            }
         }
-    </script>
 
-    <script>
-        // Separate script block to handle the dynamic data part for modal
         function initWorkshopDetailChart() {
             const ctx = document.getElementById('workshopDetailChart');
             if (!ctx) return;
-
-            // Destroy existing if any
             if (window.detailChart) window.detailChart.destroy();
 
             const labels = JSON.parse(ctx.dataset.labels || '[]');
             const values = JSON.parse(ctx.dataset.values || '[]');
-
             window.detailChart = new Chart(ctx, {
                 type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Revenue',
-                        data: values,
-                        borderColor: '#4f46e5',
-                        backgroundColor: 'rgba(79, 70, 229, 0.1)',
-                        fill: true,
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function (value) {
-                                    return (value / 1000000).toFixed(1) + 'jt';
-                                }
-                            }
-                        }
-                    }
-                }
+                data: { labels: labels, datasets: [{ label: 'Revenue', data: values, borderColor: '#4f46e5' }] }
             });
         }
     </script>

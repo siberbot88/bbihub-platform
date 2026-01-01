@@ -24,41 +24,36 @@ class _WorkshopWaitingPageState extends State<WorkshopWaitingPage> {
     if (!mounted) return;
     setState(() => _isLoading = false);
 
-    // Logic redirect ada di dalam checkLoginStatus atau bisa di handle di sini manual
-    // Tapi karena kita akan update AuthProvider, biarkan auth provider yg redirect atau kita cek manual
-    final ws = _getWorkshop(auth.user);
-    final status = ws?['status'] ?? 'pending';
-    
-    if (status == 'active') {
-       Navigator.pushNamedAndRemoveUntil(context, '/main', (_) => false);
-    } else if (status == 'rejected') {
-        CustomAlert.show(
-        context,
-        title: "Ditolak",
-        message: "Pengajuan bengkel Anda ditolak. Silakan hubungi admin.",
-        type: AlertType.error,
-      );
+    final workshops = auth.user?.workshops;
+    if (workshops != null && workshops.isNotEmpty) {
+      final workshop = workshops.first;
+      final status = workshop.status;
+      
+      if (status == 'active' || status == 'verified') {
+         Navigator.pushNamedAndRemoveUntil(context, '/main', (_) => false);
+      } else if (status == 'rejected') {
+          CustomAlert.show(
+          context,
+          title: "Ditolak",
+          message: "Pengajuan bengkel Anda ditolak. Silakan hubungi admin.",
+          type: AlertType.error,
+        );
+      } else {
+         CustomAlert.show(
+          context,
+          title: "Masih Menunggu",
+          message: "Status bengkel masih dalam proses verifikasi ($status).",
+          type: AlertType.info,
+        );
+      }
     } else {
          CustomAlert.show(
-        context,
-        title: "Masih Menunggu",
-        message: "Status bengkel masih dalam proses verifikasi.",
-        type: AlertType.info,
-      );
+          context,
+          title: "Info",
+          message: "Data bengkel belum tersedia. Silakan cek kembali nanti.",
+          type: AlertType.warning,
+        );
     }
-  }
-
-  Map<String, dynamic>? _getWorkshop(dynamic user) {
-      if (user == null) return null;
-      try {
-          // Akses dinamis karena user model mungkin belum di update getter-nya
-          // Asumsi user.workshops adalah List
-          final ws = user.workshops; 
-          if (ws is List && ws.isNotEmpty) {
-              return ws.first as Map<String, dynamic>;
-          }
-      } catch (_) {}
-      return null;
   }
 
   @override

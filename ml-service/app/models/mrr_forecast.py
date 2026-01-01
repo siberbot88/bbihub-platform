@@ -39,6 +39,8 @@ class MRRForecastModel(MLModel):
                 print("No data found in owner_subscriptions.")
                 return False
                 
+            dates = []
+            mrr_values = []
             self.history_data = []
             for row in results:
                 dates.append(row['month'])

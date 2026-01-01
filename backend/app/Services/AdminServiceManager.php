@@ -44,9 +44,11 @@ class AdminServiceManager
         string $workshopId,
         ?Carbon $date = null,
         int $perPage = 15,
-        ?string $type = null
+        ?string $type = null,
+        ?string $dateFrom = null,
+        ?string $dateTo = null
     ): array {
-        $services = $this->serviceRepo->getPendingServices($workshopId, $date, $perPage, $type);
+        $services = $this->serviceRepo->getPendingServices($workshopId, $date, $perPage, $type, $dateFrom, $dateTo);
 
         // Group services by date
         $grouped = collect($services->items())->groupBy(function ($service) {
@@ -71,9 +73,13 @@ class AdminServiceManager
      * @param int $perPage
      * @return LengthAwarePaginator
      */
-    public function getActiveServices(string $workshopId, int $perPage = 15): LengthAwarePaginator
-    {
-        return $this->serviceRepo->getInProgressServices($workshopId, $perPage);
+    public function getActiveServices(
+        string $workshopId,
+        int $perPage = 15,
+        ?string $dateFrom = null,
+        ?string $dateTo = null
+    ): LengthAwarePaginator {
+        return $this->serviceRepo->getInProgressServices($workshopId, $perPage, $dateFrom, $dateTo);
     }
 
     /**
@@ -85,7 +91,7 @@ class AdminServiceManager
      * @return Service
      * @throws \Exception
      */
-    public function acceptService(string $serviceId, string $mechanicId, ?User $admin = null): Service
+    public function acceptService(string $serviceId, ?string $mechanicId, ?User $admin = null): Service
     {
         try {
             $service = $this->serviceRepo->acceptService($serviceId, $mechanicId);
