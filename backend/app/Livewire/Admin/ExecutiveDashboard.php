@@ -7,7 +7,7 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use App\Services\EisService;
 
-#[Title('Executive EIS')]
+#[Title('Analitik Bisnis')]
 #[Layout('layouts.app')]
 class ExecutiveDashboard extends Component
 {

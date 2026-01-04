@@ -53,6 +53,9 @@ class ServiceResource extends JsonResource
                 'email' => $this->mechanic?->user?->email,
             ]),
 
+            // Service image
+            'image_url' => $this->image_path ? url('storage/' . $this->image_path) : null,
+
             // Rejection info (only if rejected)
             'rejection' => $this->when($this->acceptance_status === 'decline', [
                 'reason' => $this->reason,

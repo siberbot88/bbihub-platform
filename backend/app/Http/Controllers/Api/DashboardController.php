@@ -312,6 +312,11 @@ class DashboardController extends Controller
             ->distinct('customer_uuid')
             ->count('customer_uuid');
 
+        $newCustomersCount = (clone $servicesQuery)
+            ->join('customers', 'services.customer_uuid', '=', 'customers.id')
+            ->whereBetween('customers.created_at', [$dateFrom, $dateTo])
+            ->distinct('services.customer_uuid')
+            ->count('services.customer_uuid');
 
         return response()->json([
             'period' => [
@@ -323,14 +328,23 @@ class DashboardController extends Controller
                 'needs_assignment' => $needsAssignment,
                 'status_breakdown' => $servicesByStatus,
                 'acceptance_breakdown' => $acceptanceStats,
-                'type_breakdown' => $typeBreakdown, // New for Type Pie Chart
-                'trend' => $serviceTrend, // New for Chart
-                'top_services' => $topServices, // New for Top List
+                'type_breakdown' => $typeBreakdown,
+                'trend' => $serviceTrend,
+                'top_services' => $topServices,
             ],
             // Revenue removed as per request
             'mechanics' => $mechanicStats,
             'customers' => [
                 'served_count' => $totalCustomersServed,
+                'new_count' => $newCustomersCount,
+                'active_count' => $totalCustomersServed, // Same as served for period context
+                'total_count' => $totalCustomersServed,  // Same as served for period context
+                // New: Trend of unique customers per day
+                'trend' => (clone $servicesQuery)
+                    ->select(DB::raw('DATE(created_at) as date'), DB::raw('count(DISTINCT customer_uuid) as total'))
+                    ->groupBy('date')
+                    ->orderBy('date')
+                    ->get()
             ]
         ]);
     }

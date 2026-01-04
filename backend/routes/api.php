@@ -36,7 +36,7 @@ Route::prefix('v1/auth')->group(function () {
     Route::post('register', [AuthController::class, 'register'])->name('api.register');
     Route::post('login', [AuthController::class, 'login'])->name('api.login');
 
-    // ✅ SECURITY FIX: Rate limiting for password reset endpoints
+    //SECURITY FIX: Rate limiting for password reset endpoints
     Route::post('forgot-password', [\App\Http\Controllers\Api\ForgotPasswordController::class, 'sendOtp'])
         ->middleware('throttle:3,10'); // Max 3 requests per 10 minutes
 
@@ -45,33 +45,16 @@ Route::prefix('v1/auth')->group(function () {
 
     Route::post('reset-password', [\App\Http\Controllers\Api\ForgotPasswordController::class, 'resetPassword'])
         ->middleware('throttle:5,10'); // Max 5 attempts per 10 minutes
-    Route::post('reset-password', [\App\Http\Controllers\Api\ForgotPasswordController::class, 'resetPassword'])
-        ->middleware('throttle:5,10'); // Max 5 attempts per 10 minutes
 
     // Email Verification
     Route::get('email/verify/{id}/{hash}', [\App\Http\Controllers\Api\EmailVerificationController::class, 'verify'])->name('api.verification.verify');
 });
 
-// Test endpoint for chat (no auth)
-Route::get('v1/chat/test', function () {
-    return response()->json([
-        'success' => true,
-        'message' => 'Chat API is working!',
-        'timestamp' => now()->toIso8601String(),
-    ]);
-});
 
 // Resend Verification Email (Protected)
 Route::post('v1/email/resend', [\App\Http\Controllers\Api\EmailVerificationController::class, 'resend'])
     ->middleware(['auth:sanctum', 'throttle:6,1'])
     ->name('verification.resend');
-Route::get('v1/chat/test', function () {
-    return response()->json([
-        'success' => true,
-        'message' => 'Chat API is working!',
-        'timestamp' => now()->toIso8601String(),
-    ]);
-});
 
 
 Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
@@ -137,7 +120,6 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
             ->name('staff.performance.show');
 
         // Analytics Report (PREMIUM ONLY)
-        // Analytics Report (PREMIUM ONLY)
         Route::get('analytics/report', [\App\Http\Controllers\Api\Owner\AnalyticsController::class, 'report'])
             ->middleware('premium')
             ->name('analytics.report');
@@ -199,7 +181,6 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::get('dashboard/stats', [\App\Http\Controllers\Api\DashboardController::class, 'getStats']);
 
         // ===== SERVICES (CRUD & Flow) =====
-        // ⚠️ IMPORTANT: Specific routes MUST come BEFORE {service} parameter routes
         // Mechanics
         Route::get('mechanics', [\App\Http\Controllers\Api\Admin\AdminEmployeeController::class, 'getMechanics']);
         Route::get('mechanics/performance', [\App\Http\Controllers\Api\Admin\AdminEmployeeController::class, 'getMechanicPerformance']);
@@ -213,6 +194,10 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::post('services/{id}/invoice', [\App\Http\Controllers\Api\Admin\ServiceLoggingController::class, 'createInvoice'])->name('api.admin.services.invoice.create');
         Route::get('services/{id}/invoice', [\App\Http\Controllers\Api\Admin\ServiceLoggingController::class, 'getInvoice'])->name('api.admin.services.invoice.get');
         Route::post('invoices/{id}/cash-payment', [\App\Http\Controllers\Api\Admin\ServiceLoggingController::class, 'processCashPayment'])->name('api.admin.invoices.cash-payment');
+
+        // Reports
+        Route::get('reports', [\App\Http\Controllers\Api\Admin\ReportController::class, 'index'])->name('api.admin.reports.index');
+        Route::post('reports', [\App\Http\Controllers\Api\Admin\ReportController::class, 'store'])->name('api.admin.reports.store');
 
         // Route::post('services/walk-in', [ServiceApiController::class, 'storeWalkIn']); // OLD - use ServiceSchedulingController instead
 
@@ -320,5 +305,16 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::get('audit-logs/events', [\App\Http\Controllers\Api\Admin\AuditLogController::class, 'events']);
         Route::get('audit-logs/{auditLog}', [\App\Http\Controllers\Api\Admin\AuditLogController::class, 'show']);
     });
+});
+
+// Failsafe Route for Admin Reports
+Route::middleware(['auth:sanctum', 'role:admin'])->prefix('v1/admins')->group(function () {
+    Route::get('reports', [\App\Http\Controllers\Api\Admin\ReportController::class, 'index']);
+    Route::post('reports', [\App\Http\Controllers\Api\Admin\ReportController::class, 'store']);
+});
+
+// Test Route
+Route::get('test-api', function () {
+    return 'API Works';
 });
 

@@ -88,10 +88,18 @@ class ReportService {
     required String reportType,
     required String reportData,
     String? photoBase64,
+    bool isAdmin = false, // Added isAdmin param
   }) async {
     try {
       final headers = await _getAuthHeaders();
-      final uri = Uri.parse('${_baseUrl}owners/reports');
+      // Use different endpoint based on user type
+      final String endpoint = isAdmin 
+          ? '${_baseUrl}admins/reports'
+          : '${_baseUrl}owners/reports';
+
+      print('DEBUG: ReportService.submitReport isAdmin=$isAdmin endpoint=$endpoint');
+      
+      final uri = Uri.parse(endpoint);
 
       final response = await http.post(
         uri,

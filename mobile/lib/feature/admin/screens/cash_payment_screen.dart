@@ -44,6 +44,18 @@ class _CashPaymentScreenState extends State<CashPaymentScreen> {
   }
 
   Future<void> _fetchInvoiceDetails() async {
+    // Determine initial paid status from Service/Transaction passed in widget
+    if (widget.service != null) {
+       final s = widget.service!;
+       final isTxSuccess = s.transaction != null && 
+          (s.transaction!['status'] == 'success' || s.transaction!['status'] == 'paid');
+       final isStatusPaid = ['lunas'].contains((s.status ?? '').toLowerCase());
+       
+       if (isTxSuccess || isStatusPaid) {
+         setState(() => _isPaid = true);
+       }
+    }
+
     if (widget.service == null) return;
     try {
       final data = await context.read<AdminServiceProvider>().fetchInvoiceByService(widget.service!.id);
@@ -126,10 +138,10 @@ class _CashPaymentScreenState extends State<CashPaymentScreen> {
         children: [
           // Background Header (Expanded)
           Positioned(
-            top: 0, left: 0, right: 0, height: 320, 
+            top: 0, left: 0, right: 0, height: 340, // Increased height
             child: Container(
               color: AppColors.primaryRed,
-              padding: const EdgeInsets.fromLTRB(24, 60, 24, 0),
+              padding: const EdgeInsets.fromLTRB(24, 50, 24, 0), // Adjusted top padding slightly
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -155,7 +167,7 @@ class _CashPaymentScreenState extends State<CashPaymentScreen> {
                        )
                      ],
                    ),
-                   const SizedBox(height: 20),
+                   const SizedBox(height: 10), // Reduced spacing
                    
                    // Receipt Title / Badge
                    Container(
@@ -172,24 +184,33 @@ class _CashPaymentScreenState extends State<CashPaymentScreen> {
                    const SizedBox(height: 12),
                    
                    // Vehicle Name (Large)
-                   Text(
-                     vehicleName.toUpperCase(),
-                     style: const TextStyle(
-                       color: Colors.white,
-                       fontSize: 32,
-                       fontWeight: FontWeight.w900,
-                       height: 1.0, 
-                     ),
-                   ),
-                   const SizedBox(height: 4),
-                   // Invoice Code
-                   Text(
-                     invoiceCode,
-                     style: TextStyle(
-                       color: Colors.white.withOpacity(0.8),
-                       fontSize: 14,
-                       letterSpacing: 0.5,
-                       fontFamily: 'monospace',
+                   Expanded( // Use Expanded to avoid overflow usage, though Column size is fixed
+                     child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                           Text(
+                             vehicleName.toUpperCase(),
+                             maxLines: 2,
+                             overflow: TextOverflow.ellipsis,
+                             style: const TextStyle(
+                               color: Colors.white,
+                               fontSize: 28, // Slightly reduced from 32
+                               fontWeight: FontWeight.w900,
+                               height: 1.1, 
+                             ),
+                           ),
+                           const SizedBox(height: 8),
+                           // Invoice Code
+                           Text(
+                             invoiceCode,
+                             style: TextStyle(
+                               color: Colors.white.withOpacity(0.8),
+                               fontSize: 14,
+                               letterSpacing: 0.5,
+                               fontFamily: 'monospace',
+                             ),
+                           ),
+                        ],
                      ),
                    ),
                 ],
@@ -199,7 +220,7 @@ class _CashPaymentScreenState extends State<CashPaymentScreen> {
 
           // Main Content Card
           Positioned(
-            top: 240, 
+            top: 290, // Pushed down to reveal header content
             left: 0, right: 0, bottom: 0,
             child: Container(
               decoration: const BoxDecoration(
@@ -215,10 +236,10 @@ class _CashPaymentScreenState extends State<CashPaymentScreen> {
                   topRight: Radius.circular(32),
                 ),
                 child: CustomScrollView(
-                  physics: const BouncingScrollPhysics(),
+                  physics: const AlwaysScrollableScrollPhysics(), // Enable scrolling always
                   slivers: [
                     SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(24, 32, 24, 120), 
+                      padding: const EdgeInsets.fromLTRB(24, 32, 24, 150), // Increased bottom padding
                       sliver: SliverList(
                         delegate: SliverChildListDelegate([
                           // Customer Section
@@ -339,26 +360,26 @@ class _CashPaymentScreenState extends State<CashPaymentScreen> {
                             return _AnimatedEntry(
                               delay: 300 + (idx * 50),
                               child: Padding(
-                                padding: const EdgeInsets.only(bottom: 16),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(item['name'] ?? 'Jasa/Part', 
-                                              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF1F2937))),
-                                        ],
-                                      ),
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(item['name'] ?? 'Jasa/Part', 
+                                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF1F2937))),
+                                      ],
                                     ),
-                                    const SizedBox(width: 16),
-                                    Text(
-                                      _currency.format(double.tryParse('${item['subtotal'] ?? item['price']}') ?? 0),
-                                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF111827)),
-                                    ),
-                                  ],
-                                ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Text(
+                                    _currency.format(double.tryParse('${item['subtotal'] ?? item['price']}') ?? 0),
+                                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF111827)),
+                                  ),
+                                ],
+                              ),
                               ),
                             );
                           }).toList(),
@@ -448,6 +469,29 @@ class _CashPaymentScreenState extends State<CashPaymentScreen> {
             Icon(Icons.download, size: 20),
             SizedBox(width: 8),
             Text('UNDUH NOTA', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      );
+    }
+
+    final isBooking = (widget.service?.type != 'on-site' && widget.service?.type != 'ditempat');
+    
+    if (isBooking) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: Colors.orange[50], 
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.orange[200]!)
+        ),
+        child: Column(
+          children: [
+            const Icon(Icons.app_blocking_outlined, color: Colors.orange),
+             const SizedBox(height: 8),
+            const Text("Menunggu Pembayaran Customer", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange)),
+             const SizedBox(height: 4),
+            Text("Booking via Aplikasi", style: TextStyle(fontSize: 12, color: Colors.orange[800])),
           ],
         ),
       );

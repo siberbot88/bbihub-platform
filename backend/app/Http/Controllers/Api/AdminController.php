@@ -72,7 +72,6 @@ class AdminController extends Controller
                     'vehicle',
                     'mechanic.user',
                     'log',
-                    'task',
                 ])
             );
 
@@ -117,7 +116,6 @@ class AdminController extends Controller
                     'vehicle',
                     'mechanic.user',
                     'log',
-                    'task',
                 ])
             );
 
@@ -152,7 +150,6 @@ class AdminController extends Controller
                     'vehicle',
                     'mechanic.user',
                     'log',
-                    'task',
                 ])
             );
 

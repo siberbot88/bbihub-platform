@@ -27,6 +27,10 @@ class AppServiceProvider extends ServiceProvider
                 ->uncompromised();
         });
 
+        // Register Model Observers for Notifications
+        \App\Models\Workshop::observe(\App\Observers\WorkshopObserver::class);
+        \App\Models\Report::observe(\App\Observers\ReportObserver::class);
+
         // Use API route for Email Verification
         \Illuminate\Auth\Notifications\VerifyEmail::createUrlUsing(function (object $notifiable) {
             return \Illuminate\Support\Facades\URL::temporarySignedRoute(

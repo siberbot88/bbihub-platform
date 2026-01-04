@@ -65,7 +65,7 @@ Route::middleware(['auth', 'verified', 'superadmin'])
         Route::get('/dashboard', Dashboard::class)
             ->name('dashboard');
 
-        // Executive EIS
+        // Analitik Bisnis
         Route::get('/executive-dashboard', \App\Livewire\Admin\ExecutiveDashboard::class)
             ->name('executive-dashboard');
 

@@ -71,14 +71,34 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
         photoBase64: photoBase64,
       );
 
+      print('DEBUG: Report submitted successfully. Checking mounted...');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Laporan berhasil dikirim!'),
-            backgroundColor: Color(0xFF10B981),
+        print('DEBUG: Mounted is true. Showing Dialog.');
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            title: const Text('Berhasil'),
+            content: const Text('Laporan Anda telah berhasil dikirim. Terima kasih atas masukan Anda!'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context); // Close dialog
+                  if (Navigator.canPop(context)) {
+                     Navigator.pop(context, true); // Close screen
+                  } else {
+                     // Fallback if cannot pop (e.g. root), maybe go to dashboard?
+                     // For now just stay.
+                     print('DEBUG: Cannot pop screen (maybe root?)');
+                  }
+                },
+                child: const Text('OK'),
+              ),
+            ],
           ),
         );
-        Navigator.pop(context, true); // Return true to indicate success
+      } else {
+        print('DEBUG: Mounted is false. Cannot show dialog.');
       }
     } catch (e) {
       if (mounted) {

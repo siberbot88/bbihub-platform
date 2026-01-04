@@ -6,6 +6,7 @@ enum StaffRole {
 }
 
 class StaffPerformance {
+  final String staffId;
   final String name;
   final StaffRole role;
   final String avatarUrl;
@@ -14,6 +15,7 @@ class StaffPerformance {
   final int estimatedRevenue; // in rupiah
 
   const StaffPerformance({
+    required this.staffId,
     required this.name,
     required this.role,
     required this.avatarUrl,
@@ -39,6 +41,7 @@ class StaffPerformance {
     }
 
     return StaffPerformance(
+      staffId: (json['id'] ?? json['staff_id'] ?? json['user_uuid'] ?? json['name'] ?? 'unknown').toString(),
       name: json['name'] ?? 'Unknown',
       role: parseRole(json['role'] ?? 'mechanic'),
       avatarUrl: json['avatar_url'] ?? '',

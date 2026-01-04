@@ -113,7 +113,7 @@ class ChatbotService
             $payload['stream'] = false;
 
             /** @var \Illuminate\Http\Client\Response $response */
-            $response = Http::timeout(30)
+            $response = Http::timeout(60)
                 ->withHeaders([
                     'Content-Type' => 'application/json',
                     'Authorization' => 'Bearer ' . $this->apiKey,

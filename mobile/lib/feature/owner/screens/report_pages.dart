@@ -1051,14 +1051,29 @@ class _ReportPageState extends State<ReportPage> {
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-               Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-               const SizedBox(width: 8),
-               Text(label, style: GoogleFonts.poppins(fontSize: 12, color: const Color(0xFF757575))),
-            ],
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                 Container(
+                   margin: const EdgeInsets.only(top: 3),
+                   width: 8, 
+                   height: 8, 
+                   decoration: BoxDecoration(color: color, shape: BoxShape.circle)
+                 ),
+                 const SizedBox(width: 8),
+                 Expanded(
+                   child: Text(
+                     label, 
+                     style: GoogleFonts.poppins(fontSize: 12, color: const Color(0xFF757575)),
+                   ),
+                 ),
+              ],
+            ),
           ),
+          const SizedBox(width: 8),
           Text(value, style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF212121))),
         ],
       ),

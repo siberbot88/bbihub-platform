@@ -20,7 +20,10 @@ class VoucherPreviewPage extends StatefulWidget {
     required this.mulai,
     required this.akhir,
     this.gambar,
+    this.isAdmin = false,
   });
+
+  final bool isAdmin;
 
   @override
   State<VoucherPreviewPage> createState() => _VoucherPreviewPageState();
@@ -54,7 +57,8 @@ class _VoucherPreviewPageState extends State<VoucherPreviewPage> {
           minTransaction: widget.minBeli,
           validFrom: widget.mulai,
           validUntil: widget.akhir,
-          image: widget.gambar
+          image: widget.gambar,
+          isAdmin: widget.isAdmin
       );
 
       if (!mounted) return;

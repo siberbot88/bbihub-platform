@@ -72,9 +72,20 @@ class Transaction extends Model
         return $this->hasMany(ServiceLog::class, 'service_uuid', 'id');
     }
 
-    public function invoice(): HasOne
+    public function invoice(): BelongsTo
     {
-        return $this->hasOne(Invoice::class, 'uuid', 'id');
+        return $this->belongsTo(Invoice::class, 'invoice_uuid');
+    }
+
+    /*
+     * Relationship to Invoice items via invoice_uuid.
+     * Since Transaction belongsTo Invoice, and Invoice hasMany InvoiceItems,
+     * and they share the 'invoice_uuid' (InvoiceItem has it, Transaction has it),
+     * we can map them directly using HasMany on the shared key.
+     */
+    public function items(): HasMany
+    {
+        return $this->hasMany(TransactionItem::class, 'transaction_uuid', 'id');
     }
 
     public function task(): HasOne

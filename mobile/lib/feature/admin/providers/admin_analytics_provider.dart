@@ -70,12 +70,50 @@ class AdminAnalyticsProvider extends ChangeNotifier {
   int get completedToday => _quickStats?['completed'] ?? 0; // "Selesai"
 
   List<dynamic> get quickTrend => _quickStats?['trend_weekly'] ?? [];
+
+  // Customer Stats helpers
+  Map<String, dynamic> get customerStats {
+    if (_detailedStats != null && _detailedStats!['customers'] != null) {
+      return _detailedStats!['customers'];
+    }
+    return (_quickStats?['customer_stats'] as Map<String, dynamic>?) ?? {};
+  }
+
+  int get totalCustomers {
+    if (_detailedStats != null) return customerStats['total_count'] ?? customerStats['served_count'] ?? 0;
+    return customerStats['total'] ?? 0;
+  }
   
-  // Clean up
+  int get newCustomers {
+    if (_detailedStats != null) return customerStats['new_count'] ?? 0;
+    return customerStats['new_this_month'] ?? 0;
+  }
+  
+  int get activeCustomers {
+     if (_detailedStats != null) return customerStats['active_count'] ?? 0;
+     return customerStats['active'] ?? 0;
+  }
+  
+  List<_ChartPt> get customerTrend {
+    final trendList = (customerStats['trend'] as List?) ?? [];
+    return trendList.map((e) => _ChartPt(
+      e['date'] ?? '',
+      (e['total'] ?? 0).toString(),
+      (e['total'] ?? 0).toDouble()
+    )).toList();
+  }
+
   void clear() {
     _quickStats = null;
     _detailedStats = null;
     _error = null;
     notifyListeners();
   }
+}
+
+class _ChartPt {
+  final String date;  // YYYY-MM-DD
+  final String label; // For display
+  final double value;
+  const _ChartPt(this.date, this.label, this.value);
 }

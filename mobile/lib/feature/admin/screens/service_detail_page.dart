@@ -589,39 +589,7 @@ class _ServiceDetailPageState extends State<ServiceDetailPage> {
       // If we want to force "Pencatatan" tab, we might need to pass a result back
   }
 
-  Future<void> _acceptService() async {
-     if (_service == null) return;
-     
-     // 1. Set loading
-     setState(() => _isLoadingAction = true);
-     
-     try {
-       // 2. Call API
-       await context.read<AdminServiceProvider>().acceptServiceAsAdmin(_service!.id);
-       
-       // 3. Check mounted before using context
-       if (!mounted) return;
 
-       // 4. Show success & Navigate back
-       ScaffoldMessenger.of(context).showSnackBar(
-         const SnackBar(content: Text('Servis diterima!'), backgroundColor: Colors.green, duration: Duration(seconds: 1)),
-       );
-       
-       // Wait slightly for snackbar visibility then pop
-       await Future.delayed(const Duration(milliseconds: 300));
-       if (mounted) {
-          Navigator.of(context).pop(true); // Return true to signal refresh
-       }
-     } catch (e) {
-       if (mounted) {
-         ScaffoldMessenger.of(context).showSnackBar(
-           SnackBar(content: Text('Gagal menerima: $e'), backgroundColor: Colors.red),
-         );
-       }
-     } finally {
-       if (mounted) setState(() => _isLoadingAction = false);
-     }
-  }
 
   void _showDeclineDialog() {
     String selectedReason = 'antrian sedang full';
@@ -785,7 +753,7 @@ class _ServiceDetailPageState extends State<ServiceDetailPage> {
     );
   }
 
-  void _showAssignMechanicSheet() async {
+  Future<void> _showAssignMechanicSheet() async {
     final result = await showModalBottomSheet(
       context: context,
       isScrollControlled: true, 
@@ -795,6 +763,14 @@ class _ServiceDetailPageState extends State<ServiceDetailPage> {
 
     if (result != null && _service != null) {
       final mechanicId = result['id']; 
+      
+      // Show Loading Dialog
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => const Center(child: CircularProgressIndicator()),
+      );
       
       try {
         // Unified Logic: Accept & Assign or just Assign
@@ -810,25 +786,36 @@ class _ServiceDetailPageState extends State<ServiceDetailPage> {
             );
         }
 
+        // Close Loading Dialog
+        if (mounted && Navigator.canPop(context)) { 
+           Navigator.pop(context); 
+        }
+
         if (mounted) {
            ScaffoldMessenger.of(context).showSnackBar(
              const SnackBar(content: Text('Mekanik berhasil ditetapkan!'), backgroundColor: Colors.green),
            );
            
-           // Directly navigate to InvoiceFormScreen (Selesaikan Service) as requested
-           // "untuk assign mekanik itu akan langsung ke halaman selesaikan service"
+           // Navigate to InvoiceFormScreen (Selesaikan Service)
            if (mounted && _service != null) {
-               // Update local state first to ensure data consistency passed to next screen
+              // Fetch latest to ensure consistent state
                final updatedService = await context.read<AdminServiceProvider>().performFetchServiceDetail(_service!.id);
                
-              Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => InvoiceFormScreen(
-                serviceId: updatedService.id, 
-                serviceType: updatedService.type ?? 'on-site',
-                service: updatedService,
-              )));
+               if (mounted) {
+                  Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => InvoiceFormScreen(
+                    serviceId: updatedService.id, 
+                    serviceType: updatedService.type ?? 'on-site',
+                    service: updatedService,
+                  )));
+               }
            }
         }
       } catch (e) {
+        // Close Loading Dialog on Error
+        if (mounted && Navigator.canPop(context)) { 
+           Navigator.pop(context); 
+        }
+        
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Gagal: $e'), backgroundColor: Colors.red),
@@ -836,6 +823,48 @@ class _ServiceDetailPageState extends State<ServiceDetailPage> {
         }
       }
     }
+  }
+
+  Future<void> _acceptService() async {
+     if (_service == null) return;
+     
+     // Show Loading Dialog
+     showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => const Center(child: CircularProgressIndicator()),
+     );
+     
+     try {
+       await context.read<AdminServiceProvider>().acceptServiceAsAdmin(_service!.id);
+       
+        // Close Loading Dialog
+        if (mounted && Navigator.canPop(context)) { 
+           Navigator.pop(context); 
+        }
+
+       if (mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(
+           const SnackBar(content: Text('Servis diterima!'), backgroundColor: Colors.green, duration: Duration(seconds: 1)),
+         );
+         
+         await Future.delayed(const Duration(milliseconds: 300));
+         if (mounted) {
+            Navigator.of(context).pop(true); // Return to list
+         }
+       }
+     } catch (e) {
+       // Close Loading Dialog
+        if (mounted && Navigator.canPop(context)) { 
+           Navigator.pop(context); 
+        }
+        
+       if (mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(content: Text('Gagal menerima: $e'), backgroundColor: Colors.red),
+         );
+       }
+     }
   }
 
   /// Navigate to invoice form to complete service

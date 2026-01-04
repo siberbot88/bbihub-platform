@@ -49,13 +49,13 @@ class _VoucherPageState extends State<VoucherPage> {
 
   void _loadData() {
     setState(() {
-      _vouchersFuture = _apiService.fetchVouchers();
+      _vouchersFuture = _apiService.fetchVouchers(isAdmin: true);
     });
   }
 
   Future<void> _handleDelete(String id) async {
     try {
-      await _apiService.deleteVoucher(id);
+      await _apiService.deleteVoucher(id, isAdmin: true);
       if (!mounted) return;
       Navigator.pop(context);
       _loadData();
@@ -153,7 +153,7 @@ class _VoucherPageState extends State<VoucherPage> {
         backgroundColor: _primaryColor,
         shape: const CircleBorder(),
         onPressed: () {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const AddVoucherPage()));
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const AddVoucherPage(isAdmin: true)));
         },
         child: const Icon(Icons.add, color: Colors.white, size: 28),
       ),
@@ -228,7 +228,7 @@ class _VoucherPageState extends State<VoucherPage> {
                 _buildActionButton(Icons.edit_outlined, Colors.orange, () async {
                   final bool? result = await Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => VoucherEditPage(voucher: voucher)),
+                    MaterialPageRoute(builder: (_) => VoucherEditPage(voucher: voucher, isAdmin: true)),
                   );
                   if (result == true) {
                     _loadData();

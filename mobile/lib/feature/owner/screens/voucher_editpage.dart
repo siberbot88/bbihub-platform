@@ -10,8 +10,9 @@ import 'package:intl/intl.dart';
 
 class VoucherEditPage extends StatefulWidget {
   final Voucher voucher;
+  final bool isAdmin;
 
-  const VoucherEditPage({super.key, required this.voucher});
+  const VoucherEditPage({super.key, required this.voucher, this.isAdmin = false});
 
   @override
   State<VoucherEditPage> createState() => _VoucherEditPageState();
@@ -99,6 +100,7 @@ class _VoucherEditPageState extends State<VoucherEditPage> {
         validFrom: _waktuMulaiController.text,
         validUntil: _waktuBerakhirController.text,
         image: _newImage,
+        isAdmin: widget.isAdmin,
       );
 
       if (!mounted) return;

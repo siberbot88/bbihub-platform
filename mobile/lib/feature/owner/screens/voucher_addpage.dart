@@ -8,7 +8,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
 class AddVoucherPage extends StatefulWidget {
-  const AddVoucherPage({super.key});
+  final bool isAdmin;
+
+  const AddVoucherPage({super.key, this.isAdmin = false});
 
   @override
   State<AddVoucherPage> createState() => _AddVoucherPageState();
@@ -207,6 +209,7 @@ class _AddVoucherPageState extends State<AddVoucherPage> {
             mulai: _waktuMulaiController.text,
             akhir: _waktuBerakhirController.text,
             gambar: _voucherImage,
+            isAdmin: widget.isAdmin,
           ),
         ),
       );
