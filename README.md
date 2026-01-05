@@ -45,9 +45,7 @@ Bengkel otomotif tradisional menghadapi beberapa tantangan operasional:
 - Pencatatan layanan dan transaksi manual yang menyebabkan inkonsistensi data
 - Kurangnya insight bisnis dan analitik real-time
 - Manajemen tugas karyawan dan pelacakan kinerja yang tidak efisien
-- Strategi keterlibatan dan retensi pelanggan yang terbatas
-- Tidak adanya sistem pembayaran dan keanggotaan terintegrasi
-- Kesulitan dalam mengelola operasi multi-bengkel
+- Kurangnya transparansi manajemen service harian
 
 ### Solusi
 
