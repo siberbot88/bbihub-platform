@@ -50,7 +50,6 @@ Bengkel otomotif tradisional menghadapi beberapa tantangan operasional:
 ### Solusi
 
 BBIHUB menyediakan ekosistem komprehensif yang mencakup:
-- **Dashboard Web**: Panel administratif terpusat untuk superadmin dan manajemen bengkel
 - **Aplikasi Mobile**: Alat manajemen portabel untuk pemilik bengkel
 - **REST API**: Infrastruktur backend yang solid untuk sinkronisasi data yang mulus
 - **Integrasi Pembayaran**: Penagihan otomatis dan pemrosesan pembayaran via Midtrans
