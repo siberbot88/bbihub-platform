@@ -1,8 +1,8 @@
-# BBIHUB Platform
+# Platform BBIHUB
 
-**Modern Workshop Management Ecosystem**
+**Ekosistem Manajemen Bengkel Modern**
 
-A comprehensive platform for automotive workshop management, consisting of web-based administrative dashboard and mobile application for workshop owners.
+Platform komprehensif untuk manajemen bengkel otomotif, terdiri dari dashboard administratif berbasis web dan aplikasi mobile untuk pemilik bengkel.
 
 [![Laravel](https://img.shields.io/badge/Laravel-12.x-FF2D20?style=flat-square&logo=laravel&logoColor=white)](https://laravel.com)
 [![Flutter](https://img.shields.io/badge/Flutter-3.0+-02569B?style=flat-square&logo=flutter&logoColor=white)](https://flutter.dev)
@@ -11,71 +11,71 @@ A comprehensive platform for automotive workshop management, consisting of web-b
 
 ---
 
-## Table of Contents
+## Daftar Isi
 
-- [Introduction](#introduction)
-- [System Architecture](#system-architecture)
-- [Application Flow](#application-flow)
-- [Platform Components](#platform-components)
-  - [Web Dashboard](#web-dashboard)
-  - [Mobile Application](#mobile-application)
-- [Core Features](#core-features)
-- [Technology Stack](#technology-stack)
-- [Security Implementation](#security-implementation)
-- [Installation Guide](#installation-guide)
-- [API Documentation](#api-documentation)
-- [Project Structure](#project-structure)
-- [Development Workflow](#development-workflow)
-- [Testing](#testing)
+- [Pendahuluan](#pendahuluan)
+- [Arsitektur Sistem](#arsitektur-sistem)
+- [Alur Aplikasi](#alur-aplikasi)
+- [Komponen Platform](#komponen-platform)
+  - [Dashboard Web](#dashboard-web)
+  - [Aplikasi Mobile](#aplikasi-mobile)
+- [Fitur Utama](#fitur-utama)
+- [Stack Teknologi](#stack-teknologi)
+- [Implementasi Keamanan](#implementasi-keamanan)
+- [Panduan Instalasi](#panduan-instalasi)
+- [Dokumentasi API](#dokumentasi-api)
+- [Struktur Proyek](#struktur-proyek)
+- [Alur Pengembangan](#alur-pengembangan)
+- [Pengujian](#pengujian)
 - [Deployment](#deployment)
-- [Contributing](#contributing)
-- [License](#license)
+- [Kontribusi](#kontribusi)
+- [Lisensi](#lisensi)
 
 ---
 
-## Introduction
+## Pendahuluan
 
-### Overview
+### Gambaran Umum
 
-BBIHUB is an enterprise-grade workshop management platform designed to digitalize and streamline automotive workshop operations in Indonesia. The platform addresses common challenges in traditional workshop management by providing integrated solutions for service tracking, transaction management, employee performance monitoring, and customer relationship management.
+BBIHUB adalah platform manajemen bengkel tingkat enterprise yang dirancang untuk mendigitalisasi dan merampingkan operasi bengkel otomotif di Indonesia. Platform ini mengatasi tantangan umum dalam manajemen bengkel tradisional dengan menyediakan solusi terintegrasi untuk pelacakan layanan, manajemen transaksi, pemantauan kinerja karyawan, dan manajemen hubungan pelanggan.
 
-### Problem Statement
+### Permasalahan
 
-Traditional automotive workshops face several operational challenges:
-- Manual service and transaction recording leading to data inconsistency
-- Lack of real-time business insights and analytics
-- Inefficient employee task management and performance tracking
-- Limited customer engagement and retention strategies
-- Absence of integrated payment and membership systems
-- Difficulty in managing multi-workshop operations
+Bengkel otomotif tradisional menghadapi beberapa tantangan operasional:
+- Pencatatan layanan dan transaksi manual yang menyebabkan inkonsistensi data
+- Kurangnya insight bisnis dan analitik real-time
+- Manajemen tugas karyawan dan pelacakan kinerja yang tidak efisien
+- Strategi keterlibatan dan retensi pelanggan yang terbatas
+- Tidak adanya sistem pembayaran dan keanggotaan terintegrasi
+- Kesulitan dalam mengelola operasi multi-bengkel
 
-### Solution
+### Solusi
 
-BBIHUB provides a comprehensive ecosystem that includes:
-- **Web Dashboard**: Centralized administrative panel for superadmin and workshop management
-- **Mobile Application**: On-the-go management tools for workshop owners
-- **REST API**: Robust backend infrastructure for seamless data synchronization
-- **Payment Integration**: Automated billing and payment processing via Midtrans
-- **AI Chatbot**: Intelligent customer service automation
+BBIHUB menyediakan ekosistem komprehensif yang mencakup:
+- **Dashboard Web**: Panel administratif terpusat untuk superadmin dan manajemen bengkel
+- **Aplikasi Mobile**: Alat manajemen portabel untuk pemilik bengkel
+- **REST API**: Infrastruktur backend yang solid untuk sinkronisasi data yang mulus
+- **Integrasi Pembayaran**: Penagihan otomatis dan pemrosesan pembayaran via Midtrans
+- **Chatbot AI**: Otomasi layanan pelanggan yang cerdas
 
 ---
 
-## System Architecture
+## Arsitektur Sistem
 
-### High-Level Architecture
+### Arsitektur Tingkat Tinggi
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                     Client Layer                             │
+│                     Lapisan Client                           │
 ├──────────────────────┬──────────────────────────────────────┤
-│   Web Dashboard      │      Mobile Application              │
+│   Dashboard Web      │      Aplikasi Mobile                 │
 │   (Livewire + Blade) │      (Flutter)                       │
 └──────────┬───────────┴──────────────┬───────────────────────┘
            │                          │
            │      HTTPS/REST API      │
            │                          │
 ┌──────────▼──────────────────────────▼───────────────────────┐
-│              Application Layer (Laravel 12)                  │
+│              Lapisan Aplikasi (Laravel 12)                   │
 ├──────────────────────────────────────────────────────────────┤
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │
 │  │ Controllers │  │ Middleware  │  │   Service Layer     │ │
@@ -86,7 +86,7 @@ BBIHUB provides a comprehensive ecosystem that includes:
 └──────────────────────────────────────────────────────────────┘
            │
 ┌──────────▼──────────────────────────────────────────────────┐
-│                   Data Layer                                 │
+│                   Lapisan Data                               │
 ├──────────────────────────────────────────────────────────────┤
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
 │  │   MySQL DB   │  │  File Storage│  │   Cache (Redis)  │  │
@@ -94,754 +94,754 @@ BBIHUB provides a comprehensive ecosystem that includes:
 └──────────────────────────────────────────────────────────────┘
            │
 ┌──────────▼──────────────────────────────────────────────────┐
-│                External Services                             │
+│                Layanan Eksternal                             │
 ├──────────────────────────────────────────────────────────────┤
-│  Midtrans Payment │  Sentry Monitoring  │  Pusher Realtime  │
+│  Pembayaran Midtrans │  Monitoring Sentry  │  Realtime Pusher│
 └──────────────────────────────────────────────────────────────┘
 ```
 
-### Architecture Patterns
+### Pola Arsitektur
 
-**Backend Architecture:**
-- **MVC Pattern**: Model-View-Controller for web dashboard
-- **Repository Pattern**: Data access abstraction layer
-- **Service Layer Pattern**: Business logic separation
-- **Event-Driven Architecture**: Asynchronous task processing with queues
+**Arsitektur Backend:**
+- **Pola MVC**: Model-View-Controller untuk dashboard web
+- **Pola Repository**: Layer abstraksi akses data
+- **Pola Service Layer**: Pemisahan logika bisnis
+- **Arsitektur Event-Driven**: Pemrosesan tugas asinkron dengan antrian
 
-**Mobile Architecture:**
-- **Provider Pattern**: State management
-- **Repository Pattern**: API data abstraction
-- **Clean Architecture**: Separation of concerns (partially implemented)
+**Arsitektur Mobile:**
+- **Pola Provider**: Manajemen state
+- **Pola Repository**: Abstraksi data API
+- **Clean Architecture**: Pemisahan concern (diimplementasikan sebagian)
 
-### Data Flow
+### Alur Data
 
-1. **Authentication Flow:**
+1. **Alur Autentikasi:**
    ```
-   Client Request → Middleware (Sanctum) → Controller → Service → Model → Database
-   ```
-
-2. **API Request Flow:**
-   ```
-   Mobile App → HTTP Client → API Endpoint → Validation → Business Logic → Response
+   Permintaan Client → Middleware (Sanctum) → Controller → Service → Model → Database
    ```
 
-3. **Transaction Processing:**
+2. **Alur Permintaan API:**
    ```
-   User Action → Controller → Service → Payment Gateway → Database Update → Event Dispatch → Queue Worker
+   Aplikasi Mobile → HTTP Client → API Endpoint → Validasi → Logika Bisnis → Response
+   ```
+
+3. **Pemrosesan Transaksi:**
+   ```
+   Aksi User → Controller → Service → Payment Gateway → Update Database → Event Dispatch → Queue Worker
    ```
 
 ---
 
-## Application Flow
+## Alur Aplikasi
 
-### User Journey - Workshop Owner
+### Perjalanan User - Pemilik Bengkel
 
-#### 1. Registration & Onboarding
+#### 1. Registrasi & Onboarding
 ```
-Registration → Email Verification → Workshop Creation → Trial Membership Setup → Dashboard Access
-```
-
-#### 2. Service Management
-```
-Define Services → Set Pricing → Assign Categories → Activate Services → Monitor Analytics
+Registrasi → Verifikasi Email → Pembuatan Bengkel → Setup Keanggotaan Trial → Akses Dashboard
 ```
 
-#### 3. Transaction Processing
+#### 2. Manajemen Layanan
 ```
-Customer Arrival → Service Selection → Invoice Generation → Payment Processing → Service Completion → Customer Notification
-```
-
-#### 4. Employee Management
-```
-Add Employee → Assign Roles → Define Specializations → Assign Tasks → Track Performance
+Definisi Layanan → Set Harga → Assign Kategori → Aktivasi Layanan → Monitoring Analitik
 ```
 
-#### 5. Membership & Payment
+#### 3. Pemrosesan Transaksi
 ```
-Free Trial (7 days) → Payment Setup (Midtrans) → Auto-charge → Active Membership → Auto-renewal
-```
-
-### User Journey - Superadmin
-
-#### 1. System Administration
-```
-Login → Dashboard Overview → User Management → Workshop Approval → System Configuration
+Kedatangan Pelanggan → Pemilihan Layanan → Pembuatan Invoice → Pemrosesan Pembayaran → Penyelesaian Layanan → Notifikasi Pelanggan
 ```
 
-#### 2. Monitoring & Analytics
+#### 4. Manajemen Karyawan
 ```
-Platform Metrics → Revenue Reports → User Activity → Transaction Monitoring → System Health
+Tambah Karyawan → Assign Role → Definisi Spesialisasi → Assign Tugas → Tracking Kinerja
 ```
 
-### Mobile App User Flow
+#### 5. Keanggotaan & Pembayaran
+```
+Trial Gratis (7 hari) → Setup Pembayaran (Midtrans) → Auto-charge → Keanggotaan Aktif → Auto-renewal
+```
+
+### Perjalanan User - Superadmin
+
+#### 1. Administrasi Sistem
+```
+Login → Ikhtisar Dashboard → Manajemen User → Approval Bengkel → Konfigurasi Sistem
+```
+
+#### 2. Monitoring & Analitik
+```
+Metrik Platform → Laporan Revenue → Aktivitas User → Monitoring Transaksi → Kesehatan Sistem
+```
+
+### Alur User Aplikasi Mobile
 
 ```
-App Launch
+Peluncuran App
     ↓
-Authentication Check
+Pemeriksaan Autentikasi
     ↓
 ┌───Login Required───┐       ┌───Authenticated───┐
 │                    │       │                   │
-│ Login Screen       │────→  │  Dashboard        │
-│ Registration       │       │                   │
+│ Screen Login       │────→  │  Dashboard        │
+│ Registrasi         │       │                   │
 └────────────────────┘       └─────────┬─────────┘
                                        │
                    ┌───────────────────┼───────────────────┐
                    ↓                   ↓                   ↓
             ┌──────────┐        ┌──────────┐       ┌──────────┐
-            │ Services │        │ Orders   │       │ Vehicles │
+            │ Layanan  │        │ Pesanan  │       │ Kendaraan│
             └──────────┘        └──────────┘       └──────────┘
                    ↓                   ↓                   ↓
             ┌──────────┐        ┌──────────┐       ┌──────────┐
-            │ Add/Edit │        │ Process  │       │ Add/View │
-            └──────────┘        │ Payment  │       └──────────┘
-                                └──────────┘
+            │ Tambah/  │        │ Proses   │       │ Tambah/  │
+            │ Edit     │        │ Pembayar │       │ Lihat    │
+            └──────────┘        └──────────┘       └──────────┘
 ```
 
 ---
 
-## Platform Components
+## Komponen Platform
 
-### Web Dashboard
+### Dashboard Web
 
-The web dashboard serves as the primary administrative interface for superadmin and workshop management.
+Dashboard web berfungsi sebagai antarmuka administratif utama untuk superadmin dan manajemen bengkel.
 
-#### Target Users
-- **Superadmin**: Platform administrators with full system access
-- **Workshop Managers**: Workshop staff with limited administrative capabilities
+#### Target User
+- **Superadmin**: Administrator platform dengan akses sistem penuh
+- **Manajer Bengkel**: Staf bengkel dengan kemampuan administratif terbatas
 
-#### Key Modules
+#### Modul Utama
 
-**1. Dashboard Overview**
-- Real-time business metrics (KPI cards)
-- Revenue analytics with charts
-- Service statistics
-- Employee performance summary
-- Recent transactions and notifications
+**1. Ikhtisar Dashboard**
+- Metrik bisnis real-time (kartu KPI)
+- Analitik revenue dengan grafik
+- Statistik layanan
+- Ringkasan kinerja karyawan
+- Transaksi terbaru dan notifikasi
 
-**2. Workshop Management**
-- Workshop profile configuration
-- Operating hours settings
-- Location and contact management
-- Branding customization (logo, colors)
-- Multi-workshop support
+**2. Manajemen Bengkel**
+- Konfigurasi profil bengkel
+- Pengaturan jam operasional
+- Manajemen lokasi dan kontak
+- Kustomisasi branding (logo, warna)
+- Dukungan multi-bengkel
 
-**3. Service Management**
-- Service catalog creation and editing
-- Category-based organization (Engine, Body, Electrical, Transmission, AC, Tire, etc.)
-- Dynamic pricing configuration
-- Service activation/deactivation
-- Service history tracking
+**3. Manajemen Layanan**
+- Pembuatan dan pengeditan katalog layanan
+- Organisasi berbasis kategori (Mesin, Body, Elektrikal, Transmisi, AC, Ban, dll.)
+- Konfigurasi harga dinamis
+- Aktivasi/deaktivasi layanan
+- Pelacakan histori layanan
 
-**4. Transaction Management**
-- Invoice generation and management
-- Payment status tracking
-- Transaction history
-- Refund processing
-- Financial reports
+**4. Manajemen Transaksi**
+- Pembuatan dan manajemen invoice
+- Pelacakan status pembayaran
+- Histori transaksi
+- Pemrosesan refund
+- Laporan keuangan
 
-**5. User & Role Management**
-- User account creation
-- Role-based access control (RBAC)
-- Permission management via Spatie Permission
-- Employee profile management
+**5. Manajemen User & Role**
+- Pembuatan akun user
+- Kontrol akses berbasis role (RBAC)
+- Manajemen permission via Spatie Permission
+- Manajemen profil karyawan
 
-**6. Vehicle & Customer Management**
-- Customer database
-- Vehicle registration
-- Service history per vehicle
-- Customer engagement tracking
+**6. Manajemen Kendaraan & Pelanggan**
+- Database pelanggan
+- Registrasi kendaraan
+- Histori layanan per kendaraan
+- Pelacakan engagement pelanggan
 
-**7. Membership & Voucher System**
-- Membership tier configuration (Basic, Silver, Gold, Platinum)
-- Trial management
-- Voucher creation and distribution
-- Discount rule configuration
+**7. Sistem Keanggotaan & Voucher**
+- Konfigurasi tier keanggotaan (Basic, Silver, Gold, Platinum)
+- Manajemen trial
+- Pembuatan dan distribusi voucher
+- Konfigurasi aturan diskon
 
-**8. Analytics & Reporting**
-- Revenue reports (daily, weekly, monthly, yearly)
-- Service popularity analysis
-- Employee performance metrics
-- Customer behavior analytics
-- Export capabilities (PDF, Excel)
+**8. Analitik & Pelaporan**
+- Laporan revenue (harian, mingguan, bulanan, tahunan)
+- Analisis popularitas layanan
+- Metrik kinerja karyawan
+- Analitik perilaku pelanggan
+- Kemampuan export (PDF, Excel)
 
-#### Technical Implementation
+#### Implementasi Teknis
 
-**Frontend Stack:**
-- **Livewire Volt**: Reactive single-file components for dynamic interfaces
-- **Tailwind CSS**: Utility-first styling with custom design system
-- **Alpine.js**: Lightweight JavaScript for interactive behaviors
-- **Chart.js/ApexCharts**: Data visualization
+**Stack Frontend:**
+- **Livewire Volt**: Komponen reaktif single-file untuk antarmuka dinamis
+- **Tailwind CSS**: Styling utility-first dengan sistem desain kustom
+- **Alpine.js**: JavaScript lightweight untuk perilaku interaktif
+- **Chart.js/ApexCharts**: Visualisasi data
 
-**Design System:**
-- **Typography**: Poppins (primary), Fredoka (accents)
-- **Color Scheme**: Red primary (#DC2626), Dark gray (#1F2937), Tailwind palette
-- **Components**: Custom reusable Livewire components
-- **Responsive**: Mobile-first approach with breakpoint optimization
+**Sistem Desain:**
+- **Typography**: Poppins (primary), Fredoka (aksen)
+- **Skema Warna**: Merah primary (#DC2626), Abu-abu gelap (#1F2937), palet Tailwind
+- **Komponen**: Komponen Livewire yang dapat digunakan kembali
+- **Responsive**: Pendekatan mobile-first dengan optimasi breakpoint
 
-### Mobile Application
+### Aplikasi Mobile
 
-Native-quality mobile application built with Flutter for workshop owners and managers.
+Aplikasi mobile berkualitas native yang dibangun dengan Flutter untuk pemilik dan manajer bengkel.
 
-#### Target Users
-- **Workshop Owners**: Business owners managing one or multiple workshops
-- **Workshop Managers**: Authorized staff with management permissions
+#### Target User
+- **Pemilik Bengkel**: Pemilik bisnis yang mengelola satu atau beberapa bengkel
+- **Manajer Bengkel**: Staf yang berwenang dengan izin manajemen
 
-#### Key Features
+#### Fitur Utama
 
-**1. Authentication & Security**
-- Secure login with token-based authentication (Laravel Sanctum)
-- Biometric authentication support
-- Auto-logout on inactivity
-- Secure credential storage via Flutter Secure Storage
+**1. Autentikasi & Keamanan**
+- Login aman dengan autentikasi berbasis token (Laravel Sanctum)
+- Dukungan autentikasi biometrik
+- Auto-logout pada inaktivitas
+- Penyimpanan kredensial aman via Flutter Secure Storage
 
 **2. Dashboard**
-- Mini dashboard with critical KPIs
-- Revenue overview
-- Pending services count
-- Employee performance summary
-- Quick action buttons
-- Real-time data synchronization
+- Mini dashboard dengan KPI kritis
+- Ikhtisar revenue
+- Jumlah layanan pending
+- Ringkasan kinerja karyawan
+- Tombol aksi cepat
+- Sinkronisasi data real-time
 
-**3. Service Management**
-- Browse service catalog
-- Add/edit services
-- Update service pricing
-- View service statistics
-- Service queue management
+**3. Manajemen Layanan**
+- Telusuri katalog layanan
+- Tambah/edit layanan
+- Update harga layanan
+- Lihat statistik layanan
+- Manajemen antrian layanan
 
-**4. Order & Transaction Processing**
-- Walk-in service registration
-- Appointment scheduling
-- Invoice generation
-- Payment processing with Midtrans WebView
-- Transaction history
-- PDF invoice download
+**4. Pemrosesan Pesanan & Transaksi**
+- Registrasi layanan walk-in
+- Penjadwalan appointment
+- Pembuatan invoice
+- Pemrosesan pembayaran dengan WebView Midtrans
+- Histori transaksi
+- Download invoice PDF
 
-**5. Vehicle Management**
-- Vehicle registration
-- Customer vehicle database
-- Service history per vehicle
-- Odometer tracking
-- Vehicle photo management
+**5. Manajemen Kendaraan**
+- Registrasi kendaraan
+- Database kendaraan pelanggan
+- Histori layanan per kendaraan
+- Pelacakan odometer
+- Manajemen foto kendaraan
 
-**6. Employee Management**
-- Employee directory
-- Specialist assignment
-- Task delegation
-- Performance tracking
-- Attendance overview (future)
+**6. Manajemen Karyawan**
+- Direktori karyawan
+- Assignment spesialis
+- Delegasi tugas
+- Pelacakan kinerja
+- Ikhtisar kehadiran (future)
 
-**7. Membership Management**
-- View membership status
-- Trial activation
-- Payment via Midtrans
-- Membership history
-- Auto-renewal settings
+**7. Manajemen Keanggotaan**
+- Lihat status keanggotaan
+- Aktivasi trial
+- Pembayaran via Midtrans
+- Histori keanggotaan
+- Pengaturan auto-renewal
 
-**8. Customer Interaction**
-- AI-powered chatbot
-- Live chat with admin
-- Quick FAQ responses
-- Chat history
+**8. Interaksi Pelanggan**
+- Chatbot bertenaga AI
+- Live chat dengan admin
+- Respons FAQ cepat
+- Histori chat
 
-**9. Notifications**
-- Push notifications for important events
-- Deep linking to relevant screens
-- Notification history
-- Notification preferences
+**9. Notifikasi**
+- Push notification untuk event penting
+- Deep linking ke layar relevan
+- Histori notifikasi
+- Preferensi notifikasi
 
-**10. Offline Support**
-- Local data persistence with SharedPreferences
-- Offline mode for critical features
-- Data synchronization on network restore
+**10. Dukungan Offline**
+- Persistensi data lokal dengan SharedPreferences
+- Mode offline untuk fitur kritis
+- Sinkronisasi data saat jaringan pulih
 
-#### Technical Implementation
+#### Implementasi Teknis
 
-**Architecture:**
-- **State Management**: Provider pattern for reactive state
-- **Navigation**: Flutter Navigator 2.0
-- **API Layer**: HTTP client with interceptors for authentication
-- **Local Storage**: SharedPreferences (app data), Flutter Secure Storage (tokens)
-- **Image Handling**: Image picker with compression
+**Arsitektur:**
+- **Manajemen State**: Pola Provider untuk state reaktif
+- **Navigasi**: Flutter Navigator 2.0
+- **Layer API**: HTTP client dengan interceptor untuk autentikasi
+- **Penyimpanan Lokal**: SharedPreferences (data app), Flutter Secure Storage (token)
+- **Penanganan Gambar**: Image picker dengan kompresi
 
 **UI/UX:**
-- **Material Design 3**: Modern Material components
-- **Custom Theme**: Consistent with brand guidelines
-- **Responsive Layouts**: Adaptive to various screen sizes
-- **Animations**: Smooth transitions and micro-interactions
+- **Material Design 3**: Komponen UI modern
+- **Tema Kustom**: Konsisten dengan panduan brand
+- **Layout Responsif**: Adaptif terhadap berbagai ukuran layar
+- **Animasi**: Transisi halus dan micro-interaction
 
 ---
 
-## Core Features
+## Fitur Utama
 
-### Authentication & Authorization
+### Autentikasi & Otorisasi
 
-**Web Dashboard:**
-- Superadmin-only access for web interface
-- Multi-factor authentication support (future)
-- Session management with secure cookies
-- CSRF protection
+**Dashboard Web:**
+- Akses khusus superadmin untuk antarmuka web
+- Dukungan autentikasi multi-faktor (future)
+- Manajemen sesi dengan cookie aman
+- Proteksi CSRF
 
-**Mobile Application:**
-- Email and password authentication
-- Token-based authentication via Laravel Sanctum
-- Biometric authentication (fingerprint/face ID)
-- Auto token refresh mechanism
-- Secure token storage
+**Aplikasi Mobile:**
+- Autentikasi email dan password
+- Autentikasi berbasis token via Laravel Sanctum
+- Autentikasi biometrik (fingerprint/face ID)
+- Mekanisme refresh token otomatis
+- Penyimpanan token aman
 
-**Role-Based Access Control:**
-- Spatie Laravel Permission integration
-- Granular permission system
-- Role hierarchy: Superadmin > Workshop Owner > Manager > Technician
-- Dynamic permission assignment
+**Kontrol Akses Berbasis Role:**
+- Integrasi Spatie Laravel Permission
+- Sistem permission granular
+- Hierarki role: Superadmin > Pemilik Bengkel > Manajer > Teknisi
+- Assignment permission dinamis
 
-### Service Management
+### Manajemen Layanan
 
-**Service Catalog:**
-- Hierarchical categorization
-- Custom service creation
-- Price configuration per workshop
-- Service duration estimation
-- Required employee specialization
+**Katalog Layanan:**
+- Kategorisasi hierarkis
+- Pembuatan layanan kustom
+- Konfigurasi harga per bengkel
+- Estimasi durasi layanan
+- Spesialisasi karyawan yang diperlukan
 
-**Service Queue:**
-- Walk-in service registration
-- Appointment scheduling
-- Queue prioritization
-- Real-time status updates
-- Service completion tracking
+**Antrian Layanan:**
+- Registrasi layanan walk-in
+- Penjadwalan appointment
+- Prioritasi antrian
+- Update status real-time
+- Pelacakan penyelesaian layanan
 
-**Service Categories:**
-- Engine Services
-- Body & Paint
-- Electrical Systems
-- Transmission
+**Kategori Layanan:**
+- Layanan Mesin
+- Body & Cat
+- Sistem Elektrikal
+- Transmisi
 - Air Conditioning
-- Tire Services
-- General Maintenance
+- Layanan Ban
+- Pemeliharaan Umum
 
-### Transaction & Payment
+### Transaksi & Pembayaran
 
-**Invoice Management:**
-- Automated invoice generation
-- Itemized billing
-- Tax calculation
-- Discount application
-- Multi-currency support (future)
+**Manajemen Invoice:**
+- Pembuatan invoice otomatis
+- Penagihan terperinci
+- Kalkulasi pajak
+- Aplikasi diskon
+- Dukungan multi-mata uang (future)
 
-**Payment Processing:**
-- Midtrans payment gateway integration
-- Multiple payment methods (credit card, e-wallet, bank transfer)
-- Real-time payment status updates
-- Webhook handling for payment notifications
-- Automatic receipt generation
+**Pemrosesan Pembayaran:**
+- Integrasi payment gateway Midtrans
+- Berbagai metode pembayaran (kartu kredit, e-wallet, transfer bank)
+- Update status pembayaran real-time
+- Penanganan webhook untuk notifikasi pembayaran
+- Pembuatan bukti pembayaran otomatis
 
-**Payment Flow:**
+**Alur Pembayaran:**
 ```
-Service Selection → Invoice Creation → Payment Gateway (Midtrans) → Payment Confirmation → 
-Receipt Generation → Service Activation
+Pemilihan Layanan → Pembuatan Invoice → Payment Gateway (Midtrans) → Konfirmasi Pembayaran → 
+Pembuatan Bukti → Aktivasi Layanan
 ```
 
-### Membership System
+### Sistem Keanggotaan
 
-**Membership Tiers:**
-1. **Basic** (Free Trial)
-   - 7-day trial period
-   - Limited features
-   - Single workshop
+**Tier Keanggotaan:**
+1. **Basic** (Trial Gratis)
+   - Periode trial 7 hari
+   - Fitur terbatas
+   - Satu bengkel
 
 2. **Silver**
-   - Standard features
-   - Up to 2 workshops
-   - Basic analytics
+   - Fitur standar
+   - Hingga 2 bengkel
+   - Analitik dasar
 
 3. **Gold**
-   - Advanced features
-   - Up to 5 workshops
-   - Advanced analytics
-   - Priority support
+   - Fitur advanced
+   - Hingga 5 bengkel
+   - Analitik advanced
+   - Dukungan prioritas
 
 4. **Platinum**
-   - All features
-   - Unlimited workshops
-   - Custom branding
-   - Dedicated support
+   - Semua fitur
+   - Bengkel unlimited
+   - Branding kustom
+   - Dukungan dedicated
 
-**Trial & Subscription Flow:**
+**Alur Trial & Subscription:**
 ```
-Registration → Free Trial (7 days) → Payment Setup (Rp 0 transaction) → 
-Auto-charge after trial → Active Subscription → Monthly Auto-renewal
+Registrasi → Trial Gratis (7 hari) → Setup Pembayaran (transaksi Rp 0) → 
+Auto-charge setelah trial → Subscription Aktif → Auto-renewal Bulanan
 ```
 
-### Voucher System
+### Sistem Voucher
 
-**Voucher Types:**
-- Percentage discount (e.g., 10% off)
-- Fixed amount discount (e.g., Rp 50,000 off)
-- Service-specific vouchers
-- First-time customer vouchers
+**Jenis Voucher:**
+- Diskon persentase (misal, diskon 10%)
+- Diskon nominal tetap (misal, diskon Rp 50.000)
+- Voucher spesifik layanan
+- Voucher pelanggan pertama kali
 
-**Voucher Management:**
-- Creation with expiry dates
-- Usage limit configuration
-- Automatic expiry handling
-- Usage tracking and analytics
+**Manajemen Voucher:**
+- Pembuatan dengan tanggal kadaluarsa
+- Konfigurasi batas penggunaan
+- Penanganan kadaluarsa otomatis
+- Pelacakan penggunaan dan analitik
 
-### Employee Management
+### Manajemen Karyawan
 
-**Employee Profiles:**
-- Personal information
-- Specialization tags (Engine Specialist, Body Specialist, etc.)
-- Contact details
-- Employment status
+**Profil Karyawan:**
+- Informasi personal
+- Tag spesialisasi (Spesialis Mesin, Spesialis Body, dll.)
+- Detail kontak
+- Status pekerjaan
 
-**Task Assignment:**
-- Service-based task allocation
-- Workload balancing
-- Real-time task status
-- Completion tracking
+**Assignment Tugas:**
+- Alokasi tugas berbasis layanan
+- Penyeimbangan beban kerja
+- Status tugas real-time
+- Pelacakan penyelesaian
 
-**Performance Tracking:**
-- Completed services count
-- Customer ratings
-- Average service time
-- Revenue contribution
+**Pelacakan Kinerja:**
+- Jumlah layanan terselesaikan
+- Rating pelanggan
+- Rata-rata waktu layanan
+- Kontribusi revenue
 
-### Vehicle & Customer Management
+### Manajemen Kendaraan & Pelanggan
 
-**Customer Database:**
-- Customer profiles
-- Contact information
-- Service history
-- Vehicle ownership
+**Database Pelanggan:**
+- Profil pelanggan
+- Informasi kontak
+- Histori layanan
+- Kepemilikan kendaraan
 
-**Vehicle Management:**
-- Vehicle registration (license plate, make, model, year)
-- Odometer tracking
-- Service history
-- Sparepart usage history
-- Vehicle photos
+**Manajemen Kendaraan:**
+- Registrasi kendaraan (plat nomor, merk, model, tahun)
+- Pelacakan odometer
+- Histori layanan
+- Histori penggunaan sparepart
+- Foto kendaraan
 
-### Analytics & Reporting
+### Analitik & Pelaporan
 
 **Business Intelligence:**
-- Revenue tracking (daily, weekly, monthly, yearly)
-- Service popularity analysis
-- Customer retention metrics
-- Employee performance benchmarking
-- Workshop comparison (multi-workshop owners)
+- Pelacakan revenue (harian, mingguan, bulanan, tahunan)
+- Analisis popularitas layanan
+- Metrik retensi pelanggan
+- Benchmarking kinerja karyawan
+- Perbandingan bengkel (pemilik multi-bengkel)
 
-**Export Capabilities:**
-- PDF reports
-- Excel spreadsheets
-- Custom date ranges
-- Scheduled reports (future)
+**Kemampuan Export:**
+- Laporan PDF
+- Spreadsheet Excel
+- Rentang tanggal kustom
+- Laporan terjadwal (future)
 
-### AI Chatbot
+### Chatbot AI
 
-**Capabilities:**
-- Natural language processing
-- FAQ automation
-- Service inquiry handling
-- Appointment booking assistance
-- Escalation to human agents
+**Kemampuan:**
+- Pemrosesan bahasa alami
+- Otomasi FAQ
+- Penanganan pertanyaan layanan
+- Bantuan booking appointment
+- Eskalasi ke agen manusia
 
-**Integration:**
-- Real-time chat interface
-- Chat history persistence
-- Multi-language support (future)
+**Integrasi:**
+- Antarmuka chat real-time
+- Persistensi histori chat
+- Dukungan multi-bahasa (future)
 
 ---
 
-## Technology Stack
+## Stack Teknologi
 
-### Backend Technologies
+### Teknologi Backend
 
-**Core Framework:**
-- **Laravel 12.x**: Modern PHP framework with latest features
-- **PHP 8.2+**: Type-safe, modern PHP
+**Framework Inti:**
+- **Laravel 12.x**: Framework PHP modern dengan fitur terbaru
+- **PHP 8.2+**: PHP modern yang type-safe
 
 **Database:**
-- **MySQL 8.0+**: Relational database for structured data
-- **Redis**: Caching and session management (optional)
+- **MySQL 8.0+**: Database relasional untuk data terstruktur
+- **Redis**: Caching dan manajemen sesi (opsional)
 
-**Authentication & Authorization:**
-- **Laravel Sanctum**: API token authentication
-- **Spatie Laravel Permission**: Role and permission management
+**Autentikasi & Otorisasi:**
+- **Laravel Sanctum**: Autentikasi token API
+- **Spatie Laravel Permission**: Manajemen role dan permission
 
 **Real-time & Queue:**
-- **Laravel Queue**: Asynchronous job processing
-- **Laravel Reverb**: Real-time event broadcasting
-- **Pusher**: Alternative real-time service
+- **Laravel Queue**: Pemrosesan job asinkron
+- **Laravel Reverb**: Broadcasting event real-time
+- **Pusher**: Layanan real-time alternatif
 
-**Payment Integration:**
-- **Midtrans**: Indonesian payment gateway
+**Integrasi Pembayaran:**
+- **Midtrans**: Payment gateway Indonesia
 
-**Monitoring & Analytics:**
-- **Sentry**: Error tracking and performance monitoring
-- **Laravel Telescope**: Development debugging tool
+**Monitoring & Analitik:**
+- **Sentry**: Pelacakan error dan monitoring performa
+- **Laravel Telescope**: Tool debugging development
 
-**Key Packages:**
+**Package Utama:**
 ```json
 {
-  "laravel/sanctum": "API authentication",
-  "spatie/laravel-permission": "RBAC implementation",
+  "laravel/sanctum": "Autentikasi API",
+  "spatie/laravel-permission": "Implementasi RBAC",
   "spatie/laravel-activitylog": "Audit logging",
-  "spatie/laravel-query-builder": "Advanced API filtering",
-  "midtrans/midtrans-php": "Payment gateway SDK",
-  "sentry/sentry-laravel": "Error monitoring",
-  "dedoc/scramble": "API documentation generator",
-  "livewire/livewire": "Reactive components",
-  "livewire/volt": "Single-file components"
+  "spatie/laravel-query-builder": "Filtering API advanced",
+  "midtrans/midtrans-php": "SDK payment gateway",
+  "sentry/sentry-laravel": "Monitoring error",
+  "dedoc/scramble": "Generator dokumentasi API",
+  "livewire/livewire": "Komponen reaktif",
+  "livewire/volt": "Komponen single-file"
 }
 ```
 
-**Development Tools:**
+**Tool Development:**
 ```json
 {
-  "pestphp/pest": "Modern testing framework",
+  "pestphp/pest": "Framework testing modern",
   "laravel/pint": "Code style fixer (PSR-12)",
-  "barryvdh/laravel-debugbar": "Development debugging",
-  "barryvdh/laravel-ide-helper": "IDE autocomplete"
+  "barryvdh/laravel-debugbar": "Debugging development",
+  "barryvdh/laravel-ide-helper": "Autocomplete IDE"
 }
 ```
 
-### Frontend Technologies (Web Dashboard)
+### Teknologi Frontend (Dashboard Web)
 
-**UI Framework:**
-- **Livewire Volt 3.x**: Reactive single-file components
+**Framework UI:**
+- **Livewire Volt 3.x**: Komponen reaktif single-file
 - **Blade**: Template engine
-- **Alpine.js**: Lightweight JavaScript framework
+- **Alpine.js**: Framework JavaScript lightweight
 
 **Styling:**
-- **Tailwind CSS 3.x**: Utility-first CSS framework
-- **Custom Design System**: Brand-specific styles
+- **Tailwind CSS 3.x**: Framework CSS utility-first
+- **Sistem Desain Kustom**: Style spesifik brand
 
 **Build Tools:**
-- **Vite**: Next-generation frontend build tool
-- **PostCSS**: CSS processing
+- **Vite**: Tool build frontend generasi selanjutnya
+- **PostCSS**: Pemrosesan CSS
 
-**Assets:**
-- **Google Fonts**: Poppins, Fredoka typography
-- **Heroicons**: Icon library
+**Asset:**
+- **Google Fonts**: Typography Poppins, Fredoka
+- **Heroicons**: Library ikon
 
-### Mobile Technologies
+### Teknologi Mobile
 
 **Framework:**
-- **Flutter 3.0+**: Cross-platform mobile framework
-- **Dart 3.0+**: Programming language
+- **Flutter 3.0+**: Framework mobile cross-platform
+- **Dart 3.0+**: Bahasa pemrograman
 
-**State Management:**
-- **Provider**: Reactive state management
+**Manajemen State:**
+- **Provider**: Manajemen state reaktif
 
 **Networking:**
-- **http**: HTTP client for API calls
-- **connectivity_plus**: Network status monitoring
+- **http**: HTTP client untuk pemanggilan API
+- **connectivity_plus**: Monitoring status jaringan
 
-**Storage:**
-- **flutter_secure_storage**: Encrypted credential storage
-- **shared_preferences**: Key-value local storage
+**Penyimpanan:**
+- **flutter_secure_storage**: Penyimpanan kredensial terenkripsi
+- **shared_preferences**: Penyimpanan lokal key-value
 
-**UI Components:**
-- **Material Design 3**: Modern UI components
-- **google_fonts**: Custom typography
-- **flutter_svg**: SVG asset rendering
+**Komponen UI:**
+- **Material Design 3**: Komponen UI modern
+- **google_fonts**: Typography kustom
+- **flutter_svg**: Rendering asset SVG
 
-**Charts & Visualization:**
-- **fl_chart**: Lightweight charts
-- **syncfusion_flutter_charts**: Advanced charts
-- **syncfusion_flutter_datepicker**: Date selection
+**Grafik & Visualisasi:**
+- **fl_chart**: Grafik lightweight
+- **syncfusion_flutter_charts**: Grafik advanced
+- **syncfusion_flutter_datepicker**: Pemilihan tanggal
 
-**Utilities:**
-- **intl**: Internationalization and formatting
-- **image_picker**: Camera and gallery access
-- **url_launcher**: External URL handling
-- **webview_flutter**: In-app browser (Midtrans payment)
+**Utilitas:**
+- **intl**: Internationalisasi dan formatting
+- **image_picker**: Akses kamera dan galeri
+- **url_launcher**: Penanganan URL eksternal
+- **webview_flutter**: Browser in-app (pembayaran Midtrans)
 - **app_links**: Deep linking
-- **pdf & printing**: PDF generation and printing
+- **pdf & printing**: Pembuatan dan printing PDF
 
 **Testing:**
-- **flutter_test**: Widget and unit testing
+- **flutter_test**: Widget dan unit testing
 - **flutter_driver**: Integration testing (future)
 
-### Infrastructure
+### Infrastruktur
 
 **Version Control:**
 - **Git**: Source control
-- **Monorepo Structure**: Unified codebase management
+- **Struktur Monorepo**: Manajemen codebase terpadu
 
-**API Testing:**
-- **Postman**: API collection and testing
+**Testing API:**
+- **Postman**: Koleksi dan testing API
 
 **Deployment:**
-- **Backend**: VPS (DigitalOcean, AWS, etc.), Nginx/Apache, PHP-FPM
+- **Backend**: VPS (DigitalOcean, AWS, dll.), Nginx/Apache, PHP-FPM
 - **Mobile**: Google Play Store, Apple App Store
 
 **CI/CD (Planned):**
-- **GitHub Actions**: Automated testing and deployment
-- **Laravel Forge**: Server management (optional)
+- **GitHub Actions**: Testing dan deployment otomatis
+- **Laravel Forge**: Manajemen server (opsional)
 
 ---
 
-## Security Implementation
+## Implementasi Keamanan
 
-### Authentication Security
+### Keamanan Autentikasi
 
-**Token-Based Authentication:**
-- Laravel Sanctum for stateless API authentication
-- Token expiration and rotation
-- Secure token storage in mobile app (Flutter Secure Storage with AES encryption)
-- HTTPOnly cookies for web sessions
+**Autentikasi Berbasis Token:**
+- Laravel Sanctum untuk autentikasi API stateless
+- Expirasi dan rotasi token
+- Penyimpanan token aman di aplikasi mobile (Flutter Secure Storage dengan enkripsi AES)
+- Cookie HTTPOnly untuk sesi web
 
-**Password Security:**
-- Bcrypt hashing algorithm (cost factor 10)
-- Minimum password length enforcement
-- Password complexity requirements
-- Password reset with time-limited tokens
-- Account lockout after failed attempts (future)
+**Keamanan Password:**
+- Algoritma hashing Bcrypt (cost factor 10)
+- Penegakan panjang minimum password
+- Persyaratan kompleksitas password
+- Reset password dengan token waktu terbatas
+- Penguncian akun setelah percobaan gagal (future)
 
-**Session Security:**
-- CSRF token protection for web forms
-- Secure session cookies (HTTP-only, Secure flag)
-- Session timeout and automatic logout
-- Concurrent session management
+**Keamanan Sesi:**
+- Proteksi token CSRF untuk form web
+- Cookie sesi aman (HTTP-only, flag Secure)
+- Timeout sesi dan logout otomatis
+- Manajemen sesi concurrent
 
-### Authorization Security
+### Keamanan Otorisasi
 
-**Role-Based Access Control (RBAC):**
-- Spatie Permission package for granular permissions
-- Role hierarchy enforcement
-- Permission caching for performance
-- Dynamic permission checking at route and action level
+**Kontrol Akses Berbasis Role (RBAC):**
+- Package Spatie Permission untuk permission granular
+- Penegakan hierarki role
+- Caching permission untuk performa
+- Pemeriksaan permission dinamis di level route dan action
 
-**API Authorization:**
-- Middleware-based authorization
-- Resource-level permission checks
-- Owner-based access control (users can only access their own data)
-- Admin override capabilities with audit logging
+**Otorisasi API:**
+- Otorisasi berbasis middleware
+- Pemeriksaan permission level resource
+- Kontrol akses berbasis owner (user hanya dapat mengakses data mereka)
+- Kemampuan override admin dengan audit logging
 
-### Data Security
+### Keamanan Data
 
-**Data Encryption:**
-- Database column encryption for sensitive data (future enhancement)
-- HTTPS/TLS for all data in transit
-- Encrypted storage for authentication tokens
+**Enkripsi Data:**
+- Enkripsi kolom database untuk data sensitif (future enhancement)
+- HTTPS/TLS untuk semua data in transit
+- Penyimpanan terenkripsi untuk token autentikasi
 
-**Database Security:**
-- Parameterized queries (Eloquent ORM) preventing SQL injection
-- Database user with minimal required privileges
-- No direct database exposure to public network
-- Regular database backups with encryption
+**Keamanan Database:**
+- Query terparameterisasi (Eloquent ORM) mencegah SQL injection
+- User database dengan privilege minimal yang diperlukan
+- Tidak ada eksposur database langsung ke jaringan publik
+- Backup database reguler dengan enkripsi
 
-**Input Validation:**
-- Form Request validation for all user inputs
-- XSS prevention through Laravel's automatic escaping
-- File upload validation (type, size, extension whitelist)
-- API request validation with custom rules
+**Validasi Input:**
+- Validasi Form Request untuk semua input user
+- Pencegahan XSS melalui escaping otomatis Laravel
+- Validasi upload file (tipe, ukuran, whitelist ekstensi)
+- Validasi request API dengan aturan kustom
 
-**Output Sanitization:**
-- Blade template automatic escaping
-- JSON response sanitization
-- HTML Purifier for rich text content (where applicable)
+**Sanitasi Output:**
+- Escaping otomatis template Blade
+- Sanitasi response JSON
+- HTML Purifier untuk konten rich text (jika berlaku)
 
-### Application Security
+### Keamanan Aplikasi
 
-**Middleware Protection:**
-- Authentication middleware for protected routes
-- Rate limiting to prevent brute force attacks
-- CORS configuration for API access control
-- Request throttling by IP and user
+**Proteksi Middleware:**
+- Middleware autentikasi untuk route yang dilindungi
+- Rate limiting untuk mencegah serangan brute force
+- Konfigurasi CORS untuk kontrol akses API
+- Request throttling berdasarkan IP dan user
 
-**API Security:**
-- API versioning for backward compatibility
+**Keamanan API:**
+- Versioning API untuk backward compatibility
 - Request signing (planned)
-- API key rotation capability
-- Webhook signature verification (Midtrans)
+- Kemampuan rotasi API key
+- Verifikasi signature webhook (Midtrans)
 
-**File Upload Security:**
-- Mime type validation
-- File size limits
-- Virus scanning (planned)
-- Secure file storage outside public directory
-- Unique filename generation
+**Keamanan Upload File:**
+- Validasi tipe mime
+- Batas ukuran file
+- Pemindaian virus (planned)
+- Penyimpanan file aman di luar direktori publik
+- Pembuatan nama file unik
 
-### Payment Security
+### Keamanan Pembayaran
 
-**Midtrans Integration:**
-- Server-side validation of payment notifications
-- Webhook signature verification
-- Idempotency checks to prevent double processing
-- PCI DSS compliance through Midtrans
+**Integrasi Midtrans:**
+- Validasi server-side untuk notifikasi pembayaran
+- Verifikasi signature webhook
+- Pemeriksaan idempotency untuk mencegah pemrosesan ganda
+- Kepatuhan PCI DSS melalui Midtrans
 
-**Transaction Security:**
-- Database transactions for atomicity
-- Duplicate transaction prevention
-- Fraud detection hooks (future)
-- Transaction audit logging
+**Keamanan Transaksi:**
+- Transaksi database untuk atomicity
+- Pencegahan transaksi duplikat
+- Hook deteksi fraud (future)
+- Audit logging transaksi
 
-### Infrastructure Security
+### Keamanan Infrastruktur
 
-**Server Configuration:**
-- Firewall configuration (UFW/iptables)
-- SSH key-based authentication
-- Fail2ban for intrusion prevention
-- Regular security updates
+**Konfigurasi Server:**
+- Konfigurasi firewall (UFW/iptables)
+- Autentikasi berbasis SSH key
+- Fail2ban untuk pencegahan intrusi
+- Update keamanan reguler
 
-**Environment Security:**
-- Environment variables for sensitive configuration
-- .env file excluded from version control
-- Separate environments (development, staging, production)
-- Environment-specific security settings
+**Keamanan Environment:**
+- Environment variables untuk konfigurasi sensitif
+- File .env dikecualikan dari version control
+- Environment terpisah (development, staging, production)
+- Pengaturan keamanan spesifik environment
 
 **Monitoring & Logging:**
-- Sentry for error tracking and alerting
-- Activity logging with Spatie Activity Log
-- Authentication attempt logging
-- Security event monitoring
-- GDPR-compliant log retention
+- Sentry untuk pelacakan error dan alerting
+- Activity logging dengan Spatie Activity Log
+- Logging percobaan autentikasi
+- Monitoring event keamanan
+- Retensi log yang patuh GDPR
 
-### Mobile Security
+### Keamanan Mobile
 
-**App Security:**
-- Certificate pinning for API communication (planned)
-- Root detection and jailbreak detection (planned)
-- Code obfuscation for release builds
-- Secure local storage with encryption
+**Keamanan App:**
+- Certificate pinning untuk komunikasi API (planned)
+- Deteksi root dan jailbreak (planned)
+- Obfuscation kode untuk release build
+- Penyimpanan lokal aman dengan enkripsi
 
-**Network Security:**
-- TLS 1.3 for all network communications
-- Certificate validation
-- Proxy detection (planned)
-- VPN detection (planned)
+**Keamanan Jaringan:**
+- TLS 1.3 untuk semua komunikasi jaringan
+- Validasi sertifikat
+- Deteksi proxy (planned)
+- Deteksi VPN (planned)
 
-### Compliance & Best Practices
+### Kepatuhan & Best Practice
 
-**Security Standards:**
-- OWASP Top 10 mitigation
-- Laravel security best practices
-- Regular security audits (planned)
-- Dependency vulnerability scanning
+**Standar Keamanan:**
+- Mitigasi OWASP Top 10
+- Best practice keamanan Laravel
+- Audit keamanan reguler (planned)
+- Pemindaian kerentanan dependency
 
-**Data Privacy:**
-- GDPR-ready architecture (user data export/deletion)
-- Indonesian data privacy regulation compliance
-- Clear privacy policy
-- User consent management
+**Privasi Data:**
+- Arsitektur siap-GDPR (export/penghapusan data user)
+- Kepatuhan regulasi privasi data Indonesia
+- Kebijakan privasi yang jelas
+- Manajemen consent user
 
 **Audit Trail:**
-- Comprehensive activity logging
-- User action tracking
-- Admin action logging
-- Immutable audit logs
+- Activity logging komprehensif
+- Pelacakan aksi user
+- Logging aksi admin
+- Log audit yang immutable
 
 ---
 
-## Installation Guide
+## Panduan Instalasi
 
-### Prerequisites
+### Prasyarat
 
-**Backend Requirements:**
+**Kebutuhan Backend:**
 ```
 PHP >= 8.2
 Composer >= 2.0
@@ -851,15 +851,15 @@ MySQL >= 8.0
 Git
 ```
 
-**Mobile Requirements:**
+**Kebutuhan Mobile:**
 ```
 Flutter SDK >= 3.0
 Dart SDK >= 3.0
-Android Studio (for Android development)
-Xcode (for iOS development, macOS only)
+Android Studio (untuk development Android)
+Xcode (untuk development iOS, hanya macOS)
 ```
 
-### Backend Installation
+### Instalasi Backend
 
 #### 1. Clone Repository
 ```bash
@@ -867,110 +867,110 @@ git clone https://github.com/siberbot88/bbihub-platform.git
 cd bbihub-platform/backend
 ```
 
-#### 2. Install PHP Dependencies
+#### 2. Install Dependency PHP
 ```bash
 composer install
 ```
 
-#### 3. Install Node Dependencies
+#### 3. Install Dependency Node
 ```bash
 npm install
 ```
 
-#### 4. Environment Configuration
+#### 4. Konfigurasi Environment
 ```bash
 cp .env.example .env
 php artisan key:generate
 ```
 
-#### 5. Database Configuration
-Edit `.env` file:
+#### 5. Konfigurasi Database
+Edit file `.env`:
 ```env
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
 DB_DATABASE=bbihub
 DB_USERNAME=root
-DB_PASSWORD=your_secure_password
+DB_PASSWORD=password_aman_anda
 ```
 
-Create database:
+Buat database:
 ```bash
 mysql -u root -p
 CREATE DATABASE bbihub CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 EXIT;
 ```
 
-#### 6. Database Migration & Seeding
+#### 6. Migrasi & Seeding Database
 ```bash
 php artisan migrate --seed
 ```
 
-#### 7. Storage Linking
+#### 7. Linking Storage
 ```bash
 php artisan storage:link
 ```
 
-#### 8. Build Frontend Assets
+#### 8. Build Asset Frontend
 ```bash
 npm run build
 ```
 
-#### 9. Queue Configuration (Optional but Recommended)
+#### 9. Konfigurasi Queue (Opsional tapi Direkomendasikan)
 Edit `.env`:
 ```env
 QUEUE_CONNECTION=database
 ```
 
-Run queue worker:
+Jalankan queue worker:
 ```bash
 php artisan queue:table
 php artisan migrate
 ```
 
-### Mobile Installation
+### Instalasi Mobile
 
-#### 1. Navigate to Mobile Directory
+#### 1. Navigasi ke Direktori Mobile
 ```bash
 cd ../mobile
 ```
 
-#### 2. Install Flutter Dependencies
+#### 2. Install Dependency Flutter
 ```bash
 flutter pub get
 ```
 
-#### 3. Configure API Endpoint
-Edit `lib/services/api_service.dart` or equivalent configuration file:
+#### 3. Konfigurasi Endpoint API
+Edit `lib/services/api_service.dart` atau file konfigurasi yang setara:
 ```dart
-static const String baseUrl = 'http://your-backend-url.com/api';
+static const String baseUrl = 'http://backend-url-anda.com/api';
 ```
 
-#### 4. Generate App Icons (Optional)
+#### 4. Generate Icon App (Opsional)
 ```bash
 flutter pub run flutter_launcher_icons
 ```
 
-#### 5. Run Application
+#### 5. Jalankan Aplikasi
 ```bash
-# For development
+# Untuk development
 flutter run
 
-# Select target device when prompted
+# Pilih target device saat diminta
 ```
 
-### Development Server
+### Server Development
 
-#### Backend Development Server (3 options)
+#### Server Development Backend (3 opsi)
 
-**Option 1: Single Command (Recommended)**
+**Opsi 1: Single Command (Direkomendasikan)**
 ```bash
 cd backend
 composer run dev
 ```
-This runs Laravel server, queue worker, and Vite dev server concurrently.
+Ini menjalankan server Laravel, queue worker, dan Vite dev server secara bersamaan.
 
-**Option 2: Manual (3 separate terminals)**
+**Opsi 2: Manual (3 terminal terpisah)**
 
 Terminal 1 - Laravel:
 ```bash
@@ -990,35 +990,35 @@ cd backend
 npm run dev
 ```
 
-**Option 3: Laravel Sail (Docker)**
+**Opsi 3: Laravel Sail (Docker)**
 ```bash
 cd backend
 ./vendor/bin/sail up
 ```
 
-#### Access Points
+#### Titik Akses
 
-- Web Dashboard: `http://localhost:8000`
+- Dashboard Web: `http://localhost:8000`
 - API Endpoint: `http://localhost:8000/api`
-- Default credentials: `superadmin@gmail.com` / `password`
+- Kredensial default: `superadmin@gmail.com` / `password`
 
-### Mobile Development
+### Development Mobile
 
 ```bash
 cd mobile
 flutter run
 
-# For specific device
+# Untuk device spesifik
 flutter devices
 flutter run -d <device_id>
 
-# For hot reload during development, press 'r' in terminal
-# For hot restart, press 'R'
+# Untuk hot reload selama development, tekan 'r' di terminal
+# Untuk hot restart, tekan 'R'
 ```
 
 ---
 
-## API Documentation
+## Dokumentasi API
 
 ### Base URL
 
@@ -1027,9 +1027,9 @@ Development: http://localhost:8000/api
 Production: https://api.bbihub.com/api
 ```
 
-### Authentication
+### Autentikasi
 
-All endpoints except authentication routes require Bearer token authentication.
+Semua endpoint kecuali route autentikasi memerlukan autentikasi Bearer token.
 
 **Header:**
 ```http
@@ -1038,9 +1038,9 @@ Content-Type: application/json
 Accept: application/json
 ```
 
-### Authentication Endpoints
+### Endpoint Autentikasi
 
-#### Register
+#### Registrasi
 ```http
 POST /api/auth/register
 
@@ -1062,7 +1062,7 @@ Response: 201 Created
     },
     "token": "1|abc123..."
   },
-  "message": "Registration successful"
+  "message": "Registrasi berhasil"
 }
 ```
 
@@ -1088,7 +1088,7 @@ Response: 200 OK
     },
     "token": "1|abc123..."
   },
-  "message": "Login successful"
+  "message": "Login berhasil"
 }
 ```
 
@@ -1099,7 +1099,7 @@ Authorization: Bearer {token}
 
 Response: 200 OK
 {
-  "message": "Logged out successfully"
+  "message": "Logout berhasil"
 }
 ```
 
@@ -1120,74 +1120,74 @@ Response: 200 OK
 }
 ```
 
-### Core API Endpoints
+### Endpoint API Inti
 
-#### Workshops
+#### Bengkel
 ```http
-GET    /api/workshops              # List all workshops
-POST   /api/workshops              # Create workshop
-GET    /api/workshops/{uuid}       # Get workshop details
-PUT    /api/workshops/{uuid}       # Update workshop
-DELETE /api/workshops/{uuid}       # Delete workshop
+GET    /api/workshops              # Daftar semua bengkel
+POST   /api/workshops              # Buat bengkel
+GET    /api/workshops/{uuid}       # Detail bengkel
+PUT    /api/workshops/{uuid}       # Update bengkel
+DELETE /api/workshops/{uuid}       # Hapus bengkel
 ```
 
-#### Services
+#### Layanan
 ```http
-GET    /api/services               # List all services
-POST   /api/services               # Create service
-GET    /api/services/{uuid}        # Get service details
-PUT    /api/services/{uuid}        # Update service
-DELETE /api/services/{uuid}        # Delete service
-GET    /api/services/categories    # Get service categories
+GET    /api/services               # Daftar semua layanan
+POST   /api/services               # Buat layanan
+GET    /api/services/{uuid}        # Detail layanan
+PUT    /api/services/{uuid}        # Update layanan
+DELETE /api/services/{uuid}        # Hapus layanan
+GET    /api/services/categories    # Kategori layanan
 ```
 
-#### Transactions
+#### Transaksi
 ```http
-GET    /api/transactions           # List transactions
-POST   /api/transactions           # Create transaction
-GET    /api/transactions/{uuid}    # Get transaction details
-PUT    /api/transactions/{uuid}    # Update transaction status
-POST   /api/transactions/{uuid}/pay # Process payment
+GET    /api/transactions           # Daftar transaksi
+POST   /api/transactions           # Buat transaksi
+GET    /api/transactions/{uuid}    # Detail transaksi
+PUT    /api/transactions/{uuid}    # Update status transaksi
+POST   /api/transactions/{uuid}/pay # Proses pembayaran
 ```
 
-#### Vehicles
+#### Kendaraan
 ```http
-GET    /api/vehicles               # List vehicles
-POST   /api/vehicles               # Register vehicle
-GET    /api/vehicles/{uuid}        # Get vehicle details
-PUT    /api/vehicles/{uuid}        # Update vehicle
-DELETE /api/vehicles/{uuid}        # Delete vehicle
+GET    /api/vehicles               # Daftar kendaraan
+POST   /api/vehicles               # Registrasi kendaraan
+GET    /api/vehicles/{uuid}        # Detail kendaraan
+PUT    /api/vehicles/{uuid}        # Update kendaraan
+DELETE /api/vehicles/{uuid}        # Hapus kendaraan
 ```
 
-#### Employees
+#### Karyawan
 ```http
-GET    /api/employees              # List employees
-POST   /api/employees              # Add employee
-GET    /api/employees/{uuid}       # Get employee details
-PUT    /api/employees/{uuid}       # Update employee
-DELETE /api/employees/{uuid}       # Remove employee
-GET    /api/employees/{uuid}/performance # Get performance metrics
+GET    /api/employees              # Daftar karyawan
+POST   /api/employees              # Tambah karyawan
+GET    /api/employees/{uuid}       # Detail karyawan
+PUT    /api/employees/{uuid}       # Update karyawan
+DELETE /api/employees/{uuid}       # Hapus karyawan
+GET    /api/employees/{uuid}/performance # Metrik kinerja
 ```
 
 #### Dashboard
 ```http
-GET    /api/dashboard/stats        # Get dashboard statistics
-GET    /api/dashboard/revenue      # Get revenue data
-GET    /api/dashboard/services     # Get service statistics
-GET    /api/dashboard/employees    # Get employee performance
+GET    /api/dashboard/stats        # Statistik dashboard
+GET    /api/dashboard/revenue      # Data revenue
+GET    /api/dashboard/services     # Statistik layanan
+GET    /api/dashboard/employees    # Kinerja karyawan
 ```
 
-#### Membership
+#### Keanggotaan
 ```http
-GET    /api/membership/status      # Get current membership
-POST   /api/membership/trial       # Start free trial
-POST   /api/membership/subscribe   # Subscribe to plan
-GET    /api/membership/history     # Get subscription history
+GET    /api/membership/status      # Keanggotaan saat ini
+POST   /api/membership/trial       # Mulai trial gratis
+POST   /api/membership/subscribe   # Subscribe plan
+GET    /api/membership/history     # Histori subscription
 ```
 
 ### Pagination
 
-List endpoints support pagination:
+Endpoint list mendukung pagination:
 ```http
 GET /api/services?page=1&per_page=15
 
@@ -1209,82 +1209,82 @@ Response:
 GET /api/transactions?filter[status]=completed&sort=-created_at
 ```
 
-### Error Responses
+### Response Error
 
 ```json
 {
-  "message": "The given data was invalid.",
+  "message": "Data yang diberikan tidak valid.",
   "errors": {
-    "email": ["The email has already been taken."]
+    "email": ["Email sudah digunakan."]
   }
 }
 ```
 
-### Postman Collection
+### Koleksi Postman
 
-Import the Postman collection from `postman/` directory for complete API documentation with examples.
+Import koleksi Postman dari direktori `postman/` untuk dokumentasi API lengkap dengan contoh.
 
 ---
 
-## Project Structure
+## Struktur Proyek
 
 ```
 bbihub-platform/
-├── backend/                          # Laravel Backend
+├── backend/                          # Backend Laravel
 │   ├── app/
-│   │   ├── Console/                  # Artisan commands
-│   │   ├── Exceptions/               # Exception handlers
+│   │   ├── Console/                  # Command Artisan
+│   │   ├── Exceptions/               # Exception handler
 │   │   ├── Http/
 │   │   │   ├── Controllers/
-│   │   │   │   ├── Api/             # RESTful API controllers
+│   │   │   │   ├── Api/             # Controller API RESTful
 │   │   │   │   │   ├── AuthController.php
 │   │   │   │   │   ├── WorkshopController.php
 │   │   │   │   │   ├── ServiceController.php
 │   │   │   │   │   ├── TransactionController.php
 │   │   │   │   │   └── ...
-│   │   │   │   └── Web/             # Web controllers (minimal)
-│   │   │   ├── Middleware/          # Custom middleware
-│   │   │   └── Requests/            # Form request validation
-│   │   ├── Livewire/                # Livewire Volt components
+│   │   │   │   └── Web/             # Controller web (minimal)
+│   │   │   ├── Middleware/          # Middleware kustom
+│   │   │   └── Requests/            # Validasi form request
+│   │   ├── Livewire/                # Komponen Livewire Volt
 │   │   │   ├── Auth/
 │   │   │   ├── Dashboard/
 │   │   │   ├── Workshops/
 │   │   │   └── ...
-│   │   ├── Models/                  # Eloquent models
+│   │   ├── Models/                  # Model Eloquent
 │   │   │   ├── User.php
 │   │   │   ├── Workshop.php
 │   │   │   ├── Service.php
 │   │   │   ├── Transaction.php
 │   │   │   └── ...
-│   │   ├── Providers/               # Service providers
-│   │   └── Services/                # Business logic services
+│   │   ├── Providers/               # Service provider
+│   │   └── Services/                # Service logika bisnis
 │   │       ├── AuthService.php
 │   │       ├── PaymentService.php
 │   │       └── ...
-│   ├── bootstrap/                   # Framework bootstrap
-│   ├── config/                      # Configuration files
+│   ├── bootstrap/                   # Bootstrap framework
+│   ├── config/                      # File konfigurasi
 │   ├── database/
-│   │   ├── factories/               # Model factories
-│   │   ├── migrations/              # Database migrations
-│   │   └── seeders/                 # Database seeders
-│   ├── public/                      # Public assets
+│   │   ├── factories/               # Factory model
+│   │   ├── migrations/              # Migrasi database
+│   │   └── seeders/                 # Seeder database
+│   ├── public/                      # Asset publik
 │   ├── resources/
-│   │   ├── css/                     # Stylesheets
+│   │   ├── css/                     # Stylesheet
 │   │   ├── js/                      # JavaScript
 │   │   └── views/
-│   │       ├── components/          # Blade components
-│   │       ├── layouts/             # Layouts
-│   │       ├── livewire/            # Livewire views
-│   │       └── errors/              # Error pages
+│   │       ├── components/          # Komponen Blade
+│   │       ├── layouts/             # Layout
+│   │       ├── livewire/            # View Livewire
+│   │       └── errors/              # Halaman error
 │   ├── routes/
-│   │   ├── api.php                  # API routes
-│   │   ├── web.php                  # Web routes
-│   │   └── auth.php                 # Auth routes
-│   ├── storage/                     # File storage
+│   │   ├── api.php                  # Route API
+│   │   ├── web.php                  # Route web
+│   │   └── auth.php                 # Route auth
+│   ├── storage/                     # Penyimpanan file
 │   │   ├── app/
 │   │   ├── framework/
 │   │   └── logs/
-│   ├── tests/                       # PHPUnit/Pest tests
+│   ├── tests/                       # Test PHPUnit/Pest
 │   │   ├── Feature/
 │   │   └── Unit/
 │   ├── .env.example
@@ -1292,44 +1292,44 @@ bbihub-platform/
 │   ├── package.json
 │   └── phpunit.xml
 │
-├── mobile/                           # Flutter Mobile App
-│   ├── android/                      # Android native code
-│   ├── ios/                          # iOS native code
+├── mobile/                           # Aplikasi Mobile Flutter
+│   ├── android/                      # Kode native Android
+│   ├── ios/                          # Kode native iOS
 │   ├── lib/
-│   │   ├── main.dart                # App entry point
-│   │   ├── models/                  # Data models
+│   │   ├── main.dart                # Entry point app
+│   │   ├── models/                  # Model data
 │   │   │   ├── user.dart
 │   │   │   ├── workshop.dart
 │   │   │   ├── service.dart
 │   │   │   └── ...
-│   │   ├── providers/               # Provider state management
+│   │   ├── providers/               # Manajemen state Provider
 │   │   │   ├── auth_provider.dart
 │   │   │   ├── workshop_provider.dart
 │   │   │   └── ...
-│   │   ├── screens/                 # App screens
+│   │   ├── screens/                 # Screen app
 │   │   │   ├── auth/
 │   │   │   ├── dashboard/
 │   │   │   ├── services/
 │   │   │   ├── transactions/
 │   │   │   └── ...
-│   │   ├── services/                # API services
+│   │   ├── services/                # Service API
 │   │   │   ├── api_service.dart
 │   │   │   ├── auth_service.dart
 │   │   │   └── ...
-│   │   ├── utils/                   # Utilities
+│   │   ├── utils/                   # Utilitas
 │   │   │   ├── constants.dart
 │   │   │   ├── helpers.dart
 │   │   │   └── ...
-│   │   └── widgets/                 # Reusable widgets
+│   │   └── widgets/                 # Widget yang dapat digunakan kembali
 │   │       ├── custom_button.dart
 │   │       ├── custom_card.dart
 │   │       └── ...
-│   ├── assets/                      # Images, icons, fonts
-│   ├── test/                        # Widget & unit tests
+│   ├── assets/                      # Gambar, ikon, font
+│   ├── test/                        # Widget & unit test
 │   ├── pubspec.yaml
 │   └── README.md
 │
-├── postman/                          # API testing
+├── postman/                          # Testing API
 │   ├── BBIHUB_API.postman_collection.json
 │   └── README.md
 │
@@ -1340,124 +1340,124 @@ bbihub-platform/
 
 ---
 
-## Development Workflow
+## Alur Pengembangan
 
-### Git Workflow
+### Alur Git
 
-**Branch Strategy:**
+**Strategi Branching:**
 ```
-main           # Production-ready code
-develop        # Development integration branch (default)
-feature/*      # Feature development branches
-bugfix/*       # Bug fix branches
-hotfix/*       # Urgent production fixes
-release/*      # Release preparation branches
+main           # Kode siap production
+develop        # Branch integrasi development (default)
+feature/*      # Branch development fitur
+bugfix/*       # Branch fix bug
+hotfix/*       # Fix production urgent
+release/*      # Branch persiapan release
 ```
 
-**Feature Development:**
+**Development Fitur:**
 ```bash
-# Create feature branch from develop
+# Buat branch fitur dari develop
 git checkout develop
 git pull origin develop
-git checkout -b feature/new-feature-name
+git checkout -b feature/nama-fitur-baru
 
-# Make changes, commit
+# Buat perubahan, commit
 git add .
-git commit -m "feat: add new feature"
+git commit -m "feat: tambah fitur baru"
 
-# Push and create pull request
-git push origin feature/new-feature-name
+# Push dan buat pull request
+git push origin feature/nama-fitur-baru
 ```
 
-**Commit Message Convention:**
+**Konvensi Commit Message:**
 ```
-feat: Add new feature
-fix: Fix bug in service processing
-docs: Update API documentation
-style: Format code with Pint
-refactor: Refactor payment service
-test: Add unit tests for AuthController
-chore: Update dependencies
+feat: Tambah fitur baru
+fix: Perbaiki bug di pemrosesan layanan
+docs: Update dokumentasi API
+style: Format kode dengan Pint
+refactor: Refactor service pembayaran
+test: Tambah unit test untuk AuthController
+chore: Update dependency
 ```
 
-### Code Standards
+### Standar Kode
 
 **Backend (Laravel/PHP):**
-- Follow PSR-12 coding standards
-- Run Laravel Pint before committing: `./vendor/bin/pint`
-- Write tests for new features
-- Document public methods with PHPDoc
-- Use type hints for all method parameters and return types
+- Ikuti standar coding PSR-12
+- Jalankan Laravel Pint sebelum commit: `./vendor/bin/pint`
+- Tulis test untuk fitur baru
+- Dokumentasikan method publik dengan PHPDoc
+- Gunakan type hint untuk semua parameter method dan return type
 
 **Mobile (Flutter/Dart):**
-- Follow Dart style guide
-- Run `flutter analyze` before committing
-- Use meaningful widget and class names
-- Write widget tests for UI components
-- Document public APIs
+- Ikuti panduan style Dart
+- Jalankan `flutter analyze` sebelum commit
+- Gunakan nama widget dan class yang bermakna
+- Tulis widget test untuk komponen UI
+- Dokumentasikan API publik
 
-### Testing Strategy
+### Strategi Testing
 
-**Backend Testing:**
+**Testing Backend:**
 ```bash
-# Run all tests
+# Jalankan semua test
 php artisan test
 
-# Run specific suite
+# Jalankan suite spesifik
 php artisan test --testsuite=Feature
 php artisan test --testsuite=Unit
 
-# With coverage
+# Dengan coverage
 php artisan test --coverage
 ```
 
-**Mobile Testing:**
+**Testing Mobile:**
 ```bash
-# Run all tests
+# Jalankan semua test
 flutter test
 
-# Run with coverage
+# Jalankan dengan coverage
 flutter test --coverage
 
-# Run specific test
+# Jalankan test spesifik
 flutter test test/widget_test.dart
 ```
 
 ---
 
-## Testing
+## Pengujian
 
-### Backend Testing
+### Testing Backend
 
-**Test Structure:**
+**Struktur Test:**
 ```
 tests/
-├── Feature/                  # Integration tests
+├── Feature/                  # Test integrasi
 │   ├── Api/
 │   │   ├── AuthTest.php
 │   │   ├── WorkshopTest.php
 │   │   └── ...
 │   └── ...
-└── Unit/                     # Unit tests
+└── Unit/                     # Unit test
     ├── Services/
     │   ├── PaymentServiceTest.php
     │   └── ...
     └── ...
 ```
 
-**Running Tests:**
+**Menjalankan Test:**
 ```bash
-# All tests
+# Semua test
 php artisan test
 
-# Specific test
+# Test spesifik
 php artisan test --filter AuthTest
 
-# With coverage
+# Dengan coverage
 php artisan test --coverage --min=80
 ```
 
-**Example Test:**
+**Contoh Test:**
 ```php
 test('user can login with valid credentials', function () {
     $user = User::factory()->create([
@@ -1474,27 +1474,27 @@ test('user can login with valid credentials', function () {
 });
 ```
 
-### Mobile Testing
+### Testing Mobile
 
-**Test Structure:**
+**Struktur Test:**
 ```
 test/
-├── widget_test.dart          # Widget tests
-├── unit/                     # Unit tests
+├── widget_test.dart          # Widget test
+├── unit/                     # Unit test
 │   └── models/
 │       └── user_test.dart
-└── integration/              # Integration tests (future)
+└── integration/              # Integration test (future)
 ```
 
-**Running Tests:**
+**Menjalankan Test:**
 ```bash
-# All tests
+# Semua test
 flutter test
 
-# Specific test
+# Test spesifik
 flutter test test/widget_test.dart
 
-# With coverage
+# Dengan coverage
 flutter test --coverage
 lcov --summary coverage/lcov.info
 ```
@@ -1503,21 +1503,21 @@ lcov --summary coverage/lcov.info
 
 ## Deployment
 
-### Backend Deployment
+### Deployment Backend
 
-#### Production Server Requirements
-- Ubuntu 20.04+ or similar Linux distribution
-- Nginx or Apache web server
-- PHP 8.2+ with required extensions
+#### Kebutuhan Server Production
+- Ubuntu 20.04+ atau distribusi Linux serupa
+- Web server Nginx atau Apache
+- PHP 8.2+ dengan ekstensi yang diperlukan
 - MySQL 8.0+
-- Redis (recommended)
-- SSL certificate (Let's Encrypt)
+- Redis (direkomendasikan)
+- Sertifikat SSL (Let's Encrypt)
 
-#### Deployment Steps
+#### Langkah Deployment
 
-**1. Server Setup**
+**1. Setup Server**
 ```bash
-# Update system
+# Update sistem
 sudo apt update && sudo apt upgrade -y
 
 # Install PHP 8.2
@@ -1535,24 +1535,24 @@ curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
 sudo apt install nodejs
 ```
 
-**2. Deploy Application**
+**2. Deploy Aplikasi**
 ```bash
 # Clone repository
 git clone https://github.com/siberbot88/bbihub-platform.git /var/www/bbihub
 cd /var/www/bbihub/backend
 
-# Install dependencies
+# Install dependency
 composer install --no-dev --optimize-autoloader
 npm install && npm run build
 
-# Configure environment
+# Konfigurasi environment
 cp .env.example .env
-nano .env  # Edit production settings
+nano .env  # Edit pengaturan production
 
 # Generate key
 php artisan key:generate
 
-# Run migrations
+# Jalankan migrasi
 php artisan migrate --force
 
 # Optimize
@@ -1560,12 +1560,12 @@ php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 
-# Set permissions
+# Set permission
 sudo chown -R www-data:www-data /var/www/bbihub
 sudo chmod -R 755 /var/www/bbihub/backend/storage
 ```
 
-**3. Configure Nginx**
+**3. Konfigurasi Nginx**
 ```nginx
 server {
     listen 80;
@@ -1600,12 +1600,12 @@ server {
 }
 ```
 
-**4. SSL Configuration**
+**4. Konfigurasi SSL**
 ```bash
 # Install Certbot
 sudo apt install certbot python3-certbot-nginx
 
-# Get certificate
+# Dapatkan sertifikat
 sudo certbot --nginx -d api.bbihub.com
 ```
 
@@ -1627,11 +1627,11 @@ stdout_logfile=/var/www/bbihub/backend/storage/logs/worker.log
 # Edit crontab
 sudo crontab -e
 
-# Add line
+# Tambahkan baris
 * * * * * cd /var/www/bbihub/backend && php artisan schedule:run >> /dev/null 2>&1
 ```
 
-### Mobile Deployment
+### Deployment Mobile
 
 #### Android (Google Play Store)
 
@@ -1641,18 +1641,18 @@ cd mobile
 flutter build apk --release
 ```
 
-**2. Build App Bundle (Recommended)**
+**2. Build App Bundle (Direkomendasikan)**
 ```bash
 flutter build appbundle --release
 ```
 
 Output: `build/app/outputs/bundle/release/app-release.aab`
 
-**3. Upload to Google Play Console**
-- Create application in Play Console
-- Upload AAB file
-- Complete store listing
-- Submit for review
+**3. Upload ke Google Play Console**
+- Buat aplikasi di Play Console
+- Upload file AAB
+- Lengkapi store listing
+- Submit untuk review
 
 #### iOS (App Store)
 
@@ -1662,101 +1662,101 @@ cd mobile
 flutter build ios --release
 ```
 
-**2. Archive in Xcode**
-- Open `ios/Runner.xcworkspace` in Xcode
-- Select "Any iOS Device" as target
+**2. Archive di Xcode**
+- Buka `ios/Runner.xcworkspace` di Xcode
+- Pilih "Any iOS Device" sebagai target
 - Product > Archive
-- Upload to App Store Connect
+- Upload ke App Store Connect
 
-**3. App Store Submission**
-- Complete app information in App Store Connect
-- Submit for review
+**3. Submission App Store**
+- Lengkapi informasi app di App Store Connect
+- Submit untuk review
 
 ---
 
-## Contributing
+## Kontribusi
 
-### How to Contribute
+### Cara Berkontribusi
 
-We welcome contributions from the community. Please follow these guidelines:
+Kami menyambut kontribusi dari komunitas. Silakan ikuti panduan berikut:
 
-**1. Fork the Repository**
+**1. Fork Repository**
 ```bash
-# Fork on GitHub then clone
+# Fork di GitHub lalu clone
 git clone https://github.com/YOUR_USERNAME/bbihub-platform.git
 cd bbihub-platform
 ```
 
-**2. Create Feature Branch**
+**2. Buat Branch Fitur**
 ```bash
 git checkout develop
-git checkout -b feature/your-feature-name
+git checkout -b feature/nama-fitur-anda
 ```
 
-**3. Make Changes**
-- Follow coding standards
-- Write tests for new features
-- Update documentation as needed
+**3. Buat Perubahan**
+- Ikuti standar coding
+- Tulis test untuk fitur baru
+- Update dokumentasi sesuai kebutuhan
 
-**4. Commit Changes**
+**4. Commit Perubahan**
 ```bash
 git add .
-git commit -m "feat: add your feature description"
+git commit -m "feat: tambah deskripsi fitur anda"
 ```
 
-**5. Push and Create Pull Request**
+**5. Push dan Buat Pull Request**
 ```bash
-git push origin feature/your-feature-name
+git push origin feature/nama-fitur-anda
 ```
-Then create pull request on GitHub targeting `develop` branch.
+Kemudian buat pull request di GitHub yang menargetkan branch `develop`.
 
-### Pull Request Guidelines
+### Panduan Pull Request
 
-- Provide clear description of changes
-- Reference related issues
-- Ensure all tests pass
-- Update documentation
-- Follow commit message conventions
-- Keep changes focused and atomic
+- Berikan deskripsi perubahan yang jelas
+- Referensikan issue terkait
+- Pastikan semua test berhasil
+- Update dokumentasi
+- Ikuti konvensi commit message
+- Jaga perubahan tetap fokus dan atomic
 
-### Code Review Process
+### Proses Code Review
 
-1. Automated tests must pass
-2. Code review by maintainers
-3. Address review feedback
-4. Approval and merge
-
----
-
-## License
-
-This project is licensed under the **MIT License**.
-
-Copyright (c) 2025 BBIHUB Development Team
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+1. Test otomatis harus berhasil
+2. Code review oleh maintainer
+3. Tangani feedback review
+4. Approval dan merge
 
 ---
 
-## Support
+## Lisensi
 
-**Technical Support:**
-- GitHub Issues: [Report bugs and request features](https://github.com/siberbot88/bbihub-platform/issues)
-- Documentation: [Wiki](https://github.com/siberbot88/bbihub-platform/wiki)
+Proyek ini dilisensikan di bawah **Lisensi MIT**.
+
+Copyright (c) 2025 Tim Pengembangan BBIHUB
+
+Dengan ini diberikan izin, tanpa biaya, kepada siapa pun yang memperoleh salinan perangkat lunak ini dan file dokumentasi terkait ("Perangkat Lunak"), untuk beroperasi dengan Perangkat Lunak tanpa batasan, termasuk tanpa batasan hak untuk menggunakan, menyalin, memodifikasi, menggabungkan, menerbitkan, mendistribusikan, mensublisensikan, dan/atau menjual salinan Perangkat Lunak, dan untuk mengizinkan orang-orang yang menerima Perangkat Lunak untuk melakukan hal yang sama, dengan tunduk pada kondisi berikut:
+
+Pemberitahuan hak cipta di atas dan pemberitahuan izin ini harus disertakan dalam semua salinan atau bagian substansial dari Perangkat Lunak.
+
+PERANGKAT LUNAK INI DISEDIAKAN "SEBAGAIMANA ADANYA", TANPA JAMINAN APA PUN, BAIK TERSURAT MAUPUN TERSIRAT, TERMASUK NAMUN TIDAK TERBATAS PADA JAMINAN KELAYAKAN UNTUK DIPERDAGANGKAN, KESESUAIAN UNTUK TUJUAN TERTENTU DAN TIDAK ADANYA PELANGGARAN. DALAM KEADAAN APA PUN PENULIS ATAU PEMEGANG HAK CIPTA TIDAK BERTANGGUNG JAWAB ATAS KLAIM, KERUSAKAN ATAU KEWAJIBAN LAINNYA, BAIK DALAM TINDAKAN KONTRAK, PERBUATAN MELAWAN HUKUM ATAU SEBALIKNYA, YANG TIMBUL DARI, DARI ATAU SEHUBUNGAN DENGAN PERANGKAT LUNAK ATAU PENGGUNAAN ATAU PENGOPERASIAN LAIN DALAM PERANGKAT LUNAK.
+
+---
+
+## Dukungan
+
+**Dukungan Teknis:**
+- GitHub Issues: [Laporkan bug dan minta fitur](https://github.com/siberbot88/bbihub-platform/issues)
+- Dokumentasi: [Wiki](https://github.com/siberbot88/bbihub-platform/wiki)
 - Email: support@bbihub.com
 
-**Development Team:**
-- Lead Developer: [Your Name]
-- Backend Team: [Names]
-- Mobile Team: [Names]
-- DevOps: [Names]
+**Tim Pengembangan:**
+- Lead Developer: [Nama Anda]
+- Tim Backend: [Nama]
+- Tim Mobile: [Nama]
+- DevOps: [Nama]
 
 ---
 
-**Built with Laravel and Flutter**
+**Dibangun dengan Laravel dan Flutter**
 
-Copyright 2025 BBIHUB Development Team. All rights reserved.
+Copyright 2025 Tim Pengembangan BBIHUB. All rights reserved.
