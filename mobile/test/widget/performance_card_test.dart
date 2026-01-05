@@ -7,6 +7,7 @@ void main() {
   group('PerformanceCard Widget Tests', () {
     // Create test data
     final testPerformance = StaffPerformance(
+      staffId: 'test-staff-id-1',
       name: 'Budi Santoso',
       role: StaffRole.seniorMechanic,
       jobsDone: 10,
@@ -195,6 +196,7 @@ void main() {
     testWidgets('should handle zero values', (WidgetTester tester) async {
       // Arrange
       final zeroPerformance = StaffPerformance(
+        staffId: 'test-staff-id-2',
         name: 'Test User',
         role: StaffRole.admin,
         jobsDone: 0,
@@ -221,6 +223,7 @@ void main() {
         (WidgetTester tester) async {
       // Arrange
       final performanceWithAvatar = StaffPerformance(
+        staffId: 'test-staff-id-3',
         name: 'Ahmad',
         role: StaffRole.juniorMechanic,
         jobsDone: 5,

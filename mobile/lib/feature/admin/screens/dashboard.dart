@@ -263,7 +263,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   children: [
                     ReportKpiCard(
                       icon: Icons.star_rounded,
-                      title: '4', // Static as backend doesn't provide feedback count yet
+                      title: isLoading ? '...' : '${provider.feedbackCount}', // Use dynamic count
                       subtitle: 'Feedback',
                       growthText: '-',
                       iconBgColor: const Color(0xFFE3F2FD), 

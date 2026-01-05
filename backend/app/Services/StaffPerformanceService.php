@@ -31,7 +31,7 @@ class StaffPerformanceService
                 return null;
             }
 
-            return $this->calculateMetrics($employee->user, $startDate, $endDate);
+            return $this->calculateMetrics($employee, $startDate, $endDate);
         })->filter()->values();
 
         return [
@@ -59,11 +59,11 @@ class StaffPerformanceService
         }
 
         [$startDate, $endDate] = $this->calculateDateRange($range);
-        $metrics = $this->calculateMetrics($employee->user, $startDate, $endDate);
+        $metrics = $this->calculateMetrics($employee, $startDate, $endDate);
 
         // Add more detailed data for individual view if needed
         // For example, list of completed jobs in this period
-        $completedJobs = Service::where('assigned_to_user_id', $userId)
+        $completedJobs = Service::where('mechanic_uuid', $employee->id)
             ->where('status', 'completed')
             ->whereBetween('completed_at', [$startDate, $endDate])
             ->orderByDesc('completed_at')
@@ -85,42 +85,41 @@ class StaffPerformanceService
     }
 
     /**
-     * Calculate metrics for a specific user within a date range
+     * Calculate metrics for an employment within a date range
      */
-    private function calculateMetrics(User $user, Carbon $startDate, Carbon $endDate): array
+    private function calculateMetrics(Employment $employment, Carbon $startDate, Carbon $endDate): array
     {
-        // Get services assigned to this user within date range
-        // Note: We use completed_at for completed jobs, and created_at for active jobs if needed
-        // But for simplicity and performance, let's query based on status and relevant dates.
-        
+        $user = $employment->user;
+
+        // Get services assigned to this employment (mechanic) within date range
+        // Use mechanic_uuid which references employment.id
+
         // Completed jobs
-        $completedServices = Service::where('assigned_to_user_id', $user->id)
+        $completedServices = Service::where('mechanic_uuid', $employment->id)
             ->where('status', 'completed')
             ->whereBetween('completed_at', [$startDate, $endDate])
             ->get();
 
-        // Active jobs (pending, in progress, accept) - currently active, regardless of creation date?
-        // Or active within the period? Usually active means currently active.
-        $activeServices = Service::where('assigned_to_user_id', $user->id)
+        // Active jobs (pending, in progress, accept) - currently active
+        $activeServices = Service::where('mechanic_uuid', $employment->id)
             ->whereIn('status', ['pending', 'in progress', 'accept'])
             ->get();
 
-        $totalRevenue = $completedServices->sum('price'); // TODO: Add parts revenue if available
+        $totalRevenue = $completedServices->sum('price');
 
         return [
             'staff_id' => $user->id,
             'staff_name' => $user->name,
-            'role' => $user->employment->jobdesk ?? 'Staff', // Assuming jobdesk is role
+            'role' => $employment->jobdesk ?? 'Staff',
             'photo_url' => $user->photo,
             'metrics' => [
                 'total_jobs_completed' => $completedServices->count(),
                 'total_revenue' => (float) $totalRevenue,
                 'active_jobs' => $activeServices->count(),
-                'average_revenue_per_job' => $completedServices->count() > 0 
-                    ? round($totalRevenue / $completedServices->count(), 2) 
+                'average_revenue_per_job' => $completedServices->count() > 0
+                    ? round($totalRevenue / $completedServices->count(), 2)
                     : 0,
             ],
-            // 'in_progress_jobs' => $activeServices->take(5)->map(...) // Add if needed for list view
         ];
     }
 
@@ -130,7 +129,7 @@ class StaffPerformanceService
     private function calculateDateRange(string $range, array $filters = []): array
     {
         $now = Carbon::now();
-        
+
         switch ($range) {
             case 'today':
                 return [

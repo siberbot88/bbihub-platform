@@ -6,6 +6,7 @@ import '../../admin/repositories/staff_performance_repository.dart'; // Point to
 import 'package:provider/provider.dart';
 import '../../../core/services/auth_provider.dart';
 import '../../../core/widgets/premium_feature_lock.dart';
+import 'staff_performance_detail_screen.dart';
 
 // --- App Theme Constants (Local for portability) ---
 class AppTheme {
@@ -395,7 +396,13 @@ class _StaffPerformanceScreenState extends State<StaffPerformanceScreen> {
     final bool isSelected = _selectedRange == range;
     return Expanded(
       child: GestureDetector(
-        onTap: () => setState(() => _selectedRange = range),
+        onTap: () {
+          // Only fetch if switching to a different range
+          if (_selectedRange != range) {
+            setState(() => _selectedRange = range);
+            _fetchData(); // Reload data for new period
+          }
+        },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           alignment: Alignment.center,
@@ -451,7 +458,12 @@ class StaffPerformanceCard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
-            // Navigate to Detail
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => StaffPerformanceDetailScreen(staff: staff),
+              ),
+            );
           },
           borderRadius: BorderRadius.circular(20),
           child: Column(
@@ -463,12 +475,9 @@ class StaffPerformanceCard extends StatelessWidget {
                     // Top Row: Avatar + Info
                     Row(
                       children: [
-                        CircleAvatar(
-                          radius: 26,
-                          backgroundColor: Colors.grey[200],
-                          backgroundImage: NetworkImage(staff.avatarUrl),
-                          onBackgroundImageError: (_, __) {},
-                          child: const Icon(Icons.person, color: Colors.grey),
+                        Hero(
+                          tag: 'avatar_${staff.staffId}',
+                          child: _buildAvatar(staff.name, staff.avatarUrl),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
@@ -603,5 +612,38 @@ class StaffPerformanceCard extends StatelessWidget {
         result += str[i];
     }
     return 'Rp ${result.split('').reversed.join()}';
+  }
+
+  Widget _buildAvatar(String name, String url) {
+    // Logic: Use initials if URL is empty or is a default placeholder
+    // If you have a specific way to detect valid URLs vs default avatars, use it here.
+    // For now, let's assume if it fails to load or empty, we use initials.
+    
+    // Helper to get initials
+    String getInitials(String n) {
+      final parts = n.trim().split(' ');
+      if (parts.isEmpty) return '';
+      if (parts.length == 1) return parts[0][0].toUpperCase();
+      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    }
+
+    final hasValidUrl = url.isNotEmpty && !url.contains('ui-avatars.com');
+
+    return CircleAvatar(
+      radius: 26,
+      backgroundColor: AppTheme.primaryRed.withOpacity(0.1),
+      backgroundImage: hasValidUrl ? NetworkImage(url) : null,
+      onBackgroundImageError: hasValidUrl ? (_, __) {} : null, // Fix: Only provide handler if image is present
+      child: !hasValidUrl 
+          ? Text(
+              getInitials(name),
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.bold,
+                color: AppTheme.primaryRed,
+                fontSize: 18,
+              ),
+            )
+          : null, // Image covers child if valid
+    );
   }
 }

@@ -35,10 +35,20 @@ SummaryData buildSummary(List<ServiceModel> list, SummaryRange range) {
             d.day == now.day;
             
       case SummaryRange.week:
-        // Minggu ini: dari 7 hari yang lalu sampai sekarang
-        final startOfWeek = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 7));
-        final endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
-        return d.isAfter(startOfWeek) && d.isBefore(endOfDay);
+        // Minggu ini: Last 7 days WITHIN current calendar month only
+        // This ensures month total is always >= week total
+        final startOfMonth = DateTime(now.year, now.month, 1);
+        final endOfToday = DateTime(now.year, now.month, now.day, 23, 59, 59);
+        
+        // Calculate 7 days ago, but constrain to start of current month
+        final sevenDaysAgo = DateTime(now.year, now.month, now.day)
+            .subtract(const Duration(days: 7));
+        final startOfWeek = sevenDaysAgo.isAfter(startOfMonth) 
+            ? sevenDaysAgo 
+            : startOfMonth;
+        
+        return d.isAfter(startOfWeek.subtract(const Duration(seconds: 1))) && 
+               d.isBefore(endOfToday.add(const Duration(seconds: 1)));
         
       case SummaryRange.month:
         // Bulan ini: same year and month
@@ -53,13 +63,13 @@ SummaryData buildSummary(List<ServiceModel> list, SummaryRange range) {
   for (final s in list.where(inRange)) {
     final status = s.status.toLowerCase();
 
-    // Pendapatan: hanya dari service completed
-    if (status == 'completed') {
+    // Pendapatan: dari service completed / paid / lunas
+    if (['completed', 'paid', 'lunas', 'success'].contains(status)) {
       totalDone++;
       revenue += serviceRevenue(s);
     } 
-    // Total Job: dari service pending ATAU in progress
-    else if (status == 'pending' || status == 'in progress' || status == 'accept') {
+    // Total Job: dari service pending, in progress, accept, atau menunggu pembayaran
+    else if (['pending', 'in progress', 'accept', 'menunggu pembayaran', 'waiting_payment'].contains(status)) {
       totalJob++;
     }
   }
@@ -71,8 +81,23 @@ SummaryData buildSummary(List<ServiceModel> list, SummaryRange range) {
   );
 }
 
-/// Calculate total revenue from a service (price + parts)
+/// Calculate total revenue from a service (prioritize transaction/invoice)
 num serviceRevenue(ServiceModel s) {
+  // 1. Cek dari Transaction (amount)
+  if (s.transaction != null) {
+     final amt = s.transaction!['amount'];
+     if (amt is num) return amt;
+     if (amt is String) return num.tryParse(amt) ?? 0;
+  }
+
+  // 2. Cek dari Invoice (total)
+  if (s.invoice != null) {
+     final total = s.invoice!['total'];
+     if (total is num) return total;
+     if (total is String) return num.tryParse(total) ?? 0;
+  }
+
+  // 3. Fallback: Legacy (price + items)
   final partsTotal = (s.items ?? const [])
       .fold<num>(0, (a, it) => a + it.subtotal);
   return (s.price ?? 0) + partsTotal;
@@ -159,10 +184,16 @@ String rupiah(num n) {
 String statusLabel(String raw) {
   switch (raw.toLowerCase()) {
     case 'completed':
+    case 'paid':
+    case 'lunas':
+    case 'success':
       return 'Selesai';
     case 'in progress':
     case 'accept':
       return 'Process';
+    case 'menunggu pembayaran':
+    case 'waiting_payment':
+      return 'Menunggu Pembayaran';
     case 'cancelled':
       return 'Batal';
     default:
@@ -174,10 +205,16 @@ String statusLabel(String raw) {
 Color statusColor(String raw) {
   switch (raw.toLowerCase()) {
     case 'completed':
+    case 'paid':
+    case 'lunas':
+    case 'success':
       return Colors.green;
     case 'in progress':
     case 'accept':
       return Colors.blue;
+    case 'menunggu pembayaran':
+    case 'waiting_payment':
+      return Colors.orangeAccent;
     case 'cancelled':
       return Colors.red;
     default:

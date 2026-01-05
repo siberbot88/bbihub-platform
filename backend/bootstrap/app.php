@@ -30,6 +30,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // Add security headers to all responses
         $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
 
+        // Add CORS headers to API responses
+        $middleware->append(\Illuminate\Http\Middleware\HandleCors::class);
+
         $middleware->validateCsrfTokens(except: [
             'stripe/*',
             'api/v1/webhooks/midtrans', // Exclude Midtrans Webhook

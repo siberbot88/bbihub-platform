@@ -47,7 +47,7 @@
                     'icon' => 'users'
                 ],
                 [
-                    'label' => 'Executive EIS',
+                    'label' => 'Analitik Bisnis',
                     'route' => 'admin.executive-dashboard',
                     'icon' => 'presentation-chart'
                 ],

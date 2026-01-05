@@ -176,14 +176,29 @@ class _TechnicianTabState extends State<TechnicianTab> {
     final name = data['name'] ?? '-';
     final id = data['display_id'] ?? 'ID';
     final role = data['role'] ?? 'Technician';
-    final rating = (data['rating'] as num?)?.toDouble() ?? 0.0;
     final jobs = data['jobs_today'] ?? 0;
     final avgHours = (data['avg_hours'] as num?)?.toDouble() ?? 0.0;
-    final avatar = data['avatar'] ?? 'https://ui-avatars.com/api/?name=${Uri.encodeComponent(name)}';
+    
+    // Avatar logic
+    final avatarUrl = data['avatar'];
+    final bool hasAvatar = avatarUrl != null && 
+                          avatarUrl.toString().isNotEmpty && 
+                          !avatarUrl.toString().contains('ui-avatars.com');
 
     String jobsLabel = 'Jobs Today';
     if (widget.selectedRange == 'Minggu ini') jobsLabel = 'Jobs This Week';
     if (widget.selectedRange == 'Bulan ini') jobsLabel = 'Jobs This Month';
+    
+    // Initials generator
+    String initials = '';
+    if (name.isNotEmpty) {
+      final parts = name.split(' ');
+      if (parts.length >= 2) {
+        initials = '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+      } else {
+        initials = '${name[0]}${name.length > 1 ? name[1] : ''}'.toUpperCase();
+      }
+    }
 
     return Container(
       decoration: BoxDecoration(
@@ -197,96 +212,110 @@ class _TechnicianTabState extends State<TechnicianTab> {
           )
         ],
       ),
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-      child: Column(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // row atas: avatar + nama / id / role + jobs today di kanan
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              CircleAvatar(
-                radius: 18,
-                backgroundImage: NetworkImage(avatar),
-                onBackgroundImageError: (_, __) {},
-                child: const Icon(Icons.person, size: 20, color: Colors.grey),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    RichText(
-                      text: TextSpan(
-                        style: GoogleFonts.poppins(
-                            color: Colors.black87, fontSize: 13.5),
-                        children: [
-                          TextSpan(
-                              text: name,
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.w700)),
-                          TextSpan(
-                              text: '\n$id $role',
-                              style: const TextStyle(
-                                  color: Colors.black54,
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w500)),
-                        ],
+          // Avatar
+          CircleAvatar(
+            radius: 24,
+            backgroundColor: const Color(0xFFFEE2E2), // Light Red
+            backgroundImage: hasAvatar ? NetworkImage(avatarUrl) : null,
+            onBackgroundImageError: hasAvatar ? (_, __) {} : null,
+            child: !hasAvatar
+                ? Text(
+                    initials,
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFFDC2626), // Primary Red
+                      fontSize: 16,
+                    ),
+                  )
+                : null,
+          ),
+          const SizedBox(width: 14),
+          
+          // Info (Name, Role, Avg Time)
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                    color: Colors.black87,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  '$id • $role',
+                  style: GoogleFonts.poppins(
+                    color: Colors.black54,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                // Avg Time (Replaces Rating)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFECFDF5), // Light Green
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.timer_outlined, 
+                        size: 14, color: Color(0xFF059669)
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        _buildStars(rating),
-                        const SizedBox(width: 8),
-                        Text('${rating.toStringAsFixed(1)} Rating',
-                            style: GoogleFonts.poppins(
-                                fontSize: 12.5,
-                                color: Colors.black54,
-                                fontWeight: FontWeight.w500)),
-                      ],
-                    ),
-                  ],
+                      const SizedBox(width: 4),
+                      Text(
+                        'Avg: ${avgHours}h / service',
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF059669), // Green
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          // Jobs Count
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '$jobs',
+                style: GoogleFonts.poppins(
+                  color: const Color(0xFFDC2626),
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text('$jobs',
-                      style: GoogleFonts.poppins(
-                          color: const Color(0xFFDC2626),
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700)),
-                  Text(jobsLabel,
-                      style: GoogleFonts.poppins(
-                          fontSize: 12,
-                          color: Colors.black54,
-                          fontWeight: FontWeight.w500)),
-                ],
+              Text(
+                jobsLabel,
+                style: GoogleFonts.poppins(
+                  fontSize: 11,
+                  color: Colors.black45,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          // bottom right: avg time + arrow up
-          Row(
-            children: [
-              const Spacer(),
-              Icon(Icons.arrow_upward,
-                  size: 14, color: const Color(0xFF16A34A)),
-              const SizedBox(width: 4),
-              Text(
-                'Avg: ${avgHours}h per service',
-                style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  color: const Color(0xFF16A34A),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          )
         ],
       ),
     );
   }
+
 
   Widget _buildStars(double rating) {
     // bikin baris bintang 5 sesuai screenshot

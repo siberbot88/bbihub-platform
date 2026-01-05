@@ -622,44 +622,173 @@ class _StaffRow extends StatelessWidget {
             ),
           ),
 
-          // Actions (Dropdown)
+          // Actions (Dropdown) - Modern Styled
           Expanded(
             flex: 1,
             child: Center(
               child: PopupMenuButton(
-                icon: const Icon(Icons.more_vert_rounded, color: AppColors.textSecondary),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                itemBuilder: (context) => [
+                icon: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.backgroundLight,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: const Icon(
+                    Icons.more_vert_rounded, 
+                    color: AppColors.textSecondary,
+                    size: 20,
+                  ),
+                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                elevation: 8,
+                offset: const Offset(0, 8),
+                color: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                itemBuilder: (context) => <PopupMenuEntry<String>>[
+                  // Toggle Status
                   PopupMenuItem(
                     value: 'toggle',
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     child: Row(
                       children: [
-                        Icon(
-                          staff.isActive ? Icons.toggle_on : Icons.toggle_off,
-                          color: AppColors.textSecondary,
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: staff.isActive 
+                                ? const Color(0xFFFEF3C7) 
+                                : const Color(0xFFDCFCE7),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            staff.isActive ? Icons.toggle_on_rounded : Icons.toggle_off_rounded,
+                            color: staff.isActive 
+                                ? const Color(0xFFCA8A04) 
+                                : const Color(0xFF16A34A),
+                            size: 20,
+                          ),
                         ),
-                        const SizedBox(width: 12),
-                        Text(staff.isActive ? 'Deactivate' : 'Activate'),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                staff.isActive ? 'Deactivate' : 'Activate',
+                                style: AppTextStyles.bodyMedium().copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                staff.isActive ? 'Set status to inactive' : 'Set status to active',
+                                style: AppTextStyles.caption(
+                                  color: AppColors.textSecondary,
+                                ).copyWith(fontSize: 11),
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),
+                  
+                  // Divider
+                  const PopupMenuDivider(height: 16),
+                  
+                  // Edit
                   PopupMenuItem(
                     value: 'edit',
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     child: Row(
-                      children: const [
-                        Icon(Icons.edit_outlined, color: AppColors.info),
-                        SizedBox(width: 12),
-                        Text('Edit'),
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFDBEAFE),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.edit_rounded,
+                            color: Color(0xFF1D4ED8),
+                            size: 18,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Edit',
+                                style: AppTextStyles.bodyMedium().copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Update employee details',
+                                style: AppTextStyles.caption(
+                                  color: AppColors.textSecondary,
+                                ).copyWith(fontSize: 11),
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),
+                  
+                  // Divider
+                  const PopupMenuDivider(height: 16),
+                  
+                  // Delete
                   PopupMenuItem(
                     value: 'delete',
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     child: Row(
-                      children: const [
-                        Icon(Icons.delete_outline, color: AppColors.error),
-                        SizedBox(width: 12),
-                        Text('Delete', style: TextStyle(color: AppColors.error)),
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEE2E2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.delete_rounded,
+                            color: Color(0xFFDC2626),
+                            size: 18,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Delete',
+                                style: AppTextStyles.bodyMedium(
+                                  color: const Color(0xFFDC2626),
+                                ).copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Remove employee permanently',
+                                style: AppTextStyles.caption(
+                                  color: AppColors.textSecondary,
+                                ).copyWith(fontSize: 11),
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),

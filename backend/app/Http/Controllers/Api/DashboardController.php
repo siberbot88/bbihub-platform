@@ -126,21 +126,29 @@ class DashboardController extends Controller
                 'active_jobs' => (int) $stat->active_jobs,
             ]);
 
-        // === CUSTOMER STATS ===
-        // Customers don't have workshop_uuid, so derive from services
+        // Feedback (Ratings submitted today)
+        $feedbackToday = \App\Models\Feedback::whereDate('submitted_at', $today)
+            ->whereHas('transaction.service', function ($q) use ($workshopId) {
+                $q->where('workshop_uuid', $workshopId);
+            })
+            ->count();
+
+        // === CUSTOMER INSIGHTS (DAILY RETENTION) ===
+        // Total customers ALL TIME (for anchor)
         $totalCustomers = (clone $baseQuery)
             ->distinct('customer_uuid')
             ->count('customer_uuid');
 
-        $newCustomersThisMonth = (clone $baseQuery)
-            ->whereMonth('created_at', Carbon::now()->month)
-            ->whereYear('created_at', Carbon::now()->year)
-            ->distinct('customer_uuid')
-            ->count('customer_uuid');
+        // New Customers TODAY (retensi hari ini)
+        $newCustomersToday = (clone $baseQuery)
+            ->join('customers', 'services.customer_uuid', '=', 'customers.id')
+            ->whereDate('customers.created_at', $today)
+            ->distinct('services.customer_uuid')
+            ->count('services.customer_uuid');
 
-        // Active customers = customers with services in last 30 days
-        $activeCustomers = (clone $baseQuery)
-            ->where('scheduled_date', '>=', Carbon::now()->subDays(30))
+        // Active customers TODAY (Service scheduled today)
+        $activeCustomersToday = (clone $baseQuery)
+            ->whereDate('scheduled_date', $today)
             ->distinct('customer_uuid')
             ->count('customer_uuid');
 
@@ -150,15 +158,16 @@ class DashboardController extends Controller
                 'needs_assignment' => $needsAssignment,
                 'in_progress' => $inProgress,
                 'completed' => $completed,
-                'trend' => $trendWeekly, // Weekly (default for backward compatibility)
+                'feedback_today' => $feedbackToday, // New Field
+                'trend' => $trendWeekly,
                 'trend_weekly' => $trendWeekly,
                 'trend_monthly' => $trendMonthly,
                 'top_services' => $topServices,
                 'mechanic_stats' => $mechanicStats,
                 'customer_stats' => [
                     'total' => $totalCustomers,
-                    'new_this_month' => $newCustomersThisMonth,
-                    'active' => $activeCustomers,
+                    'new_this_month' => $newCustomersToday, // Reused key but logically Today
+                    'active' => $activeCustomersToday, // Reused key but logically Today
                 ],
             ],
         ]);
@@ -312,6 +321,11 @@ class DashboardController extends Controller
             ->distinct('customer_uuid')
             ->count('customer_uuid');
 
+        $newCustomersCount = (clone $servicesQuery)
+            ->join('customers', 'services.customer_uuid', '=', 'customers.id')
+            ->whereBetween('customers.created_at', [$dateFrom, $dateTo])
+            ->distinct('services.customer_uuid')
+            ->count('services.customer_uuid');
 
         return response()->json([
             'period' => [
@@ -323,14 +337,23 @@ class DashboardController extends Controller
                 'needs_assignment' => $needsAssignment,
                 'status_breakdown' => $servicesByStatus,
                 'acceptance_breakdown' => $acceptanceStats,
-                'type_breakdown' => $typeBreakdown, // New for Type Pie Chart
-                'trend' => $serviceTrend, // New for Chart
-                'top_services' => $topServices, // New for Top List
+                'type_breakdown' => $typeBreakdown,
+                'trend' => $serviceTrend,
+                'top_services' => $topServices,
             ],
             // Revenue removed as per request
             'mechanics' => $mechanicStats,
             'customers' => [
                 'served_count' => $totalCustomersServed,
+                'new_count' => $newCustomersCount,
+                'active_count' => $totalCustomersServed, // Active = Served in this period
+                'total_count' => \App\Models\Service::where('workshop_uuid', $workshopId)->distinct('customer_uuid')->count('customer_uuid'), // Total ALL TIME anchor
+                // New: Trend of unique customers per day
+                'trend' => (clone $servicesQuery)
+                    ->select(DB::raw('DATE(created_at) as date'), DB::raw('count(DISTINCT customer_uuid) as total'))
+                    ->groupBy('date')
+                    ->orderBy('date')
+                    ->get()
             ]
         ]);
     }

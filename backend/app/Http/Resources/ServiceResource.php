@@ -78,6 +78,9 @@ class ServiceResource extends JsonResource
             'feedback_mechanic' => $this->feedback_mechanic,
             'note' => $this->note,
 
+            // Image URL for service photo
+            'image_url' => $this->image_url,
+
 
             'transaction' => $this->whenLoaded('transaction', function () {
                 return [

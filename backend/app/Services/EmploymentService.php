@@ -195,10 +195,39 @@ class EmploymentService
     public function deleteEmployee(Employment $employment): void
     {
         DB::transaction(function () use ($employment) {
+            // Count active/pending services (completed services are OK to delete)
+            $activeServicesCount = $employment->services()
+                ->whereIn('status', ['pending', 'in progress', 'accept', 'scheduled'])
+                ->count();
+
+            if ($activeServicesCount > 0) {
+                throw new \Exception(
+                    "Tidak dapat menghapus karyawan \"{$employment->user->name}\". " .
+                    "Masih terdapat {$activeServicesCount} servis aktif/pending yang ditangani. " .
+                    "Silakan selesaikan atau transfer servis ke mekanik lain terlebih dahulu."
+                );
+            }
+
+            // Check if mechanic has any transactions (regardless of status for safety)
+            $transactionsCount = $employment->transactions()->count();
+
+            if ($transactionsCount > 0) {
+                throw new \Exception(
+                    "Tidak dapat menghapus karyawan \"{$employment->user->name}\". " .
+                    "Masih terdapat {$transactionsCount} transaksi terkait. " .
+                    "Silakan selesaikan atau arsipkan transaksi terlebih dahulu."
+                );
+            }
+
             $user = $employment->user;
+
+            // Delete all tokens
             $user->tokens()->delete();
 
+            // Delete employment record
             $employment->delete();
+
+            // Delete user
             $user->delete();
         });
     }

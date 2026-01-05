@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'service_page.dart';
+import 'service_history_page.dart';
+import 'feedback.dart';
 import '../widgets/dashboard/admin_mini_dashboard.dart';
 import '../widgets/dashboard/admin_quick_menu.dart';
 
@@ -312,9 +314,24 @@ class _HomePageState extends State<HomePage> {
                     ),
                     const SizedBox(height: 12),
                     AdminQuickMenu(
-                      onTapRiwayat: () {},
-                      onTapTerimaJadwal: () {},
-                      onTapFeedback: () {},
+                      onTapRiwayat: () {
+                        Navigator.push(
+                          context, 
+                          MaterialPageRoute(builder: (context) => const ServiceHistoryAdminPage())
+                        );
+                      },
+                      onTapTerimaJadwal: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const ServicePageAdmin())
+                        );
+                      },
+                      onTapFeedback: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const FeedbackPage())
+                        );
+                      },
                     ),
                     const SizedBox(height: 28),
 

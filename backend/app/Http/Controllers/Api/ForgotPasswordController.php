@@ -125,7 +125,7 @@ class ForgotPasswordController extends Controller
         $validator = Validator::make($request->all(), [
             'email' => 'required|email|exists:users,email',
             'otp' => 'required|numeric',
-            // ✅ SECURITY FIX: Strong password policy
+            //SECURITY FIX: Strong password policy
             'password' => [
                 'required',
                 'confirmed',

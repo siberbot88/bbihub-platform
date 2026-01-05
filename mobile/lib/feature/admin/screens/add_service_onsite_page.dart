@@ -7,6 +7,7 @@ import '../widgets/custom_header.dart'; // Reuse existing header if possible
 
 import 'package:provider/provider.dart';
 import '../providers/admin_service_provider.dart';
+import 'service_page.dart';
 
 class AddServiceOnSitePage extends StatefulWidget {
   const AddServiceOnSitePage({super.key});
@@ -413,9 +414,17 @@ class _AddServiceOnSitePageState extends State<AddServiceOnSitePage> {
 
        if (mounted) {
          ScaffoldMessenger.of(context).showSnackBar(
-           const SnackBar(content: Text("Service berhasil ditambahkan")),
+           const SnackBar(
+             content: Text("Service berhasil ditambahkan"),
+             backgroundColor: Colors.green,
+           ),
          );
-         Navigator.pop(context); // Close page
+          
+          // Small delay to ensure snackbar is shown before popping
+          await Future.delayed(const Duration(milliseconds: 100));
+          
+          // Pop back to ServicePageAdmin (Pencatatan tab with red header)
+          if (mounted) Navigator.of(context).pop();
        }
      } catch (e) {
        if (mounted) {
@@ -588,4 +597,4 @@ class _AddServiceOnSitePageState extends State<AddServiceOnSitePage> {
       });
     }
   }
-} // Closing class _AddServiceOnSitePageState
+}

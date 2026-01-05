@@ -977,9 +977,10 @@ class ApiService {
 
   /* ======================== VOUCHER ======================= */
 
-  Future<List<Voucher>> fetchVouchers({String? status}) async {
+  Future<List<Voucher>> fetchVouchers({String? status, bool isAdmin = false}) async {
     try {
-      final uri = Uri.parse('${_baseUrl}owners/vouchers')
+      final prefix = isAdmin ? 'admins' : 'owners';
+      final uri = Uri.parse('${_baseUrl}$prefix/vouchers')
           .replace(queryParameters: status != null ? {'status': status} : {});
 
       final headers = await _getAuthHeaders();
@@ -1015,9 +1016,11 @@ class ApiService {
     required String validFrom, // yyyy-MM-dd
     required String validUntil, // yyyy-MM-dd
     File? image,
+    bool isAdmin = false,
   }) async {
     try {
-      final uri = Uri.parse('${_baseUrl}owners/vouchers');
+      final prefix = isAdmin ? 'admins' : 'owners';
+      final uri = Uri.parse('${_baseUrl}$prefix/vouchers');
       final headers = await _getAuthHeaders();
       headers.remove('Content-Type'); // Multipart set boundary sendiri
 
@@ -1068,9 +1071,11 @@ class ApiService {
     required String validFrom,
     required String validUntil,
     File? image,
+    bool isAdmin = false,
   }) async {
     try {
-      final uri = Uri.parse('${_baseUrl}owners/vouchers/$id');
+      final prefix = isAdmin ? 'admins' : 'owners';
+      final uri = Uri.parse('${_baseUrl}$prefix/vouchers/$id');
       final headers = await _getAuthHeaders();
       headers.remove('Content-Type');
 
@@ -1110,9 +1115,10 @@ class ApiService {
     }
   }
 
-  Future<bool> deleteVoucher(String id) async {
+  Future<bool> deleteVoucher(String id, {bool isAdmin = false}) async {
     try {
-      final uri = Uri.parse('${_baseUrl}owners/vouchers/$id');
+      final prefix = isAdmin ? 'admins' : 'owners';
+      final uri = Uri.parse('${_baseUrl}$prefix/vouchers/$id');
       final headers = await _getAuthHeaders();
 
       final res = await http.delete(uri, headers: headers);
@@ -1166,6 +1172,55 @@ class ApiService {
   }  // =======================================================================
   // ADMIN SERVICE METHODS (Proxies to generic endpoints with specific logic)
   // =======================================================================
+
+  Future<Map<String, dynamic>> adminFetchDashboard() async {
+    try {
+      final uri = Uri.parse('${_baseUrl}admins/dashboard');
+      final headers = await _getAuthHeaders();
+
+      _debugRequest('ADMIN_DASHBOARD', uri, headers, null);
+      final res = await http.get(uri, headers: headers);
+      _debugResponse('ADMIN_DASHBOARD', res);
+
+      if (res.statusCode == 200) {
+        final j = _tryDecodeJson(res.body);
+        if (j is Map<String, dynamic>) {
+          return j;
+        }
+      }
+      throw Exception('Gagal mengambil data dashboard (HTTP ${res.statusCode})');
+    } catch (e) {
+      throw Exception('Gagal mengambil data dashboard: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> adminFetchDashboardStats({
+    String? dateFrom,
+    String? dateTo,
+  }) async {
+    try {
+      final params = <String, String>{};
+      if (dateFrom != null) params['date_from'] = dateFrom;
+      if (dateTo != null) params['date_to'] = dateTo;
+
+      final uri = Uri.parse('${_baseUrl}admins/dashboard/stats').replace(queryParameters: params);
+      final headers = await _getAuthHeaders();
+
+      _debugRequest('ADMIN_DASHBOARD_STATS', uri, headers, null);
+      final res = await http.get(uri, headers: headers);
+      _debugResponse('ADMIN_DASHBOARD_STATS', res);
+
+      if (res.statusCode == 200) {
+        final j = _tryDecodeJson(res.body);
+        if (j is Map<String, dynamic>) {
+          return j;
+        }
+      }
+      throw Exception('Gagal mengambil statistik dashboard (HTTP ${res.statusCode})');
+    } catch (e) {
+      throw Exception('Gagal mengambil statistik dashboard: $e');
+    }
+  }
 
   Future<Map<String, dynamic>> adminFetchServicesRaw({
     String? status,
@@ -1618,60 +1673,6 @@ class ApiService {
       throw Exception('Invoice tidak ditemukan');
     } catch (e) {
       rethrow;
-    }
-  }
-
-  /* ================= ADMIN DASHBOARD ================= */
-
-  /// GET /api/v1/admins/dashboard
-  Future<Map<String, dynamic>> adminFetchDashboard() async {
-    try {
-      final uri = Uri.parse('${_baseUrl}admins/dashboard');
-      final headers = await _getAuthHeaders();
-      
-      _debugRequest('ADMIN_DASHBOARD', uri, headers, null);
-      final res = await http.get(uri, headers: headers);
-      _debugResponse('ADMIN_DASHBOARD', res);
-
-      if (res.statusCode == 200) {
-        final j = _tryDecodeJson(res.body);
-        if (j is Map<String, dynamic>) {
-          return j;
-        }
-      }
-      throw Exception('Failed to fetch dashboard (HTTP ${res.statusCode})');
-    } catch (e) {
-      throw Exception('Failed to fetch dashboard: $e');
-    }
-  }
-
-  /// GET /api/v1/admins/dashboard/stats
-  Future<Map<String, dynamic>> adminFetchDashboardStats({
-    String? dateFrom,
-    String? dateTo,
-  }) async {
-    try {
-      final params = <String, String>{};
-      if (dateFrom != null) params['date_from'] = dateFrom;
-      if (dateTo != null) params['date_to'] = dateTo;
-
-      final uri = Uri.parse('${_baseUrl}admins/dashboard/stats')
-          .replace(queryParameters: params);
-      final headers = await _getAuthHeaders();
-      
-      _debugRequest('ADMIN_DASHBOARD_STATS', uri, headers, null);
-      final res = await http.get(uri, headers: headers);
-      _debugResponse('ADMIN_DASHBOARD_STATS', res);
-
-      if (res.statusCode == 200) {
-        final j = _tryDecodeJson(res.body);
-        if (j is Map<String, dynamic>) {
-          return j;
-        }
-      }
-      throw Exception('Failed to fetch dashboard stats (HTTP ${res.statusCode})');
-    } catch (e) {
-      throw Exception('Failed to fetch dashboard stats: $e');
     }
   }
 

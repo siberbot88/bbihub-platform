@@ -24,8 +24,6 @@ class TransactionPolicy
             return $user->workshops()->where('id', $transaction->workshop_uuid)->exists();
         }
 
-        // Customer hanya bisa lihat transaksi miliknya -> vehicle -> user_id
-        // Atau jika transaction punya user_id langsung
         return $user->id === $transaction->vehicle->user_id;
     }
 
@@ -41,8 +39,6 @@ class TransactionPolicy
         if ($user->hasRole('owner')) {
             return $user->workshops()->where('id', $transaction->workshop_uuid)->exists();
         }
-
-        // Customer TIDAK BOLEH update transaksi
         return false;
     }
 }

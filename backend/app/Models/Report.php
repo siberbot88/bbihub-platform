@@ -22,7 +22,12 @@ class Report extends Model
         'report_type',
         'report_data',
         'photo',
-        'status'
+        'status',
+        'user_deleted_at',
+    ];
+
+    protected $casts = [
+        'user_deleted_at' => 'datetime',
     ];
 
     public function workshop(): BelongsTo

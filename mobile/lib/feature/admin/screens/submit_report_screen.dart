@@ -65,10 +65,12 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
         photoBase64 = base64Encode(bytes);
       }
 
+      print('DEBUG: SubmitReportScreen Calling submitReport with isAdmin=true');
       await _reportService.submitReport(
         reportType: _selectedType,
         reportData: _descriptionController.text.trim(),
         photoBase64: photoBase64,
+        isAdmin: true, // Explicitly set for admin screen
       );
 
       if (mounted) {

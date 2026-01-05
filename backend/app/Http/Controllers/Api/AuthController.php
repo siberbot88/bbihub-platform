@@ -124,7 +124,7 @@ class AuthController extends Controller
         $request->authenticate();
 
         /** @var User $user */
-        $user = $request->user(); // Ambil user yang sudah diotentikasi oleh LoginRequest
+        $user = $request->user();
 
         if ((bool) $request->boolean('revoke_others', false)) {
             $user->tokens()->delete();
