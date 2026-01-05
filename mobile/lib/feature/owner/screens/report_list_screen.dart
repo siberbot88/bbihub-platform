@@ -61,6 +61,80 @@ class _ReportListScreenState extends State<ReportListScreen> {
     }
   }
 
+  Future<void> _deleteReport(Report report, int index) async {
+    // Show confirmation dialog
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Hapus Aduan?',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+        ),
+        content: Text(
+          'Aduan akan dihapus dari riwayat Anda. Admin masih dapat melihat aduan ini.',
+          style: GoogleFonts.poppins(fontSize: 14),
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(
+              'Batal',
+              style: GoogleFonts.poppins(color: const Color(0xFF6B7280)),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFEF4444),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              'Hapus',
+              style: GoogleFonts.poppins(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await _reportService.deleteReport(report.id);
+        
+        setState(() {
+          _reports.removeAt(index);
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Aduan berhasil dihapus dari riwayat Anda',
+                style: GoogleFonts.poppins(),
+              ),
+              backgroundColor: const Color(0xFF22C55E),
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Gagal menghapus aduan: ${e.toString()}',
+                style: GoogleFonts.poppins(),
+              ),
+              backgroundColor: const Color(0xFFEF4444),
+            ),
+          );
+        }
+      }
+    }
+  }
+
   String _formatDate(DateTime date) {
     return DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(date);
   }
@@ -185,102 +259,124 @@ class _ReportListScreenState extends State<ReportListScreen> {
                         itemCount: _reports.length,
                         itemBuilder: (context, index) {
                           final report = _reports[index];
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                          return Dismissible(
+                            key: Key(report.id),
+                            direction: DismissDirection.endToStart,
+                            confirmDismiss: (direction) async {
+                              await _deleteReport(report, index);
+                              return false; // We handle removal manually
+                            },
+                            background: Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEF4444),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              alignment: Alignment.centerRight,
+                              padding: const EdgeInsets.only(right: 20),
+                              child: const Icon(
+                                Icons.delete,
+                                color: Colors.white,
+                                size: 28,
+                              ),
                             ),
-                            elevation: 1,
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(12),
-                              onTap: () {
-                                // Navigate to detail (optional - untuk future)
-                              },
-                              child: Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        // Report Type Badge
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 6,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFFDBEAFE),
-                                            borderRadius:
-                                                BorderRadius.circular(6),
-                                          ),
-                                          child: Text(
-                                            report.reportType,
-                                            style: GoogleFonts.poppins(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w600,
-                                              color: const Color(0xFF1E40AF),
+                            child: Card(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 1,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(12),
+                                onTap: () {
+                                  // Navigate to detail (optional - untuk future)
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          // Report Type Badge
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 6,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFDBEAFE),
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                            ),
+                                            child: Text(
+                                              report.reportType,
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                                color: const Color(0xFF1E40AF),
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                        // Status Badge
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 6,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: _getStatusColor(report.status)
-                                                .withValues(alpha: 0.2),
-                                            borderRadius:
-                                                BorderRadius.circular(6),
-                                          ),
-                                          child: Text(
-                                            report.getStatusLabel(),
-                                            style: GoogleFonts.poppins(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w600,
-                                              color: _getStatusColor(
-                                                  report.status),
+                                          // Status Badge
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 6,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: _getStatusColor(report.status)
+                                                  .withValues(alpha: 0.2),
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                            ),
+                                            child: Text(
+                                              report.getStatusLabel(),
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                                color: _getStatusColor(
+                                                    report.status),
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 12),
-                                    // Description (truncated)
-                                    Text(
-                                      report.reportData,
-                                      maxLines: 3,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 14,
-                                        color: const Color(0xFF374151),
-                                        height: 1.5,
+                                        ],
                                       ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    // Date
-                                    Row(
-                                      children: [
-                                        const Icon(
-                                          Icons.access_time,
-                                          size: 16,
-                                          color: Color(0xFF9CA3AF),
+                                      const SizedBox(height: 12),
+                                      // Description (truncated)
+                                      Text(
+                                        report.reportData,
+                                        maxLines: 3,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 14,
+                                          color: const Color(0xFF374151),
+                                          height: 1.5,
                                         ),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          _formatDate(report.createdAt),
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 12,
-                                            color: const Color(0xFF6B7280),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      // Date
+                                      Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.access_time,
+                                            size: 16,
+                                            color: Color(0xFF9CA3AF),
                                           ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            _formatDate(report.createdAt),
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 12,
+                                              color: const Color(0xFF6B7280),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),

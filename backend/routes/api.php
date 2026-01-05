@@ -36,7 +36,7 @@ Route::prefix('v1/auth')->group(function () {
     Route::post('register', [AuthController::class, 'register'])->name('api.register');
     Route::post('login', [AuthController::class, 'login'])->name('api.login');
 
-    //SECURITY FIX: Rate limiting for password reset endpoints
+    //SECURITY FIX: Rate limiting for password eet endpoints
     Route::post('forgot-password', [\App\Http\Controllers\Api\ForgotPasswordController::class, 'sendOtp'])
         ->middleware('throttle:3,10'); // Max 3 requests per 10 minutes
 
@@ -157,7 +157,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::get('feedback', [FeedbackController::class, 'index'])->name('feedback.index');
 
         // Reports/Aduan Aplikasi
-        Route::apiResource('reports', \App\Http\Controllers\API\Owner\ReportController::class)->only(['index', 'store', 'show']);
+        Route::apiResource('reports', \App\Http\Controllers\API\Owner\ReportController::class)->only(['index', 'store', 'show', 'destroy']);
     });
 
     // ADMIN ROUTES (Consolidated)

@@ -66,6 +66,7 @@ class PerformanceHelpers {
     }
 
     return StaffPerformance(
+      staffId: staff.id,
       name: displayName,
       role: StaffRole.values.firstWhere(
         (e) => e.toString().contains(staff.role.toLowerCase()),

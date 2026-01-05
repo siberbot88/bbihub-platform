@@ -79,7 +79,7 @@ class ServiceResource extends JsonResource
             'note' => $this->note,
 
             // Image URL for service photo
-            'image_url' => $this->image_path ? url('storage/' . $this->image_path) : null,
+            'image_url' => $this->image_url,
 
 
             'transaction' => $this->whenLoaded('transaction', function () {

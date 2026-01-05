@@ -7,7 +7,7 @@ import '../widgets/custom_header.dart'; // Reuse existing header if possible
 
 import 'package:provider/provider.dart';
 import '../providers/admin_service_provider.dart';
-import 'service_logging.dart';
+import 'service_page.dart';
 
 class AddServiceOnSitePage extends StatefulWidget {
   const AddServiceOnSitePage({super.key});
@@ -419,11 +419,12 @@ class _AddServiceOnSitePageState extends State<AddServiceOnSitePage> {
              backgroundColor: Colors.green,
            ),
          );
-         // Navigate to service logging page
-         Navigator.pushReplacement(
-           context,
-           MaterialPageRoute(builder: (context) => const ServiceLoggingPage()),
-         );
+          
+          // Small delay to ensure snackbar is shown before popping
+          await Future.delayed(const Duration(milliseconds: 100));
+          
+          // Pop back to ServicePageAdmin (Pencatatan tab with red header)
+          if (mounted) Navigator.of(context).pop();
        }
      } catch (e) {
        if (mounted) {
@@ -596,4 +597,4 @@ class _AddServiceOnSitePageState extends State<AddServiceOnSitePage> {
       });
     }
   }
-} // Closing class _AddServiceOnSitePageState
+}

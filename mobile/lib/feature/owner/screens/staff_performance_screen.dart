@@ -396,7 +396,13 @@ class _StaffPerformanceScreenState extends State<StaffPerformanceScreen> {
     final bool isSelected = _selectedRange == range;
     return Expanded(
       child: GestureDetector(
-        onTap: () => setState(() => _selectedRange = range),
+        onTap: () {
+          // Only fetch if switching to a different range
+          if (_selectedRange != range) {
+            setState(() => _selectedRange = range);
+            _fetchData(); // Reload data for new period
+          }
+        },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           alignment: Alignment.center,

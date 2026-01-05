@@ -25,10 +25,10 @@ class MidtransIpWhitelist
         $requestIp = $request->ip();
 
         if (!in_array($requestIp, $allowedIps)) {
-            //            Log::warning('Midtrans Webhook: Blocked unauthorized IP', [
-//                'ip' => $requestIp,
-//                'user_agent' => $request->userAgent()
-//            ]);
+            Log::warning('Midtrans Webhook: Blocked unauthorized IP', [
+                'ip' => $requestIp,
+                'user_agent' => $request->userAgent()
+            ]);
 
             return response()->json(['message' => 'Unauthorized IP address'], 403);
         }

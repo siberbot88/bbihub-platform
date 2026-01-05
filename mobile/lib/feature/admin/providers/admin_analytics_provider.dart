@@ -60,11 +60,7 @@ class AdminAnalyticsProvider extends ChangeNotifier {
   // Helper getters for Quick Stats
   int get serviceToday => _quickStats?['services_today'] ?? 0;
   int get needsAssign => _quickStats?['needs_assignment'] ?? 0;
-  // Note: feedback count not in quick stats provided by backend logic viewed earlier?
-  // Actually dashboard logic:
-  // 'services_today', 'needs_assignment', 'in_progress', 'completed'
-  // No explicit feedback count in quick stats.
-  // But top_services, mechanic_stats are there.
+  int get feedbackCount => _quickStats?['feedback_today'] ?? 0;
 
   int get inProgress => _quickStats?['in_progress'] ?? 0;
   int get completedToday => _quickStats?['completed'] ?? 0; // "Selesai"

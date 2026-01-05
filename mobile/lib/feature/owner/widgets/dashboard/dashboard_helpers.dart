@@ -35,10 +35,20 @@ SummaryData buildSummary(List<ServiceModel> list, SummaryRange range) {
             d.day == now.day;
             
       case SummaryRange.week:
-        // Minggu ini: dari 7 hari yang lalu sampai sekarang
-        final startOfWeek = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 7));
-        final endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
-        return d.isAfter(startOfWeek) && d.isBefore(endOfDay);
+        // Minggu ini: Last 7 days WITHIN current calendar month only
+        // This ensures month total is always >= week total
+        final startOfMonth = DateTime(now.year, now.month, 1);
+        final endOfToday = DateTime(now.year, now.month, now.day, 23, 59, 59);
+        
+        // Calculate 7 days ago, but constrain to start of current month
+        final sevenDaysAgo = DateTime(now.year, now.month, now.day)
+            .subtract(const Duration(days: 7));
+        final startOfWeek = sevenDaysAgo.isAfter(startOfMonth) 
+            ? sevenDaysAgo 
+            : startOfMonth;
+        
+        return d.isAfter(startOfWeek.subtract(const Duration(seconds: 1))) && 
+               d.isBefore(endOfToday.add(const Duration(seconds: 1)));
         
       case SummaryRange.month:
         // Bulan ini: same year and month

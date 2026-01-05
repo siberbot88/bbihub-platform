@@ -46,9 +46,15 @@ class AdminEmployeeController extends Controller
             ->get()
             ->map(function ($mechanic) use ($startDate, $endDate) {
                 // 1. Jobs Done (Completed Services in range)
+                // 1. Jobs Done (Completed Services in range OR In Progress)
                 $services = \App\Models\Service::where('mechanic_uuid', $mechanic->id)
-                    ->where('status', 'completed')
-                    ->whereBetween('completed_at', [$startDate, $endDate])
+                    ->where(function ($query) use ($startDate, $endDate) {
+                    $query->where(function ($q) use ($startDate, $endDate) {
+                        $q->where('status', 'completed')
+                            ->whereBetween('completed_at', [$startDate, $endDate]);
+                    })
+                        ->orWhere('status', 'in progress');
+                })
                     ->get();
 
                 $jobsCount = $services->count();

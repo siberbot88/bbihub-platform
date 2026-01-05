@@ -65,14 +65,14 @@ class CleanNotification extends StatelessWidget {
   Color get _leftBarColor {
     switch (type) {
       case NotificationType.error:
-        return const Color(0xFFEF4444); 
+        return const Color(0xFF6B7280); // Neutral gray
       case NotificationType.success:
-        return const Color(0xFF22C55E);
+        return const Color(0xFF6B7280); // Neutral gray
       case NotificationType.warning:
-        return const Color(0xFFF59E0B);
+        return const Color(0xFF6B7280); // Neutral gray
       case NotificationType.info:
       default:
-        return const Color(0xFF3B82F6);
+        return const Color(0xFF6B7280); // Neutral gray
     }
   }
 

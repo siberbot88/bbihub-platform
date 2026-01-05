@@ -32,6 +32,7 @@ class ReportController extends Controller
 
         $perPage = $request->input('per_page', 10);
         $reports = Report::where('workshop_uuid', $workshopUuid)
+            ->whereNull('user_deleted_at') // Only show reports not deleted by user
             ->orderBy('created_at', 'desc')
             ->paginate($perPage);
 
@@ -112,5 +113,41 @@ class ReportController extends Controller
         }
 
         return $this->successResponse('Report retrieved successfully', $report);
+    }
+
+    /**
+     * Soft delete the report (hide from user view)
+     * 
+     * @param string $id
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function destroy(string $id, Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $workshopUuid = $user->workshops?->first()?->id;
+
+        if (!$workshopUuid) {
+            return $this->errorResponse('No workshop found for this user', 404);
+        }
+
+        $report = Report::where('id', $id)
+            ->where('workshop_uuid', $workshopUuid)
+            ->whereNull('user_deleted_at') // Can only delete reports not already deleted
+            ->first();
+
+        if (!$report) {
+            return $this->errorResponse('Report not found', 404);
+        }
+
+        try {
+            // Soft delete by setting user_deleted_at timestamp
+            $report->user_deleted_at = now();
+            $report->save();
+
+            return $this->successResponse('Report successfully deleted from your view', null, 200);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to delete report: ' . $e->getMessage(), 500);
+        }
     }
 }

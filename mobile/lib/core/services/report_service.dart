@@ -152,4 +152,30 @@ class ReportService {
       throw Exception('Error fetching report detail: $e');
     }
   }
+
+  /// Delete a report (soft delete from user view)
+  Future<void> deleteReport(String reportId, {bool isAdmin = false}) async {
+    try {
+      final headers = await _getAuthHeaders();
+      
+      // Use different endpoint based on user type
+      final String endpoint = isAdmin 
+          ? '${_baseUrl}admins/reports/$reportId'
+          : '${_baseUrl}owners/reports/$reportId';
+      
+      final uri = Uri.parse(endpoint);
+
+      final response = await http.delete(uri, headers: headers);
+
+      if (response.statusCode != 200) {
+        final dynamic errorResponse = json.decode(response.body);
+        if (errorResponse is Map<String, dynamic>) {
+          throw Exception(errorResponse['message'] ?? 'Failed to delete report');
+        }
+        throw Exception('Failed to delete report: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error deleting report: $e');
+    }
+  }
 }
